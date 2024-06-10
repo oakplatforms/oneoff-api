@@ -12,8 +12,8 @@ enum TcgName {
 }
 
 enum CollectionType {
-	STRAW_HAT_CREW
-	SUPERNOVAS
+  STRAW_HAT_CREW
+  SUPERNOVAS
 }
 
 model Tcg {
