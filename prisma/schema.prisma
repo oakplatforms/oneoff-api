@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:superDB2!@localhost:5432/postgres?schema=public"
+}
+
+enum TcgName {
+  ONE_PIECE
+}
+
+enum CollectionType {
+	STRAW_HAT_CREW
+	SUPERNOVAS
+}
+
+model Tcg {
+  id            String @id @unique @default(cuid()) 
+  name          String @unique
+  displayName   String?
+  type          TcgName @default(ONE_PIECE)
+  
+  cards         Card[]
+  collections   Collection[]
+}
+
+model Collection {
+  id            String @id @unique @default(cuid()) 
+  name          String @unique
+  displayName   String?
+  type          CollectionType
+  
+  // relations
+  cards         Card[]
+  tcg           Tcg?    @relation(fields: [tcgName], references: [name])
+  tcgName       String?
+}
+
+model Card {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  title         String
+  description   String?
+  sku           Int?
+  isPublished   Boolean  @default(false)
+  viewCount     Int      @default(0)
+
+  // relations
+  tcg            Tcg?     @relation(fields: [tcgName], references: [name])
+  tcgName        String?
+  collection     Collection?    @relation(fields: [collectionName], references: [name])
+  collectionName String?
+}
