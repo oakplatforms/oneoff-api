@@ -10,10 +10,10 @@ tcgRouter.get('/list/tcgs', async (req, res) => {
 })
 
 tcgRouter.post(`/tcg`, async (req, res) => {
-  const { name, displayName, type, cards } = req.body
+  const { name, displayName, type, products } = req.body
 
-  const cardData = cards?.map((card: Prisma.CardCreateInput) => {
-    return { title: card?.title, description: card?.description }
+  const productData = products?.map((product: Prisma.ProductCreateInput) => {
+    return { ...product, tcgName: name }
   })
 
   const result = await prisma.tcg.create({
@@ -21,8 +21,8 @@ tcgRouter.post(`/tcg`, async (req, res) => {
       name,
       displayName,
       type,
-      cards: {
-        create: cardData,
+      products: {
+        create: productData,
       },
     },
   })

@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
 enum TcgName {
@@ -16,41 +16,71 @@ enum CollectionType {
   SUPERNOVAS
 }
 
+enum ProductType {
+  CARD
+}
+
 model Tcg {
-  id            String @id @unique @default(cuid()) 
-  name          String @unique
+  id            String  @id @unique @default(cuid()) 
+  name          String  @unique
   displayName   String?
-  type          TcgName @default(ONE_PIECE)
+  type          TcgName  @default(ONE_PIECE)
   
-  cards         Card[]
+  // relations
   collections   Collection[]
+  decks         Deck[] 
+  products      Product[]  
 }
 
 model Collection {
-  id            String @id @unique @default(cuid()) 
-  name          String @unique
+  id            String  @id @default(cuid()) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   displayName   String?
+  name          String?
+  description   String?
+
+  // custom
   type          CollectionType
-  
+
   // relations
-  cards         Card[]
-  tcg           Tcg?    @relation(fields: [tcgName], references: [name])
+  tcg           Tcg?  @relation(fields: [tcgName], references: [name])
   tcgName       String?
+  products      Product[]
 }
 
-model Card {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  title         String
+model Deck {
+  id            String  @id @default(cuid()) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  displayName   String?
+  name          String?
   description   String?
-  sku           Int?
-  isPublished   Boolean  @default(false)
-  viewCount     Int      @default(0)
 
   // relations
-  tcg            Tcg?     @relation(fields: [tcgName], references: [name])
+  tcg           Tcg?  @relation(fields: [tcgName], references: [name])
+  tcgName       String?
+  products      Product[]
+}
+
+model Product {
+  id            String  @id @default(cuid()) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  displayName   String?
+  name          String?
+  description   String?
+
+  // custom
+  type          ProductType
+  sku           Int
+  counter       Int?  @default(0)
+
+  // relations
+  tcg            Tcg?  @relation(fields: [tcgName], references: [name])
   tcgName        String?
-  collection     Collection?    @relation(fields: [collectionName], references: [name])
-  collectionName String?
+  deck           Deck?  @relation(fields: [deckId], references: [id])
+  deckId         String?
+  collection     Collection?  @relation(fields: [collectionId], references: [id])
+  collectionId   String?
 }
