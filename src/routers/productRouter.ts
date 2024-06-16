@@ -1,16 +1,19 @@
 
 import { PrismaClient } from '@prisma/client'
 import express from 'express'
+import { generateIncludes } from '../utils/generateIncludes'
+
 const prisma = new PrismaClient()
 export const productRouter = express.Router()
 
 productRouter.get('/:tcgName/list/products', async (req, res) => {
   const { tcgName } = req.params
-
+  const { include } = req.query
   const products = await prisma.product.findMany({
     where: {
       tcgName: { contains: tcgName as string }
-    }
+    },
+    include: generateIncludes(include)
   })
 
   res.json(products)
@@ -34,12 +37,13 @@ productRouter.post(`/:tcgName/product`, async (req, res) => {
 
 productRouter.get('/:tcgName/product/:id', async (req, res) => {
   const { tcgName, id } = req.params
-
+  const { include } = req.query
   const products = await prisma.product.findUnique({
     where: {
       id,
       tcgName: tcgName
-    }
+    },
+    include: generateIncludes(include)
   })
 
   res.json(products)
@@ -47,6 +51,7 @@ productRouter.get('/:tcgName/product/:id', async (req, res) => {
 
 productRouter.put('/:tcgName/card/:id/views', async (req, res) => {
   const { id, tcgName } = req.params
+
   try {
     const card = await prisma.product.update({
       where: { id: id },
