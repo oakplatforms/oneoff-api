@@ -1,16 +1,19 @@
 
 import { PrismaClient, Prisma } from '@prisma/client'
 import express from 'express'
+import { generateIncludes } from '../utils/generateIncludes'
+
 const prisma = new PrismaClient()
 export const collectionRouter = express.Router()
 
 collectionRouter.get('/:tcgName/list/collections', async (req, res) => {
   const { tcgName } = req.params
-
+  const { include } = req.query
   const collections = await prisma.collection.findMany({
     where: {
       tcgName: { contains: tcgName as string }
-    }
+    },
+    include: generateIncludes(include)
   })
 
   res.json(collections)
@@ -40,12 +43,13 @@ collectionRouter.post(`/:tcgName/collection`, async (req, res) => {
 
 collectionRouter.get('/:tcgName/collection/:id', async (req, res) => {
   const { tcgName, id } = req.params
-
+  const { include } = req.query
   const collection = await prisma.collection.findUnique({
     where: {
       id,
       tcgName: tcgName
-    }
+    },
+    include: generateIncludes(include)
   })
 
   res.json(collection)
