@@ -1,28 +1,31 @@
 
 import { PrismaClient, Prisma } from '@prisma/client'
 import express from 'express'
+import { generateIncludes } from '../utils/generateIncludes'
+
 const prisma = new PrismaClient()
 export const tcgRouter = express.Router()
 
 tcgRouter.get('/list/tcgs', async (req, res) => {
-  const result = await prisma.tcg.findMany()
+  const { include } = req.query
+  const result = await prisma.tcg.findMany({
+    include: generateIncludes(include)
+  })
   res.json(result)
 })
 
 tcgRouter.post(`/tcg`, async (req, res) => {
-  const { name, displayName, type, cards } = req.body
-
-  const cardData = cards?.map((card: Prisma.CardCreateInput) => {
-    return { title: card?.title, description: card?.description }
+  const { name, displayName, type, products } = req.body
+  const productData = products?.map((product: Prisma.ProductCreateInput) => {
+    return { ...product, tcgName: name }
   })
-
   const result = await prisma.tcg.create({
     data: {
       name,
       displayName,
       type,
-      cards: {
-        create: cardData,
+      products: {
+        create: productData,
       },
     },
   })
