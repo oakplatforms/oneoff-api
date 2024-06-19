@@ -1,0 +1,605 @@
+{
+	"info": {
+		"_postman_id": "8ad1f3c3-823d-4217-80fa-fa673a714ac8",
+		"name": "tcgx-api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "tcgs",
+			"item": [
+				{
+					"name": "create tcg 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8f971735-4741-45a3-b975-bcfc218b4220",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"tcg1Name\", jsonData.name)",
+									"    pm.expect(jsonData.name).to.eq('one-piece')",
+									"    pm.expect(jsonData.displayName).to.eq('One Piece')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"one-piece\", \n    \"displayName\": \"One Piece\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/tcg",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"tcg"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create tcg 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "646ca5aa-ab2a-47dc-84de-8cff86838c3a",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"tcg2Name\", jsonData.name)",
+									"    pm.expect(jsonData.name).to.eq('pokemon')",
+									"    pm.expect(jsonData.displayName).to.eq('Pokemon')",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"pokemon\", \n    \"displayName\": \"Pokemon\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/tcg",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"tcg"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all tcgs include products + collections",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "3d583b6f-c5a5-42ca-a8bb-11b2a2c76e48",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.length).to.eq(2)",
+									"    pm.expect(jsonData[0].name).to.eq('one-piece')",
+									"    pm.expect(jsonData[0].displayName).to.eq('One Piece')",
+									"    pm.expect(jsonData[0].products.length).to.eq(0)",
+									"    pm.expect(jsonData[0].collections.length).to.eq(0)",
+									"    pm.expect(jsonData[1].name).to.eq('pokemon')",
+									"    pm.expect(jsonData[1].displayName).to.eq('Pokemon')",
+									"    pm.expect(jsonData[1].products.length).to.eq(0)",
+									"    pm.expect(jsonData[1].collections.length).to.eq(0)",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/list/tcgs?include=[\"products\", \"collections\"]",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"list",
+								"tcgs"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "[\"products\", \"collections\"]"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "collections",
+			"item": [
+				{
+					"name": "create collection1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "20db9743-2f64-4f4e-9ce8-da3dd3091999",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"collection1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"One Piece Collection 1\", \n    \"name\": \"one-piece-collection-1\",\n    \"type\": \"SUPERNOVAS\",\n    \"products\": [{\n        \"displayName\": \"One Piece Collection 1 Product 1\", \n        \"name\": \"one-piece-collection-1-product-1\", \n        \"type\": \"CARD\",\n        \"sku\": 123456789\n    },\n    {\n        \"displayName\": \"One Piece Collection 1 Product 2\", \n        \"name\": \"one-piece-collection-1-product-2\", \n        \"type\": \"CARD\",\n        \"sku\": 234567890\n    }]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/collection",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"collection"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get collection1 include products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "924b56e5-5a8f-42f2-ba61-0bcfb1f4fddb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.type).to.eq('SUPERNOVAS')",
+									"    pm.expect(jsonData.name).to.eq('one-piece-collection-1')",
+									"    pm.expect(jsonData.displayName).to.eq('One Piece Collection 1')",
+									"",
+									"    pm.expect(jsonData.products.length).to.eq(2)",
+									"    pm.expect(jsonData.products[0].collectionId).to.eq(jsonData.id)",
+									"    pm.expect(jsonData.products[0].name).to.eq('one-piece-collection-1-product-1')",
+									"    pm.expect(jsonData.products[0].displayName).to.eq('One Piece Collection 1 Product 1')",
+									"    pm.expect(jsonData.products[1].collectionId).to.eq(jsonData.id)",
+									"    pm.expect(jsonData.products[1].name).to.eq('one-piece-collection-1-product-2')",
+									"    pm.expect(jsonData.products[1].displayName).to.eq('One Piece Collection 1 Product 2')",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/collection/{{collection1Id}}?include=[\"products\"]",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"collection",
+								"{{collection1Id}}"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "[\"products\"]"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "decks",
+			"item": [
+				{
+					"name": "create deck1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "fc7e20f6-f425-44d7-8637-fbf375a8a591",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"deck1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"One Piece Deck 1\", \n    \"name\": \"one-piece-deck-1\",\n    \"products\": [{\n        \"displayName\": \"One Piece Deck 1 Product 1\", \n        \"name\": \"one-piece-deck-1-product-1\", \n        \"type\": \"CARD\",\n        \"sku\": 213321321\n    },\n    {\n        \"displayName\": \"One Piece Deck 1 Product 2\", \n        \"name\": \"one-piece-deck-1-product-2\", \n        \"type\": \"CARD\",\n        \"sku\": 231233321\n    }]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/deck",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"deck"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get deck1 include products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b3d71c6e-8667-432f-bcb9-79ce812e3d56",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.name).to.eq('one-piece-deck-1')",
+									"    pm.expect(jsonData.displayName).to.eq('One Piece Deck 1')",
+									"",
+									"    pm.expect(jsonData.products.length).to.eq(2)",
+									"    pm.expect(jsonData.products[0].deckId).to.eq(jsonData.id)",
+									"    pm.expect(jsonData.products[0].name).to.eq('one-piece-deck-1-product-1')",
+									"    pm.expect(jsonData.products[0].displayName).to.eq('One Piece Deck 1 Product 1')",
+									"    pm.expect(jsonData.products[1].deckId).to.eq(jsonData.id)",
+									"    pm.expect(jsonData.products[1].name).to.eq('one-piece-deck-1-product-2')",
+									"    pm.expect(jsonData.products[1].displayName).to.eq('One Piece Deck 1 Product 2')",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/deck/{{deck1Id}}?include=[\"products\"]",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"deck",
+								"{{deck1Id}}"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "[\"products\"]"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "products",
+			"item": [
+				{
+					"name": "create product 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "c0dd2f78-4eb5-4cea-8b6b-652e4972ab52",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"product1Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('product-1')",
+									"    pm.expect(jsonData.displayName).to.eq('Product 1')",
+									"    pm.expect(jsonData.type).to.eq('CARD')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Product 1\", \n    \"name\": \"product-1\", \n    \"type\": \"CARD\",\n    \"sku\": 343242343\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create product 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "69aee725-857a-4689-9686-612bba66b7c5",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"product2Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('product-2')",
+									"    pm.expect(jsonData.displayName).to.eq('Product 2')",
+									"    pm.expect(jsonData.type).to.eq('CARD')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Product 2\", \n    \"name\": \"product-2\", \n    \"type\": \"CARD\",\n    \"sku\": 982321323\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get product1 include tcg",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "582ea0fe-6d33-43a6-b868-74073473519d",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.name).to.eq('product-1')",
+									"    pm.expect(jsonData.displayName).to.eq('Product 1')",
+									"    pm.expect(jsonData.type).to.eq('CARD')",
+									"",
+									"    pm.expect(jsonData.tcg.name).to.eq('one-piece')",
+									"    pm.expect(jsonData.tcg.type).to.eq('ONE_PIECE')",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product/{{product1Id}}?include=[\"tcg\"]",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{tcg1Name}}",
+								"product",
+								"{{product1Id}}"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "[\"tcg\"]"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"variable": [
+		{
+			"id": "03f700c5-1699-4ff1-bf26-a7badb440e32",
+			"key": "tcgName1",
+			"value": ""
+		},
+		{
+			"id": "e25a422f-7bbe-44d2-9ea5-d416f1b4cdfd",
+			"key": "tcgName2",
+			"value": ""
+		},
+		{
+			"id": "b7730fd9-8b0c-4803-a294-4f70cde94a95",
+			"key": "deckId1",
+			"value": ""
+		},
+		{
+			"id": "312cc5e0-cdd6-4cbf-98ff-3b0d6908946a",
+			"key": "product1",
+			"value": ""
+		},
+		{
+			"id": "fc6cb4ce-1140-4434-9b10-ad70171cf91b",
+			"key": "product2",
+			"value": ""
+		},
+		{
+			"id": "ec467085-d8d7-43ea-90c2-835cf717bdf2",
+			"key": "tcg1Name",
+			"value": ""
+		},
+		{
+			"id": "34666b24-92fb-479f-bd29-6086d8082811",
+			"key": "tcg2Name",
+			"value": ""
+		},
+		{
+			"id": "a2eee1f1-d2fd-43fd-ae39-dbb370cbb63e",
+			"key": "collection1Id",
+			"value": ""
+		},
+		{
+			"id": "dfe2bd5c-8961-483e-a271-316c89d0388a",
+			"key": "deck1Id",
+			"value": ""
+		},
+		{
+			"id": "921808ea-3d9c-494c-a999-1a8da5533110",
+			"key": "product1Id",
+			"value": ""
+		},
+		{
+			"id": "12f7eb00-3549-4d9b-9ff2-bee628a2e09c",
+			"key": "product2Id",
+			"value": ""
+		}
+	],
+	"protocolProfileBehavior": {}
+}
