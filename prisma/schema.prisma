@@ -22,6 +22,8 @@ enum ProductType {
 
 model Tcg {
   id            String  @id @unique @default(cuid()) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   name          String  @unique
   displayName   String?
   type          TcgName  @default(ONE_PIECE)
@@ -30,6 +32,7 @@ model Tcg {
   collections   Collection[]
   decks         Deck[] 
   products      Product[]  
+  cards         Card[]
 }
 
 model Collection {
@@ -74,7 +77,6 @@ model Product {
   // custom
   type          ProductType
   sku           Int
-  counter       Int?  @default(0)
 
   // relations
   tcg            Tcg?  @relation(fields: [tcgName], references: [name])
@@ -83,4 +85,25 @@ model Product {
   deckId         String?
   collection     Collection?  @relation(fields: [collectionId], references: [id])
   collectionId   String?
+  card           Card?
+}
+
+model Card {
+  id            String  @id @default(cuid()) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  displayName   String?
+  name          String?
+  description   String?
+
+  // custom
+  counter       Int?  @default(0)
+  rarity        String?
+  releaseDate   DateTime?
+
+  // relations
+  tcg            Tcg?  @relation(fields: [tcgName], references: [name])
+  tcgName        String?
+  product        Product @relation(fields: [productId], references: [id])
+  productId      String  @unique
 }
