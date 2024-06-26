@@ -401,8 +401,8 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"product1Id\", jsonData.id)",
-									"    pm.expect(jsonData.name).to.eq('product-1')",
-									"    pm.expect(jsonData.displayName).to.eq('Product 1')",
+									"    pm.expect(jsonData.name).to.eq('card-1')",
+									"    pm.expect(jsonData.displayName).to.eq('Card 1')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
 									"})"
 								],
@@ -415,7 +415,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Product 1\", \n    \"name\": \"product-1\", \n    \"type\": \"CARD\",\n    \"sku\": 343242343\n}",
+							"raw": "{\n    \"displayName\": \"Card 1\", \n    \"name\": \"card-1\",\n    \"type\": \"CARD\",\n    \"sku\": 343242343,\n    \"card\": {\n        \"rarity\": \"Super rare\",\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -447,8 +447,8 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"product2Id\", jsonData.id)",
-									"    pm.expect(jsonData.name).to.eq('product-2')",
-									"    pm.expect(jsonData.displayName).to.eq('Product 2')",
+									"    pm.expect(jsonData.name).to.eq('card-2')",
+									"    pm.expect(jsonData.displayName).to.eq('Card 2')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
 									"})"
 								],
@@ -461,7 +461,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Product 2\", \n    \"name\": \"product-2\", \n    \"type\": \"CARD\",\n    \"sku\": 982321323\n}",
+							"raw": "{\n    \"displayName\": \"Card 2\", \n    \"name\": \"card-2\",\n    \"type\": \"CARD\",\n    \"sku\": 343322343,\n    \"card\": {\n        \"rarity\": \"Not rare at all\",\n        \"releaseDate\": \"2024-11-11T00:00:00.000Z\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -492,12 +492,15 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.name).to.eq('product-1')",
-									"    pm.expect(jsonData.displayName).to.eq('Product 1')",
+									"    pm.expect(jsonData.name).to.eq('card-1')",
+									"    pm.expect(jsonData.displayName).to.eq('Card 1')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
-									"",
+									"    ",
 									"    pm.expect(jsonData.tcg.name).to.eq('one-piece')",
 									"    pm.expect(jsonData.tcg.type).to.eq('ONE_PIECE')",
+									"",
+									"    pm.expect(jsonData.card.rarity).to.eq('Super rare')",
+									"    pm.expect(jsonData.card.releaseDate).to.eq('2024-09-01T00:00:00.000Z')",
 									"})",
 									""
 								],
@@ -521,7 +524,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product/{{product1Id}}?include=[\"tcg\"]",
+							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product/{{product1Id}}?include=[\"tcg\", \"card\"]",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -533,7 +536,7 @@
 							"query": [
 								{
 									"key": "include",
-									"value": "[\"tcg\"]"
+									"value": "[\"tcg\", \"card\"]"
 								}
 							]
 						}
@@ -546,57 +549,57 @@
 	],
 	"variable": [
 		{
-			"id": "03f700c5-1699-4ff1-bf26-a7badb440e32",
+			"id": "7600a7ed-9fc6-4239-88dc-05f4c811ff05",
 			"key": "tcgName1",
 			"value": ""
 		},
 		{
-			"id": "e25a422f-7bbe-44d2-9ea5-d416f1b4cdfd",
+			"id": "b79a6af8-a1b4-4870-bb47-db8ab0eaa1f7",
 			"key": "tcgName2",
 			"value": ""
 		},
 		{
-			"id": "b7730fd9-8b0c-4803-a294-4f70cde94a95",
+			"id": "03c91320-1306-41c4-a268-995bb308664f",
 			"key": "deckId1",
 			"value": ""
 		},
 		{
-			"id": "312cc5e0-cdd6-4cbf-98ff-3b0d6908946a",
+			"id": "ec30ff27-0862-4776-80ca-40e28c925c69",
 			"key": "product1",
 			"value": ""
 		},
 		{
-			"id": "fc6cb4ce-1140-4434-9b10-ad70171cf91b",
+			"id": "799bf63a-e21d-4b87-9386-169aae7b34d2",
 			"key": "product2",
 			"value": ""
 		},
 		{
-			"id": "ec467085-d8d7-43ea-90c2-835cf717bdf2",
+			"id": "9e8f74d3-e936-4753-ac64-3594d2487862",
 			"key": "tcg1Name",
 			"value": ""
 		},
 		{
-			"id": "34666b24-92fb-479f-bd29-6086d8082811",
+			"id": "c0051f5e-fef5-4dd6-b643-daea87bee614",
 			"key": "tcg2Name",
 			"value": ""
 		},
 		{
-			"id": "a2eee1f1-d2fd-43fd-ae39-dbb370cbb63e",
+			"id": "cd6d1752-71eb-44e6-b2e5-09b1b8e32b3b",
 			"key": "collection1Id",
 			"value": ""
 		},
 		{
-			"id": "dfe2bd5c-8961-483e-a271-316c89d0388a",
+			"id": "b311fd53-6641-47fd-afd1-b62737efc4a2",
 			"key": "deck1Id",
 			"value": ""
 		},
 		{
-			"id": "921808ea-3d9c-494c-a999-1a8da5533110",
+			"id": "9ee7caf0-2bee-4334-a525-b5451c0f607e",
 			"key": "product1Id",
 			"value": ""
 		},
 		{
-			"id": "12f7eb00-3549-4d9b-9ff2-bee628a2e09c",
+			"id": "b867c23c-8915-413e-8094-f2874dfc2ac7",
 			"key": "product2Id",
 			"value": ""
 		}

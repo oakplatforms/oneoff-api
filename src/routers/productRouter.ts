@@ -21,7 +21,8 @@ productRouter.get('/:tcgName/list/products', async (req, res) => {
 
 productRouter.post(`/:tcgName/product`, async (req, res) => {
   const { tcgName } = req.params
-  const { name, type, displayName, description, sku } = req.body
+  const { name, type, displayName, description, sku, card } = req.body
+
   const result = await prisma.product.create({
     data: {
       name,
@@ -29,6 +30,9 @@ productRouter.post(`/:tcgName/product`, async (req, res) => {
       displayName,
       description,
       sku,
+      card: {
+        create: { ...card, tcgName: tcgName },
+      },
       tcg: { connect: { name: tcgName } }
     },
   })
@@ -47,26 +51,6 @@ productRouter.get('/:tcgName/product/:id', async (req, res) => {
   })
 
   res.json(products)
-})
-
-productRouter.put('/:tcgName/card/:id/views', async (req, res) => {
-  const { id, tcgName } = req.params
-
-  try {
-    const card = await prisma.product.update({
-      where: { id: id },
-      data: {
-        counter: {
-          increment: 1,
-        },
-        tcg: { connect: { name: tcgName } },
-      },
-    })
-
-    res.json(card)
-  } catch (error) {
-    res.json({ error: `card with ID ${id} does not exist in the database` })
-  }
 })
 
 productRouter.delete(`/:tcgName/product/:id`, async (req, res) => {
