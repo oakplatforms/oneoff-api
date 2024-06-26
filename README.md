@@ -1,3 +1,3 @@
 # tcgx
 
-platform services for opsgamingcorp
+API and backend services for opsgamingcorp
