@@ -1,25 +1,125 @@
 {
 	"info": {
-		"_postman_id": "8ad1f3c3-823d-4217-80fa-fa673a714ac8",
+		"_postman_id": "29438cfc-ceed-467e-a483-0bbdc050f855",
 		"name": "tcgx-api",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "tcgs",
+			"name": "marketplaces",
 			"item": [
 				{
-					"name": "create tcg 1",
+					"name": "create marketplace 1",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "8f971735-4741-45a3-b975-bcfc218b4220",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"tcg1Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"marketplace1Name\", jsonData.name)",
+									"    pm.expect(jsonData.name).to.eq('tcgx-marketplace')",
+									"    pm.expect(jsonData.displayName).to.eq('Tcgx Marketplace')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"tcgx-marketplace\", \n    \"displayName\": \"Tcgx Marketplace\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/marketplace",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"marketplace"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all marketplaces include brand",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData[0].name).to.eq('tcgx-marketplace')",
+									"    pm.expect(jsonData[0].displayName).to.eq('Tcgx Marketplace')",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/list/marketplaces?include=[\"brands\"]",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"list",
+								"marketplaces"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "[\"brands\"]"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "brands",
+			"item": [
+				{
+					"name": "create brand 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"brand1Name\", jsonData.name)",
 									"    pm.expect(jsonData.name).to.eq('one-piece')",
 									"    pm.expect(jsonData.displayName).to.eq('One Piece')",
 									"})"
@@ -41,33 +141,32 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/tcg",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/brand",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"tcg"
+								"{{marketplace1Name}}",
+								"brand"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "create tcg 2",
+					"name": "create brand 2",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "646ca5aa-ab2a-47dc-84de-8cff86838c3a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"tcg2Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"brand2Name\", jsonData.name)",
 									"    pm.expect(jsonData.name).to.eq('pokemon')",
 									"    pm.expect(jsonData.displayName).to.eq('Pokemon')",
-									"})",
-									""
+									"})"
 								],
 								"type": "text/javascript"
 							}
@@ -86,24 +185,24 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/tcg",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/brand",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"tcg"
+								"{{marketplace1Name}}",
+								"brand"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "get all tcgs include products + collections",
+					"name": "get all brands",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "3d583b6f-c5a5-42ca-a8bb-11b2a2c76e48",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
@@ -111,12 +210,8 @@
 									"    pm.expect(jsonData.length).to.eq(2)",
 									"    pm.expect(jsonData[0].name).to.eq('one-piece')",
 									"    pm.expect(jsonData[0].displayName).to.eq('One Piece')",
-									"    pm.expect(jsonData[0].products.length).to.eq(0)",
-									"    pm.expect(jsonData[0].collections.length).to.eq(0)",
 									"    pm.expect(jsonData[1].name).to.eq('pokemon')",
 									"    pm.expect(jsonData[1].displayName).to.eq('Pokemon')",
-									"    pm.expect(jsonData[1].products.length).to.eq(0)",
-									"    pm.expect(jsonData[1].collections.length).to.eq(0)",
 									"})",
 									""
 								],
@@ -140,42 +235,37 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/list/tcgs?include=[\"products\", \"collections\"]",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/list/brands",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
+								"{{marketplace1Name}}",
 								"list",
-								"tcgs"
-							],
-							"query": [
-								{
-									"key": "include",
-									"value": "[\"products\", \"collections\"]"
-								}
+								"brands"
 							]
 						}
 					},
 					"response": []
 				}
-			],
-			"protocolProfileBehavior": {}
+			]
 		},
 		{
-			"name": "collections",
+			"name": "categories",
 			"item": [
 				{
-					"name": "create collection1",
+					"name": "create category 1",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "20db9743-2f64-4f4e-9ce8-da3dd3091999",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"collection1Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"category1Name\", jsonData.name)",
+									"    pm.expect(jsonData.name).to.eq('tcg')",
+									"    pm.expect(jsonData.type).to.eq('TCG')",
 									"})"
 								],
 								"type": "text/javascript"
@@ -187,7 +277,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"One Piece Collection 1\", \n    \"name\": \"one-piece-collection-1\",\n    \"type\": \"SUPERNOVAS\",\n    \"products\": [{\n        \"displayName\": \"One Piece Collection 1 Product 1\", \n        \"name\": \"one-piece-collection-1-product-1\", \n        \"type\": \"CARD\",\n        \"sku\": 123456789\n    },\n    {\n        \"displayName\": \"One Piece Collection 1 Product 2\", \n        \"name\": \"one-piece-collection-1-product-2\", \n        \"type\": \"CARD\",\n        \"sku\": 234567890\n    }]\n}",
+							"raw": "{\n    \"name\": \"tcg\", \n    \"type\": \"TCG\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -195,40 +285,32 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/collection",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/category",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
-								"collection"
+								"{{marketplace1Name}}",
+								"category"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "get collection1 include products",
+					"name": "get all categories",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "924b56e5-5a8f-42f2-ba61-0bcfb1f4fddb",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.type).to.eq('SUPERNOVAS')",
-									"    pm.expect(jsonData.name).to.eq('one-piece-collection-1')",
-									"    pm.expect(jsonData.displayName).to.eq('One Piece Collection 1')",
-									"",
-									"    pm.expect(jsonData.products.length).to.eq(2)",
-									"    pm.expect(jsonData.products[0].collectionId).to.eq(jsonData.id)",
-									"    pm.expect(jsonData.products[0].name).to.eq('one-piece-collection-1-product-1')",
-									"    pm.expect(jsonData.products[0].displayName).to.eq('One Piece Collection 1 Product 1')",
-									"    pm.expect(jsonData.products[1].collectionId).to.eq(jsonData.id)",
-									"    pm.expect(jsonData.products[1].name).to.eq('one-piece-collection-1-product-2')",
-									"    pm.expect(jsonData.products[1].displayName).to.eq('One Piece Collection 1 Product 2')",
+									"    pm.expect(jsonData.length).to.eq(1)",
+									"    pm.expect(jsonData[0].name).to.eq('tcg')",
+									"    pm.expect(jsonData[0].type).to.eq('TCG')",
+									"    pm.expect(jsonData[0].marketplaceName).to.eq('tcgx-marketplace') ",
 									"})",
 									""
 								],
@@ -252,43 +334,37 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/collection/{{collection1Id}}?include=[\"products\"]",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/list/categories",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
-								"collection",
-								"{{collection1Id}}"
-							],
-							"query": [
-								{
-									"key": "include",
-									"value": "[\"products\"]"
-								}
+								"{{marketplace1Name}}",
+								"list",
+								"categories"
 							]
 						}
 					},
 					"response": []
 				}
-			],
-			"protocolProfileBehavior": {}
+			]
 		},
 		{
-			"name": "decks",
+			"name": "brandCategories",
 			"item": [
 				{
-					"name": "create deck1",
+					"name": "create brandCategory 1",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "fc7e20f6-f425-44d7-8637-fbf375a8a591",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"deck1Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"brandCategory1Id\", jsonData.id)",
+									"    pm.expect(jsonData.brandName).to.eq('one-piece')",
+									"    pm.expect(jsonData.categoryName).to.eq('tcg')",
 									"})"
 								],
 								"type": "text/javascript"
@@ -300,7 +376,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"One Piece Deck 1\", \n    \"name\": \"one-piece-deck-1\",\n    \"products\": [{\n        \"displayName\": \"One Piece Deck 1 Product 1\", \n        \"name\": \"one-piece-deck-1-product-1\", \n        \"type\": \"CARD\",\n        \"sku\": 213321321\n    },\n    {\n        \"displayName\": \"One Piece Deck 1 Product 2\", \n        \"name\": \"one-piece-deck-1-product-2\", \n        \"type\": \"CARD\",\n        \"sku\": 231233321\n    }]\n}",
+							"raw": "",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -308,41 +384,174 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/deck",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/{{category1Name}}/brand-category",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
-								"deck"
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"{{category1Name}}",
+								"brand-category"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "sets",
+			"item": [
+				{
+					"name": "create set1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"set1Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('one-piece-set-1')",
+									"    pm.expect(jsonData.displayName).to.eq('One Piece Set 1')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"One Piece Set 1\", \n    \"name\": \"one-piece-set-1\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/set",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"set"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "get deck1 include products",
+					"name": "create set2",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "b3d71c6e-8667-432f-bcb9-79ce812e3d56",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.name).to.eq('one-piece-deck-1')",
-									"    pm.expect(jsonData.displayName).to.eq('One Piece Deck 1')",
-									"",
-									"    pm.expect(jsonData.products.length).to.eq(2)",
-									"    pm.expect(jsonData.products[0].deckId).to.eq(jsonData.id)",
-									"    pm.expect(jsonData.products[0].name).to.eq('one-piece-deck-1-product-1')",
-									"    pm.expect(jsonData.products[0].displayName).to.eq('One Piece Deck 1 Product 1')",
-									"    pm.expect(jsonData.products[1].deckId).to.eq(jsonData.id)",
-									"    pm.expect(jsonData.products[1].name).to.eq('one-piece-deck-1-product-2')",
-									"    pm.expect(jsonData.products[1].displayName).to.eq('One Piece Deck 1 Product 2')",
-									"})",
-									""
+									"    pm.collectionVariables.set(\"set2Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('romance-dawn')",
+									"    pm.expect(jsonData.displayName).to.eq('Romance Dawn')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Romance Dawn\", \n    \"name\": \"romance-dawn\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/set",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"set"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create set3",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"set3Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('pillars-of-strength')",
+									"    pm.expect(jsonData.displayName).to.eq('Pillars of Strength')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Pillars of Strength\", \n    \"name\": \"pillars-of-strength\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/set",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"set"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get set1 include products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"set1Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('one-piece-set-1')",
+									"    pm.expect(jsonData.displayName).to.eq('One Piece Set 1')",
+									"})"
 								],
 								"type": "text/javascript"
 							}
@@ -364,27 +573,21 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/deck/{{deck1Id}}?include=[\"products\"]",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/set/{{set1Id}}",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
-								"deck",
-								"{{deck1Id}}"
-							],
-							"query": [
-								{
-									"key": "include",
-									"value": "[\"products\"]"
-								}
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"set",
+								"{{set1Id}}"
 							]
 						}
 					},
 					"response": []
 				}
-			],
-			"protocolProfileBehavior": {}
+			]
 		},
 		{
 			"name": "products",
@@ -395,15 +598,11 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c0dd2f78-4eb5-4cea-8b6b-652e4972ab52",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"product1Id\", jsonData.id)",
-									"    pm.expect(jsonData.name).to.eq('card-1')",
-									"    pm.expect(jsonData.displayName).to.eq('Card 1')",
-									"    pm.expect(jsonData.type).to.eq('CARD')",
 									"})"
 								],
 								"type": "text/javascript"
@@ -415,7 +614,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Card 1\", \n    \"name\": \"card-1\",\n    \"type\": \"CARD\",\n    \"sku\": 343242343,\n    \"card\": {\n        \"rarity\": \"Super rare\",\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 343242343,\n    \"price\": \"13.00\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://example.com/card-image1.jpg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"setId\": \"{{set1Id}}\",\n    \"card\": {\n        \"number\": \"102\",\n        \"rarity\": \"SR\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -423,12 +622,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/product",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
 								"product"
 							]
 						}
@@ -441,15 +641,16 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "69aee725-857a-4689-9686-612bba66b7c5",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"product2Id\", jsonData.id)",
-									"    pm.expect(jsonData.name).to.eq('card-2')",
-									"    pm.expect(jsonData.displayName).to.eq('Card 2')",
+									"    pm.expect(jsonData.name).to.eq('sanji-tcg')",
+									"    pm.expect(jsonData.displayName).to.eq('Sanji')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
+									"    pm.expect(jsonData.sku).to.eq(343253243)",
+									"    pm.expect(jsonData.price).to.eq('3.72')",
 									"})"
 								],
 								"type": "text/javascript"
@@ -461,7 +662,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Card 2\", \n    \"name\": \"card-2\",\n    \"type\": \"CARD\",\n    \"sku\": 343322343,\n    \"card\": {\n        \"rarity\": \"Not rare at all\",\n        \"releaseDate\": \"2024-11-11T00:00:00.000Z\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Sanji\", \n    \"name\": \"sanji-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 343253243,\n    \"price\": \"3.72\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://example.com/card-image1.jpg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"setId\": \"{{set1Id}}\",\n    \"card\": {\n        \"number\": \"099\",\n        \"rarity\": \"R\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -469,12 +670,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/product",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
 								"product"
 							]
 						}
@@ -482,25 +684,112 @@
 					"response": []
 				},
 				{
-					"name": "get product1 include tcg",
+					"name": "create product 3",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "582ea0fe-6d33-43a6-b868-74073473519d",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.name).to.eq('card-1')",
-									"    pm.expect(jsonData.displayName).to.eq('Card 1')",
+									"    pm.collectionVariables.set(\"product3Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('nami-tcg')",
+									"    pm.expect(jsonData.displayName).to.eq('Nami')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
-									"    ",
-									"    pm.expect(jsonData.tcg.name).to.eq('one-piece')",
-									"    pm.expect(jsonData.tcg.type).to.eq('ONE_PIECE')",
-									"",
-									"    pm.expect(jsonData.card.rarity).to.eq('Super rare')",
-									"    pm.expect(jsonData.card.releaseDate).to.eq('2024-09-01T00:00:00.000Z')",
+									"    pm.expect(jsonData.sku).to.eq(532242343)",
+									"    pm.expect(jsonData.price).to.eq('175.99')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Nami\", \n    \"name\": \"nami-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 532242343,\n    \"price\": \"175.99\",\n    \"color\": \"BLUE\",\n    \"productImage\": \"https://i.imgur.com/d8AcaUE.jpeg\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"setId\": \"{{set3Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"040\",\n        \"rarity\": \"Leader\",\n        \"attribute\": \"Wisdom\",\n        \"life\": 5,\n        \"printing\": \"Foil\",\n        \"art\": \"aa\",\n        \"artist\": \"Anderson\",\n        \"effect\": \"When your deck is reduced to 0, you win the game instead of losing, according to the rules. [DON!! x1] When this Leader's attack deals damage to your opponent's Life, you may trash 1 card from the top of your deck.\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/product",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create product 4",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"product3Id\", jsonData.id)",
+									"    pm.expect(jsonData.name).to.eq('roronoa-zoro-tcg')",
+									"    pm.expect(jsonData.displayName).to.eq('Roronoa Zoro')",
+									"    pm.expect(jsonData.type).to.eq('CARD')",
+									"    pm.expect(jsonData.sku).to.eq(432253343)",
+									"    pm.expect(jsonData.price).to.eq('14.99')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Roronoa Zoro\", \n    \"name\": \"roronoa-zoro-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 432253343,\n    \"price\": \"14.99\",\n    \"color\": \"RED\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"setId\": \"{{set2Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"001\",\n        \"rarity\": \"Leader\",\n        \"attribute\": \"Slash\",\n        \"life\": 5,\n        \"printing\": \"Foil\",\n        \"power\": 5000,\n        \"art\": \"aa,sec\",\n        \"effect\": \"[DON!! x1] [Your Turn] All of your Characters gain +1000 power.\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/product",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get product1 include set",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.length).to.eq(4)",
 									"})",
 									""
 								],
@@ -524,85 +813,114 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{tcg1Name}}/product/{{product1Id}}?include=[\"tcg\", \"card\"]",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/list/products/?category=tcg&include=[\"set\"]",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
-								"{{tcg1Name}}",
-								"product",
-								"{{product1Id}}"
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"list",
+								"products",
+								""
 							],
 							"query": [
 								{
+									"key": "category",
+									"value": "tcg"
+								},
+								{
 									"key": "include",
-									"value": "[\"tcg\", \"card\"]"
+									"value": "[\"set\"]"
 								}
 							]
 						}
 					},
 					"response": []
 				}
-			],
-			"protocolProfileBehavior": {}
+			]
 		}
 	],
 	"variable": [
 		{
-			"id": "7600a7ed-9fc6-4239-88dc-05f4c811ff05",
 			"key": "tcgName1",
 			"value": ""
 		},
 		{
-			"id": "b79a6af8-a1b4-4870-bb47-db8ab0eaa1f7",
 			"key": "tcgName2",
 			"value": ""
 		},
 		{
-			"id": "03c91320-1306-41c4-a268-995bb308664f",
 			"key": "deckId1",
 			"value": ""
 		},
 		{
-			"id": "ec30ff27-0862-4776-80ca-40e28c925c69",
 			"key": "product1",
 			"value": ""
 		},
 		{
-			"id": "799bf63a-e21d-4b87-9386-169aae7b34d2",
 			"key": "product2",
 			"value": ""
 		},
 		{
-			"id": "9e8f74d3-e936-4753-ac64-3594d2487862",
 			"key": "tcg1Name",
 			"value": ""
 		},
 		{
-			"id": "c0051f5e-fef5-4dd6-b643-daea87bee614",
 			"key": "tcg2Name",
 			"value": ""
 		},
 		{
-			"id": "cd6d1752-71eb-44e6-b2e5-09b1b8e32b3b",
 			"key": "collection1Id",
 			"value": ""
 		},
 		{
-			"id": "b311fd53-6641-47fd-afd1-b62737efc4a2",
 			"key": "deck1Id",
 			"value": ""
 		},
 		{
-			"id": "9ee7caf0-2bee-4334-a525-b5451c0f607e",
 			"key": "product1Id",
 			"value": ""
 		},
 		{
-			"id": "b867c23c-8915-413e-8094-f2874dfc2ac7",
 			"key": "product2Id",
 			"value": ""
+		},
+		{
+			"key": "marketplace1Name",
+			"value": ""
+		},
+		{
+			"key": "brand1Name",
+			"value": ""
+		},
+		{
+			"key": "category1Name",
+			"value": ""
+		},
+		{
+			"key": "brand2Name",
+			"value": ""
+		},
+		{
+			"key": "brandCategory1Id",
+			"value": ""
+		},
+		{
+			"key": "set1Id",
+			"value": ""
+		},
+		{
+			"key": "set2Id",
+			"value": ""
+		},
+		{
+			"key": "set3Id",
+			"value": ""
+		},
+		{
+			"key": "product3Id",
+			"value": ""
 		}
-	],
-	"protocolProfileBehavior": {}
+	]
 }
