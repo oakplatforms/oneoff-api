@@ -813,7 +813,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/list/products/?category=tcg&include=[\"set\"]",
+							"raw": "{{HOST_NAME}}/{{marketplace1Name}}/{{brand1Name}}/list/products/?category=tcg&include=set.brandCategory&include=card",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -831,7 +831,11 @@
 								},
 								{
 									"key": "include",
-									"value": "[\"set\"]"
+									"value": "set.brandCategory"
+								},
+								{
+									"key": "include",
+									"value": "card"
 								}
 							]
 						}
