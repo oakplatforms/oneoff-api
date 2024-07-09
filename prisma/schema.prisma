@@ -9,61 +9,118 @@ datasource db {
 
 enum TcgName {
   ONE_PIECE
+  POKEMON
 }
 
-enum CollectionType {
-  STRAW_HAT_CREW
-  SUPERNOVAS
+enum CategoryType {
+  TCG
 }
 
 enum ProductType {
   CARD
 }
 
-model Tcg {
+enum ColorType {
+  RED
+  BLUE
+  PURPLE
+  GREY
+  YELLOW
+  GREEN
+}
+
+model Marketplace {
   id            String  @id @unique @default(cuid()) 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   name          String  @unique
   displayName   String?
-  type          TcgName  @default(ONE_PIECE)
-  
+
   // relations
-  collections   Collection[]
-  decks         Deck[] 
-  products      Product[]  
-  cards         Card[]
+  theme         Theme?
+  brands        Brand[]
+  categories    Category[]
 }
 
-model Collection {
-  id            String  @id @default(cuid()) 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  displayName   String?
-  name          String?
-  description   String?
+model Theme {
+  id             String  @id @unique @default(cuid()) 
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // custom
-  type          CollectionType
+  logo           String?
+  primaryColor   String?
+  secondaryColor String?
+  fontFamily     String?
 
   // relations
-  tcg           Tcg?  @relation(fields: [tcgName], references: [name])
-  tcgName       String?
-  products      Product[]
+  marketplace    Marketplace @relation(fields: [marketplaceId], references: [id])
+  marketplaceId  String  @unique
+  brand          Brand @relation(fields: [brandId], references: [id])
+  brandId        String  @unique
 }
 
-model Deck {
-  id            String  @id @default(cuid()) 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  displayName   String?
-  name          String?
-  description   String?
+model Brand {
+  id              String  @id @unique @default(cuid()) 
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  name            String  @unique
+  displayName     String?
 
   // relations
-  tcg           Tcg?  @relation(fields: [tcgName], references: [name])
-  tcgName       String?
-  products      Product[]
+  marketplace     Marketplace?  @relation(fields: [marketplaceName], references: [name])
+  marketplaceName String?
+  theme           Theme?
+  brandCategories BrandCategory[]
+}
+
+model Category {
+  id            String  @id @unique @default(cuid()) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  name          String  @unique
+  displayName   String?
+
+  // custom
+  type          CategoryType @default(TCG)
+
+  // relations
+  marketplace     Marketplace?  @relation(fields: [marketplaceName], references: [name])
+  marketplaceName String?
+  brandCategories BrandCategory[]
+}
+
+model BrandCategory {
+  id             String  @unique @default(cuid()) 
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  name           String?
+  displayName    String?
+
+  // relations
+  brand          Brand @relation(fields: [brandName], references: [name])
+  brandName      String
+  category       Category @relation(fields: [categoryName], references: [name])
+  categoryName   String
+  sets           Set[]
+  products       Product[]
+  cards          Card[]
+
+  @@id([brandName, categoryName])
+}
+
+model Set {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  displayName      String?
+  name             String?
+  description      String?
+
+  // relations
+  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
+  brandCategoryId  String
+  products         Product[]
 }
 
 model Product {
@@ -75,35 +132,43 @@ model Product {
   description   String?
 
   // custom
-  type          ProductType
-  sku           Int
+  type             ProductType
+  sku              Int
+  productImage     String?
+  price            String?
+  releaseDate      DateTime?
+  color            ColorType?
+  counter          Int?  @default(0)
 
   // relations
-  tcg            Tcg?  @relation(fields: [tcgName], references: [name])
-  tcgName        String?
-  deck           Deck?  @relation(fields: [deckId], references: [id])
-  deckId         String?
-  collection     Collection?  @relation(fields: [collectionId], references: [id])
-  collectionId   String?
-  card           Card?
+  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
+  brandCategoryId  String
+  set              Set?  @relation(fields: [setId], references: [id])
+  setId            String?
+  card             Card?
 }
 
 model Card {
-  id            String  @id @default(cuid()) 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  displayName   String?
-  name          String?
-  description   String?
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  displayName      String?
+  name             String?
 
   // custom
-  counter       Int?  @default(0)
-  rarity        String?
-  releaseDate   DateTime?
+  number           String?
+  rarity           String?
+  power            Int?
+  attribute        String?
+  life             Int?
+  printing         String?
+  art              String?
+  artist           String?
+  effect           String?
 
   // relations
-  tcg            Tcg?  @relation(fields: [tcgName], references: [name])
-  tcgName        String?
-  product        Product @relation(fields: [productId], references: [id])
-  productId      String  @unique
+  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
+  brandCategoryId  String
+  product          Product @relation(fields: [productId], references: [id])
+  productId        String  @unique
 }
