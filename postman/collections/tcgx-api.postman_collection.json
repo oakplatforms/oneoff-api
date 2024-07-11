@@ -86,7 +86,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/list/marketplaces?include=[\"brands\"]",
+							"raw": "{{HOST_NAME}}/list/marketplaces?include=brands",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -97,7 +97,7 @@
 							"query": [
 								{
 									"key": "include",
-									"value": "[\"brands\"]"
+									"value": "brands"
 								}
 							]
 						}

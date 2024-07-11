@@ -2,16 +2,22 @@
 import { PrismaClient, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
+import { generatePrismaError } from '../utils/generatePrismaError'
 
 const prisma = new PrismaClient()
 export const marketplaceRouter = express.Router()
 
 marketplaceRouter.get('/list/marketplaces', async (req, res) => {
   const { include } = req.query
-  const result = await prisma.marketplace.findMany({
-    include: generateIncludes(include)
-  })
-  res.json(result)
+  try {
+    const result = await prisma.marketplace.findMany({
+      include: generateIncludes(include)
+    })
+    res.json(result)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
 })
 
 marketplaceRouter.post(`/marketplace`, async (req, res) => {
@@ -21,14 +27,19 @@ marketplaceRouter.post(`/marketplace`, async (req, res) => {
     return { ...brand, marketplaceName: name }
   })
 
-  const result = await prisma.marketplace.create({
-    data: {
-      name,
-      displayName,
-      brands: {
-        create: brandData,
+  try {
+    const result = await prisma.marketplace.create({
+      data: {
+        name,
+        displayName,
+        brands: {
+          create: brandData,
+        },
       },
-    },
-  })
-  res.json(result)
+    })
+    res.json(result)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
 })
