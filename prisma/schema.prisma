@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-1.0.x", "rhel-openssl-1.0.x"]
 }
 
 datasource db {
@@ -7,115 +8,185 @@ datasource db {
   url = env("DATABASE_URL")
 }
 
-enum TcgName {
-  ONE_PIECE
-  POKEMON
-}
-
-enum CategoryType {
-  TCG
-}
-
 enum ProductType {
   CARD
 }
 
-enum ColorType {
-  RED
-  BLUE
-  PURPLE
-  GREY
-  YELLOW
-  GREEN
+enum CollectionType {
+  SET
+  DECK
+}
+
+model User {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // custom
+  cognitoId     String
+  
+  // relations
+  account          Account?
+}
+
+model Account {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // custom
+  name          String  @unique
+  phone         String
+  email         String
+  firstName     String?
+  lastName      String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  
+  // relations
+  user             User @relation(fields: [userId], references: [id])
+  userId           String  @unique
 }
 
 model Marketplace {
-  id            String  @id @unique @default(cuid()) 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  name          String  @unique
-  displayName   String?
-
-  // relations
-  theme         Theme?
-  brands        Brand[]
-  categories    Category[]
-}
-
-model Theme {
-  id             String  @id @unique @default(cuid()) 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String  @id @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // custom
-  logo           String?
-  primaryColor   String?
-  secondaryColor String?
-  fontFamily     String?
+  name             String  @unique
+  displayName      String?
 
   // relations
-  marketplace    Marketplace @relation(fields: [marketplaceId], references: [id])
-  marketplaceId  String  @unique
-  brand          Brand @relation(fields: [brandId], references: [id])
-  brandId        String  @unique
+  theme            Theme?
+  brands           Brand[]
+  categories       Category[]
+  tags             Tag[]
 }
 
 model Brand {
-  id              String  @id @unique @default(cuid()) 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  name            String  @unique
-  displayName     String?
+  id               String  @id @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String  @unique
+  displayName      String?
 
   // relations
-  marketplace     Marketplace?  @relation(fields: [marketplaceName], references: [name])
-  marketplaceName String?
-  theme           Theme?
-  brandCategories BrandCategory[]
+  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
+  marketplaceName  String?
+  theme            Theme?
+  brandCategories  BrandCategory[]
+}
+
+model Theme {
+  id               String  @id @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  logo             String?
+  primaryColor     String?
+  secondaryColor   String?
+
+  // relations
+  marketplace      Marketplace @relation(fields: [marketplaceId], references: [id])
+  marketplaceId    String  @unique
+  brand            Brand @relation(fields: [brandId], references: [id])
+  brandId          String  @unique
 }
 
 model Category {
-  id            String  @id @unique @default(cuid()) 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  name          String  @unique
-  displayName   String?
+  id               String  @id @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // custom
-  type          CategoryType @default(TCG)
+  name             String  @unique
+  displayName      String?
 
   // relations
-  marketplace     Marketplace?  @relation(fields: [marketplaceName], references: [name])
-  marketplaceName String?
-  brandCategories BrandCategory[]
+  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
+  marketplaceName  String?
+  brandCategories  BrandCategory[]
+}
+
+model Tag {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String  @unique // Rarity
+  displayName      String?
+  
+  // relations
+  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
+  marketplaceName  String?
+  productTags      ProductTag[]
+  supportedTagValues SupportedTagValues[]
+}
+
+model SupportedTagValues {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String
+  displayName      String?
+  
+  // relations
+  tag              Tag @relation(fields: [tagName], references: [id])
+  tagName          String
+}
+
+model ProductTag {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tagValue         String
+
+  // relations
+  tag              Tag @relation(fields: [tagName], references: [name])
+  tagName          String
+  product          Product @relation(fields: [productId], references: [id])
+  productId        String
+
+  @@id([tagName, productId])
 }
 
 model BrandCategory {
-  id             String  @unique @default(cuid()) 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  name           String?
-  displayName    String?
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // relations
-  brand          Brand @relation(fields: [brandName], references: [name])
-  brandName      String
-  category       Category @relation(fields: [categoryName], references: [name])
-  categoryName   String
-  sets           Set[]
-  products       Product[]
-  cards          Card[]
+  brand            Brand @relation(fields: [brandName], references: [name])
+  brandName        String
+  category         Category @relation(fields: [categoryName], references: [name])
+  categoryName     String
+  collections      Collection[]
+  products         Product[]
+  cards            Card[]
 
   @@id([brandName, categoryName])
 }
 
-model Set {
+model Collection {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
+  // custom
   displayName      String?
   name             String?
   description      String?
+  type             CollectionType
 
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
@@ -124,27 +195,25 @@ model Set {
 }
 
 model Product {
-  id            String  @id @default(cuid()) 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  displayName   String?
-  name          String?
-  description   String?
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // custom
+  displayName      String?
+  name             String?
+  description      String?
   type             ProductType
-  sku              Int
-  productImage     String?
+  image            String?
   price            String?
   releaseDate      DateTime?
-  color            ColorType?
-  counter          Int?  @default(0)
 
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
   brandCategoryId  String
-  set              Set?  @relation(fields: [setId], references: [id])
-  setId            String?
+  collection       Collection? @relation(fields: [collectionId], references: [id])
+  collectionId     String?
+  productTags      ProductTag[]
   card             Card?
 }
 
@@ -152,19 +221,10 @@ model Card {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  displayName      String?
-  name             String?
 
   // custom
-  number           String?
-  rarity           String?
-  power            Int?
-  attribute        String?
-  life             Int?
-  printing         String?
-  art              String?
-  artist           String?
-  effect           String?
+	number           String?
+	shippingCategory String?
 
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])

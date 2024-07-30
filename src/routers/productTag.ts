@@ -5,28 +5,17 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { generatePrismaError } from '../utils/generatePrismaError'
 
 const prisma = new PrismaClient()
-export const setRouter = express.Router()
+export const productTagRouter = express.Router()
 
-setRouter.post(`/:marketplaceName/:brandName/set`, async (req, res) => {
-  const { name, type, displayName, description, products, brandCategoryId } = req.body
+productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
+  const { productId, tagName, tagValue } = req.body
 
   try {
-    const productData = products?.map((product: Prisma.ProductCreateInput) => {
-      return {
-        ...product,
-        brandCategory: { connect: { id: brandCategoryId }
-      }}
-    })
-    
-    const result = await prisma.set.create({
+    const result = await prisma.productTag.create({
       data: {
-        name,
-        displayName,
-        description,
-        products: {
-          create: productData,
-        },
-        brandCategory: { connect: { id: brandCategoryId } },
+        tagValue,
+        tag: { connect: { name: tagName } },
+        product: { connect: { id: productId } }
       },
     })
     res.json(result)
@@ -36,33 +25,35 @@ setRouter.post(`/:marketplaceName/:brandName/set`, async (req, res) => {
   }
 })
 
-setRouter.get('/:marketplaceName/:brandName/set/:id', async (req, res) => {
+productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
   try {
-    const set = await prisma.set.findUnique({
-      where: { id },
+    const productTag = await prisma.productTag.findUnique({
+      where: {
+        id
+      },
       include: generateIncludes(include)
     })
   
-    res.json(set || { errorMessage: 'Something went wrong: No Set ID found' })
+    res.json(productTag || { errorMessage: 'Something went wrong: No Product Tag ID found' })
   } catch (error) {
-    console.log('error')
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
 })
 
-setRouter.delete(`/:marketplaceName/:brandName/set/:id`, async (req, res) => {
+productTagRouter.delete('/:marketplaceName/:brandName/brand-category/:id', async (req, res) => {
   const { id } = req.params
+
   try {
-    const set = await prisma.set.delete({
+    const productTag = await prisma.productTag.delete({
       where: {
         id: id
       },
     })
-    res.json(set || { errorMessage: 'Something went wrong: No Set ID found' })
+    res.json(productTag || { errorMessage: 'Something went wrong: No Product Tag ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

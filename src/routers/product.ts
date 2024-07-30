@@ -33,7 +33,17 @@ productRouter.get('/:marketplaceName/:brandName/list/products', async (req, res)
 })
 
 productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
-  const { name, type, displayName, description, sku, card, brandCategoryId, setId, productImage, price, releaseDate } = req.body
+  const {
+    name,
+    type,
+    displayName,
+    description,
+    card,
+    brandCategoryId,
+    image,
+    price,
+    releaseDate
+  } = req.body
 
   try {
     const result = await prisma.product.create({
@@ -42,9 +52,8 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
         type,
         displayName,
         description,
-        sku,
         price,
-        productImage,
+        image,
         releaseDate,
         card: {
           create: {
@@ -52,7 +61,6 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
             brandCategory: { connect: { id: brandCategoryId }
           }},
         },
-        set: { connect: { id: setId } },
         brandCategory: { connect: { id: brandCategoryId } }
       },
     })
