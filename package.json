@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "swagger": "ts-node src/swagger.ts"
   },
   "dependencies": {
     "@prisma/client": "5.14.0",
-    "express": "4.19.2"
+    "@types/swagger-ui-express": "^4.1.6",
+    "express": "4.19.2",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/express": "4.17.21",
