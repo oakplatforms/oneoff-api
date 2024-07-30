@@ -5,35 +5,39 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { generatePrismaError } from '../utils/generatePrismaError'
 
 const prisma = new PrismaClient()
-export const brandRouter = express.Router()
+export const tagRouter = express.Router()
 
-brandRouter.get('/:marketplaceName/list/brands', async (req, res) => {
+tagRouter.get('/:marketplaceName/list/tags', async (req, res) => {
   const { marketplaceName } = req.params
   const { include } = req.query
 
   try {
-    const brands = await prisma.brand.findMany({
+    const tags = await prisma.tag.findMany({
       where: {
         marketplaceName: { contains: marketplaceName as string }
       },
       include: generateIncludes(include)
     })
-    res.json(brands)
+  
+    res.json(tags)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
 })
 
-brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
+tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
   const { marketplaceName } = req.params
-  const { name, displayName } = req.body
-
+  const { name, displayName, supportedTagValues } = req.body
+  
   try {
-    const result = await prisma.brand.create({
+    const result = await prisma.tag.create({
       data: {
         name,
         displayName,
+        supportedTagValues: {
+          create: supportedTagValues,
+        },
         marketplace: { connect: { name: marketplaceName } }
       },
     })
@@ -44,37 +48,35 @@ brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
   }
 })
 
-brandRouter.get('/:marketplaceName/brand/:id', async (req, res) => {
-  const { marketplaceName, id } = req.params
+tagRouter.get('/:marketplaceName/tag/:id', async (req, res) => {
+  const { id } = req.params
   const { include } = req.query
 
   try {
-    const brand = await prisma.brand.findUnique({
+    const tag = await prisma.tag.findUnique({
       where: {
         id,
-        marketplaceName: marketplaceName
       },
       include: generateIncludes(include)
     })
   
-    res.json(brand || { errorMessage: 'Something went wrong: No Brand ID found' })
+    res.json(tag || { errorMessage: 'Something went wrong: No Tag ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
 })
 
-brandRouter.delete(`/:marketplaceName/brand/:id`, async (req, res) => {
-  const { marketplaceName, id } = req.params
+tagRouter.delete(`/:marketplaceName/tag/:id`, async (req, res) => {
+  const { id } = req.params
 
   try {
-    const brand = await prisma.brand.delete({
+    const tag = await prisma.tag.delete({
       where: {
         id: id,
-        marketplaceName: { contains: marketplaceName as string }
       },
     })
-    res.json(brand || { errorMessage: 'Something went wrong: No Brand ID found' })
+    res.json(tag || { errorMessage: 'Something went wrong: No Tag ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
