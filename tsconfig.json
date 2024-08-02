@@ -6,6 +6,7 @@
     "lib": ["esnext"],
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "strictPropertyInitialization": false,
   },
   "include": [
     "src/swagger-output.json",

@@ -7,6 +7,21 @@ import { generatePrismaError } from '../utils/generatePrismaError'
 const prisma = new PrismaClient()
 export const brandRouter = express.Router()
 
+/**
+ * @openapi
+ * /{marketplaceName}/list/brands:
+ *   get:
+ *     summary: Retrieve a list of brands
+ *     tags: 
+ *       - Brand
+ *     responses:
+ *       '200':
+ *         description: A list of brands
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Brand'                      
+ */
 brandRouter.get('/:marketplaceName/list/brands', async (req, res) => {
   const { marketplaceName } = req.params
   const { include } = req.query
@@ -25,6 +40,21 @@ brandRouter.get('/:marketplaceName/list/brands', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /{marketplaceName}/brand:
+ *   post:
+ *     summary: Create a brand
+ *     tags: 
+ *       - Brand
+ *     responses:
+ *       '200':
+ *         description: created brand response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Brand'                      
+ */
 brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
   const { marketplaceName } = req.params
   const { name, displayName } = req.body

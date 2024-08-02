@@ -1,0 +1,697 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cognitoId": {
+          "type": "string"
+        },
+        "account": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Account": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "zipCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "userId": {
+          "type": "string"
+        }
+      }
+    },
+    "Marketplace": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Brand"
+          }
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Category"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          }
+        }
+      }
+    },
+    "Brand": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "marketplace": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Marketplace"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marketplaceName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brandCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BrandCategory"
+          }
+        }
+      }
+    },
+    "Theme": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "logo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "primaryColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "secondaryColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "marketplace": {
+          "$ref": "#/definitions/Marketplace"
+        },
+        "marketplaceId": {
+          "type": "string"
+        },
+        "brand": {
+          "$ref": "#/definitions/Brand"
+        },
+        "brandId": {
+          "type": "string"
+        }
+      }
+    },
+    "Category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "marketplace": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Marketplace"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marketplaceName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "brandCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BrandCategory"
+          }
+        }
+      }
+    },
+    "Tag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "marketplace": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Marketplace"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marketplaceName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "productTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductTag"
+          }
+        },
+        "supportedTagValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SupportedTagValues"
+          }
+        }
+      }
+    },
+    "SupportedTagValues": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tag": {
+          "$ref": "#/definitions/Tag"
+        },
+        "tagName": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductTag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tagValue": {
+          "type": "string"
+        },
+        "tag": {
+          "$ref": "#/definitions/Tag"
+        },
+        "tagName": {
+          "type": "string"
+        },
+        "product": {
+          "$ref": "#/definitions/Product"
+        },
+        "productId": {
+          "type": "string"
+        }
+      }
+    },
+    "BrandCategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "brand": {
+          "$ref": "#/definitions/Brand"
+        },
+        "brandName": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/definitions/Category"
+        },
+        "categoryName": {
+          "type": "string"
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Collection"
+          }
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Product"
+          }
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Card"
+          }
+        }
+      }
+    },
+    "Collection": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "SET",
+            "DECK"
+          ]
+        },
+        "brandCategory": {
+          "$ref": "#/definitions/BrandCategory"
+        },
+        "brandCategoryId": {
+          "type": "string"
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Product"
+          }
+        }
+      }
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "CARD"
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "price": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "releaseDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "brandCategory": {
+          "$ref": "#/definitions/BrandCategory"
+        },
+        "brandCategoryId": {
+          "type": "string"
+        },
+        "collection": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Collection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "collectionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "productTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductTag"
+          }
+        },
+        "card": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Card"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Card": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "number": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shippingCategory": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "brandCategory": {
+          "$ref": "#/definitions/BrandCategory"
+        },
+        "brandCategoryId": {
+          "type": "string"
+        },
+        "product": {
+          "$ref": "#/definitions/Product"
+        },
+        "productId": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "user": {
+      "$ref": "#/definitions/User"
+    },
+    "account": {
+      "$ref": "#/definitions/Account"
+    },
+    "marketplace": {
+      "$ref": "#/definitions/Marketplace"
+    },
+    "brand": {
+      "$ref": "#/definitions/Brand"
+    },
+    "theme": {
+      "$ref": "#/definitions/Theme"
+    },
+    "category": {
+      "$ref": "#/definitions/Category"
+    },
+    "tag": {
+      "$ref": "#/definitions/Tag"
+    },
+    "supportedTagValues": {
+      "$ref": "#/definitions/SupportedTagValues"
+    },
+    "productTag": {
+      "$ref": "#/definitions/ProductTag"
+    },
+    "brandCategory": {
+      "$ref": "#/definitions/BrandCategory"
+    },
+    "collection": {
+      "$ref": "#/definitions/Collection"
+    },
+    "product": {
+      "$ref": "#/definitions/Product"
+    },
+    "card": {
+      "$ref": "#/definitions/Card"
+    }
+  }
+}
