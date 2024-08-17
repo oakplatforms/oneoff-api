@@ -9,7 +9,6 @@
     "strictPropertyInitialization": false,
   },
   "include": [
-    "src/swagger-output.json",
     "src/**/*"
   ],
   "exclude": [

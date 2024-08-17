@@ -3,18 +3,22 @@ import router from './routers/all_routes'
 import swaggerUi from 'swagger-ui-express'
 import swaggerJSDoc from 'swagger-jsdoc'
 import dto from './generated/json/json-schema.json'
+import { replaceDTORefs } from './utils/dtoHelpers'
+
 const app = express()
 app.use(express.json())
+
+const updatedDto = replaceDTORefs(dto)
 const jsDocOptions = {
   definition: {
     openapi: '3.0.1',
     info: {
-      title: 'OPS API Documentation',
+      title: 'TCGX API Documentation',
       description: 'Endpoints + Schema Definitions',
       version: '1.0.0',
     },
     components: {
-      schemas: dto.definitions,
+      schemas: updatedDto.definitions,
       securitySchemes: {
           bearerAuth: {
               type: 'http',
