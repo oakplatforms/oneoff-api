@@ -41,9 +41,10 @@ model Account {
   updatedAt     DateTime @updatedAt
 
   // custom
-  name          String  @unique
-  phone         String
-  email         String
+  name          String?
+  displayName   String?
+  phone         String?
+  email         String?
   firstName     String?
   lastName      String?
   address       String?

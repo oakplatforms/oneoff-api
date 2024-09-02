@@ -45,13 +45,28 @@
           "format": "date-time"
         },
         "name": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "phone": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "email": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "firstName": {
           "type": [

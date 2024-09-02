@@ -237,6 +237,67 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /{marketplaceName}/{brandName}/product/{id}:
+ *   get:
+ *     tags:
+ *       - Product
+ *     summary: Retrieve a specific product by its ID.
+ *     description: Fetches details of a product identified by its ID from the specified brand and marketplace. If the product does not exist, an appropriate message will be returned.
+ *     parameters:
+ *       - name: marketplaceName
+ *         in: path
+ *         description: The name of the marketplace.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: brandName
+ *         in: path
+ *         description: The name of the brand.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: id
+ *         in: path
+ *         description: The ID of the product to retrieve.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: include
+ *         in: query
+ *         description: Optional query parameter to include related entities or additional data.
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the product details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       '404':
+ *         description: Product not found. The specified ID does not match any existing product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
 productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
