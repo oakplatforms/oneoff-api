@@ -1,10 +1,114 @@
 {
 	"info": {
-		"_postman_id": "29438cfc-ceed-467e-a483-0bbdc050f855",
+		"_postman_id": "7f7642ce-e6ed-42e3-88ef-a0e98174b2b8",
 		"name": "tcgx-api",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "create user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"user1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cognitoId\": \"213ewq213213\", \n    \"account\": {\n        \"displayName\": \"Skylar Banks\",\n        \"firstName\": \"Skylar\",\n        \"lastName\": \"Banks\",\n        \"email\": \"skylar@test.com\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/user",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get user by id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.cognitoId).to.eq('213ewq213213')",
+									"    pm.expect(jsonData.account.firstName).to.eq('Skylar')",
+									"    pm.expect(jsonData.account.lastName).to.eq('Banks')",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/user/{{user1Id}}?include=account",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"{{user1Id}}"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "account"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
 		{
 			"name": "marketplaces",
 			"item": [
@@ -1853,6 +1957,10 @@
 		},
 		{
 			"key": "tag7Name",
+			"value": ""
+		},
+		{
+			"key": "user1Id",
 			"value": ""
 		}
 	]
