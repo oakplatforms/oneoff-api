@@ -15,6 +15,15 @@
           "type": "string",
           "format": "date-time"
         },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "INACTIVE",
+            "DELETED"
+          ]
+        },
         "cognitoId": {
           "type": "string"
         },
@@ -44,13 +53,16 @@
           "type": "string",
           "format": "date-time"
         },
-        "name": {
-          "type": [
-            "string",
-            "null"
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "INACTIVE",
+            "DELETED"
           ]
         },
-        "displayName": {
+        "username": {
           "type": [
             "string",
             "null"

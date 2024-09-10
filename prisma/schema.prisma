@@ -23,11 +23,18 @@ enum CollectionType {
   DECK
 }
 
+enum Status {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
 model User {
   id            String   @id @default(cuid()) 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+  status        Status @default(ACTIVE)
+
   // custom
   cognitoId     String
   
@@ -39,10 +46,10 @@ model Account {
   id            String   @id @default(cuid()) 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  status        Status @default(ACTIVE)
 
   // custom
-  name          String?
-  displayName   String?
+  username      String? @unique
   phone         String?
   email         String?
   firstName     String?
