@@ -21,6 +21,7 @@ enum ProductType {
 enum CollectionType {
   SET
   DECK
+  FAVORITES
 }
 
 enum Status {
@@ -39,7 +40,7 @@ model User {
   cognitoId     String
   
   // relations
-  account          Account?
+  account       Account?
 }
 
 model Account {
@@ -50,10 +51,12 @@ model Account {
 
   // custom
   username      String? @unique
+  isPrivate     Boolean? @default(false)
   phone         String?
   email         String?
   firstName     String?
   lastName      String?
+  fullName      String?
   address       String?
   city          String?
   state         String?
@@ -62,6 +65,7 @@ model Account {
   // relations
   user             User @relation(fields: [userId], references: [id])
   userId           String  @unique
+  collections      Collection[]
 }
 
 model Marketplace {
@@ -134,7 +138,7 @@ model Tag {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String  @unique // Rarity
+  name             String  @unique
   displayName      String?
   
   // relations
@@ -154,8 +158,8 @@ model SupportedTagValues {
   displayName      String?
   
   // relations
-  tag              Tag @relation(fields: [tagName], references: [id])
-  tagName          String
+  tag              Tag @relation(fields: [tagId], references: [id])
+  tagId            String
 }
 
 model ProductTag {
@@ -166,12 +170,12 @@ model ProductTag {
   tagValue         String
 
   // relations
-  tag              Tag @relation(fields: [tagName], references: [name])
-  tagName          String
+  tag              Tag @relation(fields: [tagId], references: [id])
+  tagId            String
   product          Product @relation(fields: [productId], references: [id])
   productId        String
 
-  @@id([tagName, productId])
+  @@id([tagId, productId])
 }
 
 model BrandCategory {
@@ -206,6 +210,8 @@ model Collection {
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
   brandCategoryId  String
   products         Product[]
+  account          Account? @relation(fields: [accountId], references: [id])
+  accountId        String?
 }
 
 model Product {

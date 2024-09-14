@@ -171,6 +171,115 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
 
 /**
  * @openapi
+ * /{marketplaceName}/tag/{tagId}:
+ *   put:
+ *     tags:
+ *       - Tag
+ *     summary: Update an existing tag for a specific marketplace.
+ *     description: Updates an existing tag associated with the given marketplace. Optionally, supported tag values can also be updated.
+ *     parameters:
+ *       - name: marketplaceName
+ *         in: path
+ *         description: The name of the marketplace where the tag exists.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: tagId
+ *         in: path
+ *         description: The ID of the tag to be updated.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: The updated name of the tag.
+ *               displayName:
+ *                 type: string
+ *                 description: The updated display name of the tag.
+ *               supportedTagValues:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: The ID of the supported tag value.
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: The creation timestamp of the supported tag value.
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: The last updated timestamp of the supported tag value.
+ *                     name:
+ *                       type: string
+ *                       description: The updated name of the supported tag value.
+ *                     displayName:
+ *                       type: string
+ *                       description: The updated display name of the supported tag value.
+ *             required:
+ *               - name
+ *               - displayName
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the tag.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tag'
+ *       '400':
+ *         description: Bad request, typically due to invalid parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+tagRouter.put('/:marketplaceName/tag/:tagId', async (req, res) => {
+  const { marketplaceName, tagId } = req.params
+
+  try {
+    const result = await prisma.tag.update({
+      where: { id: tagId },
+      data: {
+        ...req.body,
+        supportedTagValues: {
+          create: req.body.supportedTagValues,
+        },
+        marketplace: { connect: { name: marketplaceName } }
+      }
+    })
+
+    res.json(result)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
  * /{marketplaceName}/tag/{id}:
  *   get:
  *     tags:

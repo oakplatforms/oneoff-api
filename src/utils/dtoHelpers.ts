@@ -16,3 +16,18 @@ export const replaceDTORefs = (obj: JSONSchema): JSONSchema => {
 
   return traverse(obj)
 }
+
+export const alphaSortDTO = (obj: Record<string, any>): Record<string, any> => {
+  const sortedObj: Record<string, any> = {}
+  const sortedKeys = Object.keys(obj).sort((a, b) => a.localeCompare(b))
+
+  sortedKeys.forEach(key => {
+    if (key === 'definitions' || key === 'properties') {
+      sortedObj[key] = alphaSortDTO(obj[key])
+    } else {
+      sortedObj[key] = obj[key]
+    }
+  })
+
+  return sortedObj
+}

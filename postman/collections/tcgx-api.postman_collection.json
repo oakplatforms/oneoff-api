@@ -577,6 +577,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag1Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag1Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('color')",
 									"})"
 								],
@@ -612,6 +613,52 @@
 					"response": []
 				},
 				{
+					"name": "update tag 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"tag1Name\", jsonData.name)",
+									"    pm.expect(jsonData.name).to.eq('color')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{tag1Name}}\",\n    \"supportedTagValues\": [\n        {\n            \"name\": \"white\",\n            \"displayName\": \"White\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/tag/{{tag1Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"tag",
+								"{{tag1Id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "create tag 2",
 					"event": [
 						{
@@ -622,6 +669,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag2Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag2Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('power')",
 									"})"
 								],
@@ -667,6 +715,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag3Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag3Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('cost')",
 									"})"
 								],
@@ -712,6 +761,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag4Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag4Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('rarity')",
 									"})"
 								],
@@ -757,6 +807,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag5Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag5Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('life')",
 									"})"
 								],
@@ -802,6 +853,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag6Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag6Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('attribute')",
 									"})"
 								],
@@ -847,6 +899,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag7Name\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag7Id\", jsonData.name)",
 									"    pm.expect(jsonData.name).to.eq('artist')",
 									"})"
 								],
@@ -1184,6 +1237,52 @@
 					"response": []
 				},
 				{
+					"name": "update product 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"product1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"price\": \"15.00\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"card\": {\n        \"number\": \"103\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/product/{{product1Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"product",
+								"{{product1Id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "create product 2",
 					"event": [
 						{
@@ -1408,6 +1507,50 @@
 			"name": "productTags",
 			"item": [
 				{
+					"name": "404 error - create product tag 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(404)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.errorMessage).to.eq('Tag value is not supported')",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Black2\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/product-tag",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"product-tag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "create product tag 1",
 					"event": [
 						{
@@ -1428,7 +1571,50 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag1Name}}\",\n    \"tagValue\": \"Black\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Black\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/product-tag",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"product-tag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update product tag 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Black 3\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1471,7 +1657,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag2Name}}\",\n    \"tagValue\": \"23812\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag2Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"23812\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1514,7 +1700,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag3Name}}\",\n    \"tagValue\": \"3\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag3Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"3\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1557,7 +1743,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag4Name}}\",\n    \"tagValue\": \"Rare\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag4Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Rare\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1600,7 +1786,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag5Name}}\",\n    \"tagValue\": \"23\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag5Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"23\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1643,7 +1829,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag6Name}}\",\n    \"tagValue\": \"Special\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag6Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Special\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1686,7 +1872,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag7Name}}\",\n    \"tagValue\": \"Nijihayashi\",\n    \"productId\": \"{{product1Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag7Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Nijihayashi\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1729,7 +1915,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag1Name}}\",\n    \"tagValue\": \"Yellow\",\n    \"productId\": \"{{product2Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product2Id}}\",\n    \"tagValue\": \"Yellow\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1772,7 +1958,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag2Name}}\",\n    \"tagValue\": \"3423\",\n    \"productId\": \"{{product2Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag2Id}}\",\n    \"productId\": \"{{product2Id}}\",\n    \"tagValue\": \"3423\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1815,7 +2001,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag3Name}}\",\n    \"tagValue\": \"243\",\n    \"productId\": \"{{product2Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag3Id}}\",\n    \"productId\": \"{{product2Id}}\",\n    \"tagValue\": \"243\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1858,7 +2044,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagName\": \"{{tag4Name}}\",\n    \"tagValue\": \"SEC\",\n    \"productId\": \"{{product2Id}}\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag4Id}}\",\n    \"productId\": \"{{product2Id}}\",\n    \"tagValue\": \"SEC\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2010,6 +2196,34 @@
 		},
 		{
 			"key": "user1CognitoId",
+			"value": ""
+		},
+		{
+			"key": "tag1Id",
+			"value": ""
+		},
+		{
+			"key": "tag2Id",
+			"value": ""
+		},
+		{
+			"key": "tag3Id",
+			"value": ""
+		},
+		{
+			"key": "tag4Id",
+			"value": ""
+		},
+		{
+			"key": "tag5Id",
+			"value": ""
+		},
+		{
+			"key": "tag6Id",
+			"value": ""
+		},
+		{
+			"key": "tag7Id",
 			"value": ""
 		}
 	]

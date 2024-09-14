@@ -68,6 +68,13 @@
             "null"
           ]
         },
+        "isPrivate": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "phone": {
           "type": [
             "string",
@@ -87,6 +94,12 @@
           ]
         },
         "lastName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fullName": {
           "type": [
             "string",
             "null"
@@ -121,6 +134,12 @@
         },
         "userId": {
           "type": "string"
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Collection"
+          }
         }
       }
     },
@@ -406,7 +425,7 @@
         "tag": {
           "$ref": "#/definitions/Tag"
         },
-        "tagName": {
+        "tagId": {
           "type": "string"
         }
       }
@@ -431,7 +450,7 @@
         "tag": {
           "$ref": "#/definitions/Tag"
         },
-        "tagName": {
+        "tagId": {
           "type": "string"
         },
         "product": {
@@ -524,7 +543,8 @@
           "type": "string",
           "enum": [
             "SET",
-            "DECK"
+            "DECK",
+            "FAVORITES"
           ]
         },
         "brandCategory": {
@@ -538,6 +558,22 @@
           "items": {
             "$ref": "#/definitions/Product"
           }
+        },
+        "account": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accountId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
