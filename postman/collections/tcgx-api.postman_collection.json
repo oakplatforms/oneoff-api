@@ -899,7 +899,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"tag7Name\", jsonData.name)",
-									"    pm.collectionVariables.set(\"tag7Id\", jsonData.name)",
+									"    pm.collectionVariables.set(\"tag7Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('artist')",
 									"})"
 								],
@@ -1915,7 +1915,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product2Id}}\",\n    \"tagValue\": \"Yellow\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product2Id}}\",\n    \"tagValue\": \"Purple\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
