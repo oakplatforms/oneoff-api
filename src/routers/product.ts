@@ -237,6 +237,132 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
   }
 })
 
+
+/**
+ * @openapi
+ * /{marketplaceName}/{brandName}/product/{productId}:
+ *   put:
+ *     tags:
+ *       - Product
+ *     summary: Update an existing product by ID.
+ *     description: Updates details of a product for a specified brand and marketplace. The request body must include updated details of the product.
+ *     parameters:
+ *       - name: marketplaceName
+ *         in: path
+ *         description: The name of the marketplace.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: brandName
+ *         in: path
+ *         description: The name of the brand.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: productId
+ *         in: path
+ *         description: The ID of the product to be updated.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Updated name of the product.
+ *               type:
+ *                 type: string
+ *                 description: Updated type of the product.
+ *               displayName:
+ *                 type: string
+ *                 description: Updated display name of the product.
+ *               description:
+ *                 type: string
+ *                 description: Updated description of the product.
+ *               card:
+ *                 type: object
+ *                 properties:
+ *                   number:
+ *                     type: string
+ *                     description: Updated card number associated with the product.
+ *                   shippingCategory:
+ *                     type: string
+ *                     description: Updated shipping category for the card.
+ *               brandCategoryId:
+ *                 type: string
+ *                 description: Updated ID of the brand category associated with the product.
+ *               image:
+ *                 type: string
+ *                 description: Updated URL or path to the image of the product.
+ *               price:
+ *                 type: number
+ *                 format: float
+ *                 description: Updated price of the product.
+ *               releaseDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Updated release date of the product.
+ *             required:
+ *               - name
+ *               - brandCategoryId
+ *               - price
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       '400':
+ *         description: Bad request, typically due to invalid request data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+productRouter.put(`/:marketplaceName/:brandName/product/:productId`, async (req, res) => {
+  const { productId } = req.params
+
+  try {
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        ...req.body,
+        card: req.body.card ? {
+          update: {
+            ...req.body.card,
+            brandCategoryId: req.body.brandCategoryId
+          }
+        } : undefined,
+        brandCategoryId: req.body.brandCategoryId,
+      }
+    })
+    res.json(product || { errorMessage: 'Something went wrong: Cannot update product by id' })
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
 /**
  * @openapi
  * /{marketplaceName}/{brandName}/product/{id}:

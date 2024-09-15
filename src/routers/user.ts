@@ -85,6 +85,98 @@ userRouter.post(`/user`, async (req, res) => {
 
 /**
  * @openapi
+ * /user/{userId}:
+ *   put:
+ *     tags:
+ *       - User
+ *     summary: Update user and account details by user ID.
+ *     description: Updates an existing user and associated account details in the database by user ID. The request body must include the `account` details. If successful, the updated user object will be returned.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The unique identifier for the user.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               account:
+ *                 type: object
+ *                 properties:
+ *                   username:
+ *                     type: string
+ *                     description: The username of the account.
+ *                   email:
+ *                     type: string
+ *                     description: The email associated with the account.
+ *               required:
+ *                 - account
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the user and account details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       '400':
+ *         description: Bad request, typically due to invalid request data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+userRouter.put(`/user/:userId`, async (req, res) => {
+  const { userId } = req.params
+  const { account } = req.body
+
+  try {
+    const result = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        account: {
+          update: account,
+        },
+      },
+    })
+    res.json(result)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+
+/**
+ * @openapi
  * /user/{id}:
  *   get:
  *     tags:
@@ -92,9 +184,9 @@ userRouter.post(`/user`, async (req, res) => {
  *     summary: Retrieve a specific user by their ID.
  *     description: Fetches details of a user identified by their ID. If the user does not exist, an appropriate message will be returned.
  *     parameters:
- *       - name: id
+ *       - name: cognitoId
  *         in: path
- *         description: The ID of the user to retrieve.
+ *         description: The Cognito Id of the user to retrieve.
  *         required: true
  *         schema:
  *           type: string
@@ -132,19 +224,19 @@ userRouter.post(`/user`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-userRouter.get('/user/:id', async (req, res) => {
-  const { id } = req.params
+userRouter.get('/user/:cognitoId', async (req, res) => {
+  const { cognitoId } = req.params
   const { include } = req.query
 
   try {
-    const user = await prisma.user.findUnique({
+    const users = await prisma.user.findMany({
       where: {
-        id
+        cognitoId: { contains: cognitoId as string }
       },
       include: generateIncludes(include)
     })
-  
-    res.json(user || { errorMessage: 'Something went wrong: No User ID found' })
+   
+    res.json(users?.[0] || { errorMessage: 'Something went wrong: No Cognito ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

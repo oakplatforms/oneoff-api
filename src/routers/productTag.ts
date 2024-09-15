@@ -71,22 +71,170 @@ export const productTagRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
-  const { productId, tagName, tagValue } = req.body
+  const { productId, tagId, tagValue } = req.body
 
   try {
-    const result = await prisma.productTag.create({
-      data: {
-        tagValue,
-        tag: { connect: { name: tagName } },
-        product: { connect: { id: productId } }
+    const selectedTag = await prisma.tag.findUnique({
+      where: {
+        id: tagId,
       },
+      include: {
+        supportedTagValues: true
+      }
     })
-    res.json(result)
+
+    if (selectedTag?.supportedTagValues?.length) {
+      const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === tagValue)
+      if (supportedTagValue) {
+        const productTag = await prisma.productTag.create({
+          data: {
+            tagValue,
+            tag: { connect: { id: tagId } },
+            product: { connect: { id: productId } }
+          },
+        })
+        res.json(productTag)
+      } else {
+        res.status(404).send({ errorMessage: 'Tag value is not supported' })
+      }
+    } else {
+      const productTag = await prisma.productTag.create({
+        data: {
+          tagValue,
+          tag: { connect: { id: tagId } },
+          product: { connect: { id: productId } }
+        },
+      })
+      res.json(productTag)
+    }
+
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
 })
+
+/**
+ * @openapi
+ * /{marketplaceName}/product-tag:
+ *   put:
+ *     tags:
+ *       - Product Tag
+ *     summary: Update an existing product-tag association.
+ *     description: Updates the association between a product and a tag. The product is identified by its ID, and the tag by its name. If successful, returns the updated product-tag association.
+ *     parameters:
+ *       - name: marketplaceName
+ *         in: path
+ *         description: The name of the marketplace.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               productId:
+ *                 type: string
+ *                 description: The ID of the product whose tag association needs to be updated.
+ *               tagName:
+ *                 type: string
+ *                 description: The name of the tag associated with the product.
+ *               tagValue:
+ *                 type: string
+ *                 description: The new value of the tag.
+ *             required:
+ *               - productId
+ *               - tagName
+ *               - tagValue
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the product-tag association.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProductTag'
+ *       '400':
+ *         description: Bad request, typically due to invalid input parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
+  const { productId, tagId, tagValue } = req.body
+
+  try {
+    const selectedTag = await prisma.tag.findUnique({
+      where: {
+        id: tagId,
+      },
+      include: {
+        supportedTagValues: true
+      }
+    })
+
+    if (selectedTag?.supportedTagValues?.length) {
+      const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === tagValue)
+      if (supportedTagValue) {
+        console.log(productId, tagId)
+        const productTag = await prisma.productTag.updateMany({
+          where: {
+            productId,
+            tagId
+          },
+          data: {
+            tagValue
+          }
+        })
+        console.log(productTag)
+        if (productTag.count === 0) {
+          return res.status(404).send({ errorMessage: 'Product-tag association not found' })
+        }
+    
+        res.json(productTag)
+      } else {
+        res.status(404).send({ errorMessage: 'Tag value is not supported' })
+      }
+    } else {
+      const productTag = await prisma.productTag.updateMany({
+        where: {
+          productId,
+          tagId
+        },
+        data: {
+          tagValue
+        }
+      })
+  
+      if (productTag.count === 0) {
+        return res.status(404).send({ errorMessage: 'Product-tag association not found' })
+      }
+  
+      res.json(productTag)
+    }
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
 
 /**
  * @openapi

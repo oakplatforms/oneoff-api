@@ -3,12 +3,13 @@ import router from './routers/all_routes'
 import swaggerUi from 'swagger-ui-express'
 import swaggerJSDoc from 'swagger-jsdoc'
 import dto from './generated/json/json-schema.json'
-import { replaceDTORefs } from './utils/dtoHelpers'
+import { replaceDTORefs, alphaSortDTO } from './utils/dtoHelpers'
 
 const app = express()
 app.use(express.json())
 
 const updatedDto = replaceDTORefs(dto)
+const sortedDto = alphaSortDTO(updatedDto)
 const jsDocOptions = {
   definition: {
     openapi: '3.0.1',
@@ -18,7 +19,7 @@ const jsDocOptions = {
       version: '1.0.0',
     },
     components: {
-      schemas: updatedDto.definitions,
+      schemas: sortedDto.definitions,
       securitySchemes: {
           bearerAuth: {
               type: 'http',
@@ -31,7 +32,7 @@ const jsDocOptions = {
 }
 
 const swaggerUIOptions = {
-  customCss: '.swagger-ui .errors-wrapper { display: none } .swagger-ui .scheme-container { display: none } .swagger-ui .info p { font-size: 18px }'
+  customCss: '.swagger-ui .errors-wrapper { display: none } .swagger-ui .scheme-container { display: none } .swagger-ui .info p { font-size: 18px }',
 }
 
 const swaggerSpec = swaggerJSDoc(jsDocOptions)
