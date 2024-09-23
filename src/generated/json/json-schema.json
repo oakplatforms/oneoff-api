@@ -62,13 +62,15 @@
             "DELETED"
           ]
         },
-        "username": {
-          "type": [
-            "string",
-            "null"
+        "type": {
+          "type": "string",
+          "default": "STANDARD",
+          "enum": [
+            "STANDARD",
+            "SELLER"
           ]
         },
-        "isPrivate": {
+        "isPremium": {
           "type": [
             "boolean",
             "null"
@@ -99,12 +101,6 @@
             "null"
           ]
         },
-        "fullName": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "address": {
           "type": [
             "string",
@@ -129,16 +125,107 @@
             "null"
           ]
         },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wallet": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Wallet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "user": {
           "$ref": "#/definitions/User"
         },
         "userId": {
           "type": "string"
+        }
+      }
+    },
+    "Profile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "collections": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "username": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isPrivate": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "fullName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "qrCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
+        },
+        "lists": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Collection"
+            "$ref": "#/definitions/List"
+          }
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Review"
+          }
+        },
+        "bids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Bid"
+          }
+        },
+        "listings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Listing"
           }
         }
       }
@@ -487,10 +574,10 @@
         "categoryName": {
           "type": "string"
         },
-        "collections": {
+        "lists": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Collection"
+            "$ref": "#/definitions/List"
           }
         },
         "products": {
@@ -507,7 +594,7 @@
         }
       }
     },
-    "Collection": {
+    "List": {
       "type": "object",
       "properties": {
         "id": {
@@ -542,9 +629,10 @@
         "type": {
           "type": "string",
           "enum": [
+            "COLLECTION",
             "SET",
             "DECK",
-            "FAVORITES"
+            "FAVORITE"
           ]
         },
         "brandCategory": {
@@ -559,17 +647,17 @@
             "$ref": "#/definitions/Product"
           }
         },
-        "account": {
+        "profile": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Account"
+              "$ref": "#/definitions/Profile"
             },
             {
               "type": "null"
             }
           ]
         },
-        "accountId": {
+        "profileId": {
           "type": [
             "string",
             "null"
@@ -640,17 +728,17 @@
         "brandCategoryId": {
           "type": "string"
         },
-        "collection": {
+        "list": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Collection"
+              "$ref": "#/definitions/List"
             },
             {
               "type": "null"
             }
           ]
         },
-        "collectionId": {
+        "listId": {
           "type": [
             "string",
             "null"
@@ -671,6 +759,24 @@
               "type": "null"
             }
           ]
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Review"
+          }
+        },
+        "bids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Bid"
+          }
+        },
+        "listings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Listing"
+          }
         }
       }
     },
@@ -713,6 +819,380 @@
           "type": "string"
         }
       }
+    },
+    "Review": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rating": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profileId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "product": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Product"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "productId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Wallet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "paymentProcessingType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
+        "paymentProcessingCustomerId": {
+          "type": "string"
+        },
+        "paymentProcessingMethodType": {
+          "type": "string",
+          "default": "CARD",
+          "enum": [
+            "CARD",
+            "BANK_ACCOUNT"
+          ]
+        },
+        "paymentProcessingtMethodId": {
+          "type": "string"
+        },
+        "balance": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "payouts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Payout"
+          }
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
+        }
+      }
+    },
+    "Payout": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED"
+          ]
+        },
+        "paymentProcessingType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
+        "paymentProcessingPayoutId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "wallet": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Wallet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "walletId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Listing": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "INACTIVE",
+            "DELETED"
+          ]
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profileId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "product": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Product"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "productId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transaction": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Transaction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Bid": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "INACTIVE",
+            "DELETED"
+          ]
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profileId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "product": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Product"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "productId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transaction": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Transaction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Transaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subTotal": {
+          "type": "integer"
+        },
+        "tax": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "total": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED",
+            "REFUNDED"
+          ]
+        },
+        "deliveryMethodType": {
+          "type": "string",
+          "enum": [
+            "FIRST_CLASS_MAIL",
+            "OVERNIGHT",
+            "PRIORITY",
+            "FLAT_RATE",
+            "ECONOMY",
+            "LOCAL_DELIVERY",
+            "IN_PERSON",
+            "INTERNATIONAL"
+          ]
+        },
+        "trackingNumber": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bid": {
+          "$ref": "#/definitions/Bid"
+        },
+        "bidId": {
+          "type": "string"
+        },
+        "listing": {
+          "$ref": "#/definitions/Listing"
+        },
+        "listingId": {
+          "type": "string"
+        }
+      }
     }
   },
   "type": "object",
@@ -722,6 +1202,9 @@
     },
     "account": {
       "$ref": "#/definitions/Account"
+    },
+    "profile": {
+      "$ref": "#/definitions/Profile"
     },
     "marketplace": {
       "$ref": "#/definitions/Marketplace"
@@ -747,14 +1230,32 @@
     "brandCategory": {
       "$ref": "#/definitions/BrandCategory"
     },
-    "collection": {
-      "$ref": "#/definitions/Collection"
+    "list": {
+      "$ref": "#/definitions/List"
     },
     "product": {
       "$ref": "#/definitions/Product"
     },
     "card": {
       "$ref": "#/definitions/Card"
+    },
+    "review": {
+      "$ref": "#/definitions/Review"
+    },
+    "wallet": {
+      "$ref": "#/definitions/Wallet"
+    },
+    "payout": {
+      "$ref": "#/definitions/Payout"
+    },
+    "listing": {
+      "$ref": "#/definitions/Listing"
+    },
+    "bid": {
+      "$ref": "#/definitions/Bid"
+    },
+    "transaction": {
+      "$ref": "#/definitions/Transaction"
     }
   }
 }

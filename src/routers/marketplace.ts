@@ -9,7 +9,7 @@ export const marketplaceRouter = express.Router()
 
 /**
  * @openapi
- * /list/marketplaces:
+ * /marketplaces:
  *   get:
  *     tags:
  *       - Marketplace
@@ -50,7 +50,7 @@ export const marketplaceRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 
-marketplaceRouter.get('/list/marketplaces', async (req, res) => {
+marketplaceRouter.get('/marketplaces', async (req, res) => {
   const { include } = req.query 
   try {
     const result = await prisma.marketplace.findMany({

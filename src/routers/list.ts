@@ -5,31 +5,31 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { generatePrismaError } from '../utils/generatePrismaError'
 
 const prisma = new PrismaClient()
-export const collectionRouter = express.Router()
+export const listRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/collection:
+ * /{marketplaceName}/{brandName}/list:
  *   post:
  *     tags:
- *       - Collection
- *     summary: Create a new collection within a brand's marketplace.
- *     description: Creates a new collection with specified details, including associated products and brand category.
+ *       - List
+ *     summary: Create a new list within a brand's marketplace.
+ *     description: Creates a new list with specified details, including associated products and brand category.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the collection is to be created.
+ *         description: The name of the marketplace where the list is to be created.
  *         required: true
  *         schema:
  *           type: string
  *       - name: brandName
  *         in: path
- *         description: The name of the brand for which the collection is being created.
+ *         description: The name of the brand for which the list is being created.
  *         required: true
  *         schema:
  *           type: string
  *     requestBody:
- *       description: Details of the collection to be created.
+ *       description: Details of the list to be created.
  *       required: true
  *       content:
  *         application/json:
@@ -38,16 +38,16 @@ export const collectionRouter = express.Router()
  *             properties:
  *               name:
  *                 type: string
- *                 description: The name of the collection.
+ *                 description: The name of the list.
  *               type:
  *                 type: string
- *                 description: The type of the collection.
+ *                 description: The type of the list.
  *               displayName:
  *                 type: string
- *                 description: The display name for the collection.
+ *                 description: The display name for the list.
  *               description:
  *                 type: string
- *                 description: A description of the collection.
+ *                 description: A description of the list.
  *               products:
  *                 type: array
  *                 items:
@@ -78,14 +78,14 @@ export const collectionRouter = express.Router()
  *                       description: The release date of the product.
  *               brandCategoryId:
  *                 type: string
- *                 description: The ID of the brand category associated with the collection.
+ *                 description: The ID of the brand category associated with the list.
  *     responses:
  *       '200':
- *         description: Successfully created the collection.
+ *         description: Successfully created the list.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Collection'
+ *               $ref: '#/components/schemas/List'
  *       '400':
  *         description: Bad request, typically due to invalid parameters.
  *         content:
@@ -107,7 +107,7 @@ export const collectionRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-collectionRouter.post(`/:marketplaceName/:brandName/collection`, async (req, res) => {
+listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
   const { name, type, displayName, description, products, brandCategoryId } = req.body
 
   try {
@@ -118,7 +118,7 @@ collectionRouter.post(`/:marketplaceName/:brandName/collection`, async (req, res
       }}
     })
     
-    const result = await prisma.collection.create({
+    const result = await prisma.list.create({
       data: {
         name,
         displayName,
@@ -139,28 +139,28 @@ collectionRouter.post(`/:marketplaceName/:brandName/collection`, async (req, res
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/collection/{id}:
+ * /{marketplaceName}/{brandName}/list/{id}:
  *   get:
  *     tags:
- *       - Collection
- *     summary: Retrieve a specific collection by its ID.
- *     description: Fetches details of a specific collection by its ID, with optional inclusion of related data.
+ *       - List
+ *     summary: Retrieve a specific list by its ID.
+ *     description: Fetches details of a specific list by its ID, with optional inclusion of related data.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the collection is located.
+ *         description: The name of the marketplace where the list is located.
  *         required: true
  *         schema:
  *           type: string
  *       - name: brandName
  *         in: path
- *         description: The name of the brand to which the collection belongs.
+ *         description: The name of the brand to which the list belongs.
  *         required: true
  *         schema:
  *           type: string
  *       - name: id
  *         in: path
- *         description: The ID of the collection to retrieve.
+ *         description: The ID of the list to retrieve.
  *         required: true
  *         schema:
  *           type: string
@@ -171,13 +171,13 @@ collectionRouter.post(`/:marketplaceName/:brandName/collection`, async (req, res
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully retrieved the collection.
+ *         description: Successfully retrieved the list.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Collection'
+ *               $ref: '#/components/schemas/List'
  *       '404':
- *         description: Collection not found.
+ *         description: list not found.
  *         content:
  *           application/json:
  *             schema:
@@ -207,17 +207,17 @@ collectionRouter.post(`/:marketplaceName/:brandName/collection`, async (req, res
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-collectionRouter.get('/:marketplaceName/:brandName/collection/:id', async (req, res) => {
+listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
   try {
-    const collection = await prisma.collection.findUnique({
+    const list = await prisma.list.findUnique({
       where: { id },
       include: generateIncludes(include)
     })
   
-    res.json(collection || { errorMessage: 'Something went wrong: No Collection ID found' })
+    res.json(list || { errorMessage: 'Something went wrong: No list ID found' })
   } catch (error) {
     console.log('error')
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -227,40 +227,40 @@ collectionRouter.get('/:marketplaceName/:brandName/collection/:id', async (req, 
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/collection/{id}:
+ * /{marketplaceName}/{brandName}/list/{id}:
  *   delete:
  *     tags:
- *       - Collection
- *     summary: Delete a specific collection by its ID.
- *     description: Deletes a specific collection by its ID from the given marketplace and brand. Returns the deleted collection or an error message if the ID is not found.
+ *       - List
+ *     summary: Delete a specific list by its ID.
+ *     description: Deletes a specific list by its ID from the given marketplace and brand. Returns the deleted list or an error message if the ID is not found.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the collection is located.
+ *         description: The name of the marketplace where the list is located.
  *         required: true
  *         schema:
  *           type: string
  *       - name: brandName
  *         in: path
- *         description: The name of the brand to which the collection belongs.
+ *         description: The name of the brand to which the list belongs.
  *         required: true
  *         schema:
  *           type: string
  *       - name: id
  *         in: path
- *         description: The ID of the collection to delete.
+ *         description: The ID of the list to delete.
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully deleted the collection.
+ *         description: Successfully deleted the list.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Collection'
+ *               $ref: '#/components/schemas/List'
  *       '404':
- *         description: Collection not found.
+ *         description: list not found.
  *         content:
  *           application/json:
  *             schema:
@@ -290,15 +290,15 @@ collectionRouter.get('/:marketplaceName/:brandName/collection/:id', async (req, 
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-collectionRouter.delete(`/:marketplaceName/:brandName/collection/:id`, async (req, res) => {
+listRouter.delete(`/:marketplaceName/:brandName/list/:id`, async (req, res) => {
   const { id } = req.params
   try {
-    const collection = await prisma.collection.delete({
+    const list = await prisma.list.delete({
       where: {
         id: id
       },
     })
-    res.json(collection || { errorMessage: 'Something went wrong: No Collection ID found' })
+    res.json(list || { errorMessage: 'Something went wrong: No list ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { generatePrismaError } from '../utils/generatePrismaError'
+import { create } from 'domain'
 
 const prisma = new PrismaClient()
 export const userRouter = express.Router()
@@ -66,14 +67,20 @@ export const userRouter = express.Router()
  */
 userRouter.post(`/user`, async (req, res) => {
   const { cognitoId, account } = req.body
+  const { profile: profileProps, ...accountProps } = account || {}
 
   try {
     const result = await prisma.user.create({
       data: {
         cognitoId,
         account: {
-          create: account,
+          create: {
+            ...accountProps,
+            profile: profileProps && {
+              create: profileProps
+          }
         },
+      },
       },
     })
     res.json(result)
@@ -157,23 +164,26 @@ userRouter.post(`/user`, async (req, res) => {
 userRouter.put(`/user/:userId`, async (req, res) => {
   const { userId } = req.params
   const { account } = req.body
-
+  const { profile: profileProps, ...accountProps } = account || {}
   try {
     const result = await prisma.user.update({
       where: { id: userId },
       data: {
         account: {
-          update: account,
+          update: {
+            ...accountProps,
+            profile: profileProps && {
+              update: profileProps
+          }
         },
       },
-    })
+    }})
     res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
 })
-
 
 /**
  * @openapi

@@ -31,7 +31,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"cognitoId\": \"213ewq213213\", \n    \"account\": {\n        \"firstName\": \"Skylar\",\n        \"lastName\": \"Banks\",\n        \"email\": \"skylar@test.com\"\n    }\n}",
+							"raw": "{\n    \"cognitoId\": \"213ewq213213\", \n    \"account\": {\n        \"firstName\": \"Skylar\",\n        \"lastName\": \"Banks\",\n        \"email\": \"skylar@test.com\",\n        \"profile\": {\n            \"isPrivate\": true\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -74,7 +74,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"account\": {\n        \"firstName\": \"Chris\"\n    }\n}",
+							"raw": "{\n    \"account\": {\n        \"profile\": {\n            \"isPrivate\": false\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -237,14 +237,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/list/marketplaces?include=brands",
+							"raw": "{{HOST_NAME}}/api/v1/marketplaces?include=brands",
 							"host": [
 								"{{HOST_NAME}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"list",
 								"marketplaces"
 							],
 							"query": [
@@ -392,7 +391,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/list/brands",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/brands",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -400,7 +399,6 @@
 								"api",
 								"v1",
 								"{{marketplace1Name}}",
-								"list",
 								"brands"
 							]
 						}
@@ -469,7 +467,6 @@
 									"    const jsonData = pm.response.json()",
 									"    pm.expect(jsonData.length).to.eq(1)",
 									"    pm.expect(jsonData[0].name).to.eq('tcg')",
-									"    pm.expect(jsonData[0].type).to.eq('TCG')",
 									"    pm.expect(jsonData[0].marketplaceName).to.eq('tcgx-marketplace') ",
 									"})",
 									""
@@ -494,7 +491,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/list/categories",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/categories",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -502,7 +499,6 @@
 								"api",
 								"v1",
 								"{{marketplace1Name}}",
-								"list",
 								"categories"
 							]
 						}
@@ -968,7 +964,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/list/tags?include=supportedTagValues",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/tags?include=supportedTagValues",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -976,7 +972,6 @@
 								"api",
 								"v1",
 								"{{marketplace1Name}}",
-								"list",
 								"tags"
 							],
 							"query": [
@@ -992,10 +987,10 @@
 			]
 		},
 		{
-			"name": "collections",
+			"name": "lists",
 			"item": [
 				{
-					"name": "create collection 1",
+					"name": "create list 1",
 					"event": [
 						{
 							"listen": "test",
@@ -1004,7 +999,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"collection1Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"list1Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('one-piece-set-1')",
 									"    pm.expect(jsonData.displayName).to.eq('One Piece Set 1')",
 									"})"
@@ -1026,7 +1021,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/collection",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/list",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1035,14 +1030,14 @@
 								"v1",
 								"{{marketplace1Name}}",
 								"{{brand1Name}}",
-								"collection"
+								"list"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "create collection 2",
+					"name": "create list 2",
 					"event": [
 						{
 							"listen": "test",
@@ -1051,7 +1046,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"collection2Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"list2Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('romance-dawn')",
 									"    pm.expect(jsonData.displayName).to.eq('Romance Dawn')",
 									"})"
@@ -1073,7 +1068,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/collection",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/list",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1082,14 +1077,14 @@
 								"v1",
 								"{{marketplace1Name}}",
 								"{{brand1Name}}",
-								"collection"
+								"list"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "create collection 3",
+					"name": "create list 3",
 					"event": [
 						{
 							"listen": "test",
@@ -1098,7 +1093,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"collection3Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"list3Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('pillars-of-strength')",
 									"    pm.expect(jsonData.displayName).to.eq('Pillars of Strength')",
 									"})"
@@ -1120,7 +1115,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/collection",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/list",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1129,14 +1124,14 @@
 								"v1",
 								"{{marketplace1Name}}",
 								"{{brand1Name}}",
-								"collection"
+								"list"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "get set1 include products",
+					"name": "get list1 include products",
 					"event": [
 						{
 							"listen": "test",
@@ -1170,7 +1165,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/collection/{{collection1Id}}",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/list/{{list1Id}}",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1179,8 +1174,8 @@
 								"v1",
 								"{{marketplace1Name}}",
 								"{{brand1Name}}",
-								"collection",
-								"{{collection1Id}}"
+								"list",
+								"{{list1Id}}"
 							]
 						}
 					},
@@ -1296,7 +1291,6 @@
 									"    pm.expect(jsonData.name).to.eq('sanji-tcg')",
 									"    pm.expect(jsonData.displayName).to.eq('Sanji')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
-									"    pm.expect(jsonData.sku).to.eq(343253243)",
 									"    pm.expect(jsonData.price).to.eq('3.72')",
 									"})"
 								],
@@ -1346,7 +1340,6 @@
 									"    pm.expect(jsonData.name).to.eq('nami-tcg')",
 									"    pm.expect(jsonData.displayName).to.eq('Nami')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
-									"    pm.expect(jsonData.sku).to.eq(532242343)",
 									"    pm.expect(jsonData.price).to.eq('175.99')",
 									"})"
 								],
@@ -1396,7 +1389,6 @@
 									"    pm.expect(jsonData.name).to.eq('roronoa-zoro-tcg')",
 									"    pm.expect(jsonData.displayName).to.eq('Roronoa Zoro')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
-									"    pm.expect(jsonData.sku).to.eq(432253343)",
 									"    pm.expect(jsonData.price).to.eq('14.99')",
 									"})"
 								],
@@ -1466,7 +1458,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/list/products/?category=tcg&include=collection&include=card&include=productTags",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=list&include=card&include=productTags",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1475,7 +1467,6 @@
 								"v1",
 								"{{marketplace1Name}}",
 								"{{brand1Name}}",
-								"list",
 								"products",
 								""
 							],
@@ -1486,7 +1477,7 @@
 								},
 								{
 									"key": "include",
-									"value": "collection"
+									"value": "list"
 								},
 								{
 									"key": "include",
@@ -1614,7 +1605,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Black 3\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"White\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2224,6 +2215,18 @@
 		},
 		{
 			"key": "tag7Id",
+			"value": ""
+		},
+		{
+			"key": "list1Id",
+			"value": ""
+		},
+		{
+			"key": "list2Id",
+			"value": ""
+		},
+		{
+			"key": "list3Id",
 			"value": ""
 		}
 	]

@@ -9,7 +9,7 @@ export const tagRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/list/tags:
+ * /{marketplaceName}/tags:
  *   get:
  *     tags:
  *       - Tag
@@ -47,7 +47,7 @@ export const tagRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.get('/:marketplaceName/list/tags', async (req, res) => {
+tagRouter.get('/:marketplaceName/tags', async (req, res) => {
   const { marketplaceName } = req.params
   const { include } = req.query
 
