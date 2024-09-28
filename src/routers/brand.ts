@@ -9,7 +9,7 @@ export const brandRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/list/brands:
+ * /{marketplaceName}/brands:
  *   get:
  *     summary: Retrieve a list of brands
  *     tags: 
@@ -22,7 +22,7 @@ export const brandRouter = express.Router()
  *             schema:
  *               $ref: '#/components/schemas/Brand'                      
  */
-brandRouter.get('/:marketplaceName/list/brands', async (req, res) => {
+brandRouter.get('/:marketplaceName/brands', async (req, res) => {
   const { marketplaceName } = req.params
   const { include } = req.query
 

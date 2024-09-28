@@ -6,7 +6,7 @@ import { brandRouter } from './brand'
 import { categoryRouter } from './category'
 import { tagRouter } from './tag'
 import { brandCategoryRouter } from './brandCategory'
-import { collectionRouter } from './collection'
+import { listRouter } from './list'
 import { productRouter } from './product'
 import { productTagRouter } from './productTag'
 
@@ -16,7 +16,7 @@ router.use(brandRouter)
 router.use(categoryRouter)
 router.use(tagRouter)
 router.use(brandCategoryRouter)
-router.use(collectionRouter)
+router.use(listRouter)
 router.use(productRouter)
 router.use(productTagRouter)
 

@@ -18,16 +18,55 @@ enum ProductType {
   CARD
 }
 
-enum CollectionType {
+enum ListType {
+  COLLECTION
   SET
   DECK
-  FAVORITES
+  FAVORITE
+}
+
+enum AccountType {
+  STANDARD
+  SELLER
 }
 
 enum Status {
   ACTIVE
   INACTIVE
   DELETED
+}
+
+enum PayoutStatus {
+  COMPLETED
+  PENDING
+  CANCELED
+}
+
+enum TransactionStatus {
+  COMPLETED
+  PENDING
+  CANCELED
+  REFUNDED
+}
+
+enum PaymentProcessingType {
+  STRIPE
+}
+
+enum PaymentProcessingMethodType {
+  CARD
+  BANK_ACCOUNT
+}
+
+enum DeliveryMethodType {
+  FIRST_CLASS_MAIL
+  OVERNIGHT
+  PRIORITY
+  FLAT_RATE
+  ECONOMY
+  LOCAL_DELIVERY
+  IN_PERSON
+  INTERNATIONAL
 }
 
 model User {
@@ -50,22 +89,43 @@ model Account {
   status        Status @default(ACTIVE)
 
   // custom
-  username      String? @unique
-  isPrivate     Boolean? @default(false)
+  type          AccountType @default(STANDARD)
+  isPremium     Boolean? @default(false)
   phone         String?
   email         String?
   firstName     String?
   lastName      String?
-  fullName      String?
   address       String?
   city          String?
   state         String?
   zipCode       String?
   
   // relations
-  user             User @relation(fields: [userId], references: [id])
-  userId           String  @unique
-  collections      Collection[]
+  profile       Profile?
+  wallet        Wallet?
+  user          User @relation(fields: [userId], references: [id])
+  userId        String  @unique
+}
+
+model Profile {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // custom
+  username      String? @unique
+  isPrivate     Boolean? @default(false)
+  fullName      String?
+  image         String?
+  qrCode        String?
+
+  // relations
+  account       Account @relation(fields: [accountId], references: [id])
+  accountId     String  @unique
+  lists         List[]
+  reviews       Review[]
+  bids          Bid[]
+  listings      Listing[]
 }
 
 model Marketplace {
@@ -188,14 +248,14 @@ model BrandCategory {
   brandName        String
   category         Category @relation(fields: [categoryName], references: [name])
   categoryName     String
-  collections      Collection[]
+  lists            List[]
   products         Product[]
   cards            Card[]
 
   @@id([brandName, categoryName])
 }
 
-model Collection {
+model List {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -204,14 +264,14 @@ model Collection {
   displayName      String?
   name             String?
   description      String?
-  type             CollectionType
+  type             ListType
 
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
   brandCategoryId  String
   products         Product[]
-  account          Account? @relation(fields: [accountId], references: [id])
-  accountId        String?
+  profile          Profile? @relation(fields: [profileId], references: [id])
+  profileId        String?
 }
 
 model Product {
@@ -231,10 +291,13 @@ model Product {
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
   brandCategoryId  String
-  collection       Collection? @relation(fields: [collectionId], references: [id])
-  collectionId     String?
+  list             List? @relation(fields: [listId], references: [id])
+  listId           String?
   productTags      ProductTag[]
   card             Card?
+  reviews          Review[]
+  bids          Bid[]
+  listings      Listing[]
 }
 
 model Card {
@@ -251,4 +314,108 @@ model Card {
   brandCategoryId  String
   product          Product @relation(fields: [productId], references: [id])
   productId        String  @unique
+}
+
+model Review {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  rating           Int?
+  description      String?
+
+  // relations
+  profile          Profile? @relation(fields: [profileId], references: [id])
+  profileId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  productId        String?
+}
+
+model Wallet {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  paymentProcessingType PaymentProcessingType @default(STRIPE)
+  paymentProcessingCustomerId String
+  paymentProcessingMethodType PaymentProcessingMethodType @default(CARD)
+  paymentProcessingtMethodId  String
+  balance          Int?
+
+  // relations
+  payouts          Payout[]
+  account          Account @relation(fields: [accountId], references: [id])
+  accountId        String  @unique
+}
+
+model Payout {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  status           PayoutStatus
+  paymentProcessingType PaymentProcessingType @default(STRIPE)
+  paymentProcessingPayoutId String
+  amount           Int
+
+  // relations
+  wallet           Wallet? @relation(fields: [walletId], references: [id])
+  walletId         String?
+}
+
+model Listing {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  amount           Int
+  status           Status
+
+  // relations
+  profile          Profile? @relation(fields: [profileId], references: [id])
+  profileId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  productId        String?
+  transaction      Transaction?
+}
+
+model Bid {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  amount           Int
+  status           Status
+
+  // relations
+  profile          Profile? @relation(fields: [profileId], references: [id])
+  profileId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  productId        String?
+  transaction      Transaction?
+}
+
+model Transaction {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  subTotal         Int
+  tax              Int?
+  total            Int
+  status           TransactionStatus
+  deliveryMethodType DeliveryMethodType
+  trackingNumber   String?
+
+  // relations
+  bid              Bid @relation(fields: [bidId], references: [id])
+  bidId            String  @unique
+  listing          Listing @relation(fields: [listingId], references: [id])
+  listingId        String  @unique
 }

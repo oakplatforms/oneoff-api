@@ -9,7 +9,7 @@ export const categoryRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/list/categories:
+ * /{marketplaceName}/categories:
  *   get:
  *     tags:
  *       - Category
@@ -57,7 +57,7 @@ export const categoryRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.get('/:marketplaceName/list/categories', async (req, res) => {
+categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
   const { marketplaceName } = req.params
   const { include } = req.query
 
