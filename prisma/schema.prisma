@@ -306,8 +306,8 @@ model Card {
   updatedAt        DateTime  @updatedAt
 
   // custom
-	number           String?
-	shippingCategory String?
+  number           String?
+  shippingCategory String?
 
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
