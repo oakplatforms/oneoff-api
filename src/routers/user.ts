@@ -1,10 +1,9 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
-import { generatePrismaError } from '../utils/generatePrismaError'
-import { create } from 'domain'
+import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 
-const prisma = new PrismaClient()
+const prisma = getPrismaClient()
 export const userRouter = express.Router()
 
 /**

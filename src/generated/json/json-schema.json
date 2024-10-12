@@ -894,27 +894,6 @@
           "type": "string",
           "format": "date-time"
         },
-        "paymentProcessingType": {
-          "type": "string",
-          "default": "STRIPE",
-          "enum": [
-            "STRIPE"
-          ]
-        },
-        "paymentProcessingCustomerId": {
-          "type": "string"
-        },
-        "paymentProcessingMethodType": {
-          "type": "string",
-          "default": "CARD",
-          "enum": [
-            "CARD",
-            "BANK_ACCOUNT"
-          ]
-        },
-        "paymentProcessingtMethodId": {
-          "type": "string"
-        },
         "balance": {
           "type": [
             "integer",
@@ -967,6 +946,17 @@
         "paymentProcessingPayoutId": {
           "type": "string"
         },
+        "paymentProcessingMethodType": {
+          "type": "string",
+          "default": "CARD",
+          "enum": [
+            "CARD",
+            "BANK_ACCOUNT"
+          ]
+        },
+        "paymentProcessingtMethodId": {
+          "type": "string"
+        },
         "amount": {
           "type": "integer"
         },
@@ -1003,7 +993,16 @@
           "format": "date-time"
         },
         "amount": {
-          "type": "integer"
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "status": {
           "type": "string",
@@ -1012,6 +1011,10 @@
             "INACTIVE",
             "DELETED"
           ]
+        },
+        "multiTransactionsEnabled": {
+          "type": "boolean",
+          "default": false
         },
         "profile": {
           "anyOf": [
@@ -1045,15 +1048,11 @@
             "null"
           ]
         },
-        "transaction": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Transaction"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
         }
       }
     },
@@ -1072,7 +1071,16 @@
           "format": "date-time"
         },
         "amount": {
-          "type": "integer"
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "status": {
           "type": "string",
@@ -1081,6 +1089,10 @@
             "INACTIVE",
             "DELETED"
           ]
+        },
+        "multiTransactionsEnabled": {
+          "type": "boolean",
+          "default": false
         },
         "profile": {
           "anyOf": [
@@ -1114,15 +1126,11 @@
             "null"
           ]
         },
-        "transaction": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Transaction"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
         }
       }
     },
@@ -1141,16 +1149,22 @@
           "format": "date-time"
         },
         "subTotal": {
-          "type": "integer"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "tax": {
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
         "total": {
-          "type": "integer"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "status": {
           "type": "string",
@@ -1159,25 +1173,6 @@
             "PENDING",
             "CANCELED",
             "REFUNDED"
-          ]
-        },
-        "deliveryMethodType": {
-          "type": "string",
-          "enum": [
-            "FIRST_CLASS_MAIL",
-            "OVERNIGHT",
-            "PRIORITY",
-            "FLAT_RATE",
-            "ECONOMY",
-            "LOCAL_DELIVERY",
-            "IN_PERSON",
-            "INTERNATIONAL"
-          ]
-        },
-        "trackingNumber": {
-          "type": [
-            "string",
-            "null"
           ]
         },
         "bid": {
@@ -1190,6 +1185,73 @@
           "$ref": "#/definitions/Listing"
         },
         "listingId": {
+          "type": "string"
+        },
+        "shipment": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Shipment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Shipment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "fee": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deliveryType": {
+          "type": "string",
+          "enum": [
+            "USPS",
+            "UPS",
+            "FEDEX",
+            "IN_PERSON"
+          ]
+        },
+        "deliveryMethodType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "FIRST_CLASS_MAIL",
+            "OVERNIGHT",
+            "PRIORITY",
+            "FLAT_RATE",
+            "ECONOMY",
+            "INTERNATIONAL"
+          ]
+        },
+        "trackingNumber": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transaction": {
+          "$ref": "#/definitions/Transaction"
+        },
+        "transactionId": {
           "type": "string"
         }
       }
@@ -1256,6 +1318,9 @@
     },
     "transaction": {
       "$ref": "#/definitions/Transaction"
+    },
+    "shipment": {
+      "$ref": "#/definitions/Shipment"
     }
   }
 }

@@ -1,4 +1,13 @@
-import { Prisma } from "@prisma/client"
+import { Prisma, PrismaClient } from '@prisma/client'
+
+let prisma: PrismaClient
+
+export const getPrismaClient = (): PrismaClient => {
+  if (!prisma) {
+    prisma = new PrismaClient()
+  }
+  return prisma
+}
 
 export const generatePrismaError = (err: Prisma.PrismaClientKnownRequestError) => {
   switch (err.code) {
