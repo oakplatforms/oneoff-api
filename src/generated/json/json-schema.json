@@ -534,6 +534,18 @@
         "tagValue": {
           "type": "string"
         },
+        "isPrimary": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "index": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "tag": {
           "$ref": "#/definitions/Tag"
         },

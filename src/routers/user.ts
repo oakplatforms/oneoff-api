@@ -8,6 +8,64 @@ export const userRouter = express.Router()
 
 /**
  * @openapi
+ * /users:
+ *   get:
+ *     tags:
+ *       - User
+ *     summary: Retrieve a list of users.
+ *     description: Fetches a list of users from the database. You can use the query parameter `include` to specify related data to include with the user objects.
+ *     parameters:
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include in the user data (e.g., 'profile,roles').
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the list of users.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       '400':
+ *         description: Bad request, typically due to invalid query parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+userRouter.get('/users', async (req, res) => {
+  const { include } = req.query
+
+  try {
+    const users = await prisma.user.findMany({
+      include: generateIncludes(include)
+    })
+    res.json(users)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
  * /user:
  *   post:
  *     tags:

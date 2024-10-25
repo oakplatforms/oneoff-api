@@ -233,6 +233,8 @@ model ProductTag {
   updatedAt        DateTime  @updatedAt
 
   tagValue         String
+  isPrimary        Boolean?
+  index            Int?
 
   // relations
   tag              Tag @relation(fields: [tagId], references: [id])
