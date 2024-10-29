@@ -58,14 +58,19 @@ enum PaymentProcessingMethodType {
   BANK_ACCOUNT
 }
 
+enum DeliveryType {
+  USPS
+  UPS
+  FEDEX
+  IN_PERSON
+}
+
 enum DeliveryMethodType {
   FIRST_CLASS_MAIL
   OVERNIGHT
   PRIORITY
   FLAT_RATE
   ECONOMY
-  LOCAL_DELIVERY
-  IN_PERSON
   INTERNATIONAL
 }
 
@@ -228,6 +233,8 @@ model ProductTag {
   updatedAt        DateTime  @updatedAt
 
   tagValue         String
+  isPrimary        Boolean?
+  index            Int?
 
   // relations
   tag              Tag @relation(fields: [tagId], references: [id])
@@ -338,10 +345,6 @@ model Wallet {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  paymentProcessingType PaymentProcessingType @default(STRIPE)
-  paymentProcessingCustomerId String
-  paymentProcessingMethodType PaymentProcessingMethodType @default(CARD)
-  paymentProcessingtMethodId  String
   balance          Int?
 
   // relations
@@ -359,6 +362,8 @@ model Payout {
   status           PayoutStatus
   paymentProcessingType PaymentProcessingType @default(STRIPE)
   paymentProcessingPayoutId String
+  paymentProcessingMethodType PaymentProcessingMethodType @default(CARD)
+  paymentProcessingtMethodId  String
   amount           Int
 
   // relations
@@ -372,15 +377,17 @@ model Listing {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  amount           Int
+  amount           Decimal? @db.Decimal(10, 2)
+  quantity         Int?
   status           Status
+  multiTransactionsEnabled Boolean @default(false) 
 
   // relations
   profile          Profile? @relation(fields: [profileId], references: [id])
   profileId        String?
   product          Product? @relation(fields: [productId], references: [id])
   productId        String?
-  transaction      Transaction?
+  transactions     Transaction[]
 }
 
 model Bid {
@@ -389,15 +396,17 @@ model Bid {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  amount           Int
+  amount           Decimal? @db.Decimal(10, 2)
+  quantity         Int?
   status           Status
+  multiTransactionsEnabled Boolean @default(false) 
 
   // relations
   profile          Profile? @relation(fields: [profileId], references: [id])
   profileId        String?
   product          Product? @relation(fields: [productId], references: [id])
   productId        String?
-  transaction      Transaction?
+  transactions     Transaction[]
 }
 
 model Transaction {
@@ -406,16 +415,31 @@ model Transaction {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  subTotal         Int
-  tax              Int?
-  total            Int
+  subTotal         Decimal? @db.Decimal(10, 2)
+  tax              Decimal? @db.Decimal(10, 2)
+  total            Decimal? @db.Decimal(10, 2)
   status           TransactionStatus
-  deliveryMethodType DeliveryMethodType
-  trackingNumber   String?
 
   // relations
   bid              Bid @relation(fields: [bidId], references: [id])
-  bidId            String  @unique
+  bidId            String
   listing          Listing @relation(fields: [listingId], references: [id])
-  listingId        String  @unique
+  listingId        String
+  shipment         Shipment?
+}
+
+model Shipment {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  fee              Decimal? @db.Decimal(10, 2)
+  deliveryType     DeliveryType
+  deliveryMethodType DeliveryMethodType?
+  trackingNumber   String?
+
+  // relations
+  transaction      Transaction @relation(fields: [transactionId], references: [id])
+  transactionId    String  @unique
 }

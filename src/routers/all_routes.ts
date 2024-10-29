@@ -9,6 +9,8 @@ import { brandCategoryRouter } from './brandCategory'
 import { listRouter } from './list'
 import { productRouter } from './product'
 import { productTagRouter } from './productTag'
+import { bidRouter } from './bid'
+import { listingRouter } from './listing'
 
 router.use(userRouter)
 router.use(marketplaceRouter)
@@ -19,6 +21,8 @@ router.use(brandCategoryRouter)
 router.use(listRouter)
 router.use(productRouter)
 router.use(productTagRouter)
+router.use(bidRouter)
+router.use(listingRouter)
 
 export default router
 
