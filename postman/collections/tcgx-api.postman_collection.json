@@ -1140,6 +1140,99 @@
 			]
 		},
 		{
+			"name": "supportedTagValues",
+			"item": [
+				{
+					"name": "create supported tag value",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"supportedTagValue1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"green\",\n    \"displayName\": \"Green\",\n    \"tagId\": \"{{tag1Id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/supported-tag-value",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"supported-tag-value"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete supported tag value",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/supported-tag-value/{{supportedTagValue1Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"supported-tag-value",
+								"{{supportedTagValue1Id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "lists",
 			"item": [
 				{
@@ -2940,6 +3033,10 @@
 		},
 		{
 			"key": "profile2Id",
+			"value": ""
+		},
+		{
+			"key": "supportedTagValue1Id",
 			"value": ""
 		}
 	]

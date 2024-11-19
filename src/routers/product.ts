@@ -500,15 +500,20 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  */
 productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res) => {
   const { id } = req.params
-
   try {
-    const product = await prisma.product.delete({
+    await prisma.card.delete({
       where: {
-        id: id
+        productId: id
       },
     })
-    res.json(product || { errorMessage: 'Something went wrong: No Product ID found' })
+    const product = await prisma.product.delete({
+      where: {
+        id: id,
+      },
+    })
+    res.json(product || { errorMessage: 'Something went wrong: No product ID found' })
   } catch (error) {
+    console.log('error', error)
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }

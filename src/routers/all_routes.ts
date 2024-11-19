@@ -5,6 +5,7 @@ import { marketplaceRouter } from './marketplace'
 import { brandRouter } from './brand'
 import { categoryRouter } from './category'
 import { tagRouter } from './tag'
+import { supportedTagValueRouter } from './supportedTagValue'
 import { brandCategoryRouter } from './brandCategory'
 import { listRouter } from './list'
 import { productRouter } from './product'
@@ -17,6 +18,7 @@ router.use(marketplaceRouter)
 router.use(brandRouter)
 router.use(categoryRouter)
 router.use(tagRouter)
+router.use(supportedTagValueRouter)
 router.use(brandCategoryRouter)
 router.use(listRouter)
 router.use(productRouter)
