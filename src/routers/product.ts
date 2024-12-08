@@ -37,9 +37,18 @@ export const productRouter = express.Router()
  *         description: Optional category name to filter products by.
  *         schema:
  *           type: string
+ *       - name: productTag
+ *         in: query
+ *         description: Optional key-value pairs to filter products by tag name and value in the format "tagName:tagValue". Multiple pairs can be specified.
+ *         schema:
+ *           oneOf:
+ *             - type: string
+ *             - type: array
+ *               items:
+ *                 type: string
  *     responses:
  *       '200':
- *         description: Successfully retrieved a list of products matching the specified brand and category.
+ *         description: Successfully retrieved a list of products matching the specified filters.
  *         content:
  *           application/json:
  *             schema:
@@ -79,7 +88,7 @@ export const productRouter = express.Router()
  */
 productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
   const { brandName } = req.params
-  const { include, category } = req.query
+  const { include, category, productTag } = req.query
 
   try {
     const brandCategory = await prisma.brandCategory.findFirstOrThrow({
@@ -88,15 +97,33 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
         categoryName: category as string || ''
       }
     })
-    if (brandCategory) {
-      const categories = await prisma.product.findMany({
-        where: {
-          brandCategoryId: brandCategory.id as string
-        },
-        include: generateIncludes(include)
-      })
-      res.json(categories)
-    }
+
+    const productTagFilters = Array.isArray(productTag)
+      ? productTag.filter(tag => typeof tag === 'string')
+      : typeof productTag === 'string'
+      ? [productTag]
+      : []
+
+    const parsedFilters = productTagFilters.map(tagFilter => {
+      const [tagName, tagValue] = (tagFilter as string)?.split?.(':')
+      return { tag: { name: tagName }, tagValue }
+    })
+
+    const products = await prisma.product.findMany({
+      where: {
+        brandCategoryId: brandCategory.id,
+        ...(parsedFilters.length > 0 && {
+          productTags: {
+            some: {
+              OR: parsedFilters
+            }
+          }
+        })
+      },
+      include: generateIncludes(include)
+    })
+
+    res.json(products)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -236,7 +263,6 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
-
 
 /**
  * @openapi

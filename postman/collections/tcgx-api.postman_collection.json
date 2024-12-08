@@ -1671,7 +1671,7 @@
 					"response": []
 				},
 				{
-					"name": "get product1 include set",
+					"name": "get products include set and card",
 					"event": [
 						{
 							"listen": "test",
@@ -1704,7 +1704,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=list&include=card&include=productTags",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=list&include=card",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1728,10 +1728,6 @@
 								{
 									"key": "include",
 									"value": "card"
-								},
-								{
-									"key": "include",
-									"value": "productTags"
 								}
 							]
 						}
@@ -2298,6 +2294,74 @@
 								"v1",
 								"{{marketplace1Name}}",
 								"product-tag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get products with productTag filters",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.length).to.eq(2)",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=productTags.tag&productTag=color:White&productTag=rarity:SEC",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"products",
+								""
+							],
+							"query": [
+								{
+									"key": "category",
+									"value": "tcg"
+								},
+								{
+									"key": "include",
+									"value": "productTags.tag"
+								},
+								{
+									"key": "productTag",
+									"value": "color:White"
+								},
+								{
+									"key": "productTag",
+									"value": "rarity:SEC"
+								}
 							]
 						}
 					},

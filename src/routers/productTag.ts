@@ -235,7 +235,6 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
   }
 })
 
-
 /**
  * @openapi
  * /{marketplaceName}/product-tag/{id}:
@@ -311,22 +310,16 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/brand-category/{id}:
+ * /{marketplaceName}/product-tag/{id}:
  *   delete:
  *     tags:
  *       - Product Tag
  *     summary: Delete a specific product-tag association.
- *     description: Deletes a product-tag association by its ID from the given marketplace and brand name.
+ *     description: Deletes a product-tag association by its ID from the given marketplace.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
  *         description: The name of the marketplace.
- *         required: true
- *         schema:
- *           type: string
- *       - name: brandName
- *         in: path
- *         description: The name of the brand.
  *         required: true
  *         schema:
  *           type: string
@@ -343,6 +336,16 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ProductTag'
+ *       '400':
+ *         description: Bad Request. Something went wrong with the deletion process, such as a missing ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
  *       '404':
  *         description: Product-tag association not found. The specified ID does not match any existing product-tag association.
  *         content:
@@ -364,7 +367,7 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-productTagRouter.delete('/:marketplaceName/:brandName/brand-category/:id', async (req, res) => {
+productTagRouter.delete('/:marketplaceName/product-tag/:id', async (req, res) => {
   const { id } = req.params
 
   try {
