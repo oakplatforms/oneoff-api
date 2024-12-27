@@ -183,8 +183,10 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
   try {
     const userBid = await prisma.bid.findFirst({
       where: {
-        profileId,
-        productId,
+        AND: [
+          { profileId: profileId },
+          { productId: productId },
+        ],
       },
     })
     if (userBid) {

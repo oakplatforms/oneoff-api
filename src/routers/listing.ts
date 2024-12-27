@@ -186,8 +186,10 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
   try {
     const userListing = await prisma.listing.findFirst({
       where: {
-        profileId,
-        productId,
+        AND: [
+          { profileId: profileId },
+          { productId: productId },
+        ],
       },
     })
 

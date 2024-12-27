@@ -46,6 +46,11 @@ export const productRouter = express.Router()
  *             - type: array
  *               items:
  *                 type: string
+ *       - name: search
+ *         in: query
+ *         description: Optional string to search for products by matching against the name or display name.
+ *         schema:
+ *           type: string
  *     responses:
  *       '200':
  *         description: Successfully retrieved a list of products matching the specified filters.
@@ -88,7 +93,7 @@ export const productRouter = express.Router()
  */
 productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
   const { brandName } = req.params
-  const { include, category, productTag } = req.query
+  const { include, category, productTag, search } = req.query
 
   try {
     const brandCategory = await prisma.brandCategory.findFirstOrThrow({
@@ -109,17 +114,35 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
       return { tag: { name: tagName }, tagValue }
     })
 
+    const whereClause: Prisma.ProductWhereInput = {
+      brandCategoryId: brandCategory.id,
+      AND: [
+        ...(parsedFilters.length > 0
+          ? [
+              {
+                productTags: {
+                  some: {
+                    OR: parsedFilters
+                  }
+                }
+              }
+            ]
+          : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { displayName: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } },
+                  { name: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } }
+                ]
+              }
+            ]
+          : [])
+      ]
+    }
+
     const products = await prisma.product.findMany({
-      where: {
-        brandCategoryId: brandCategory.id,
-        ...(parsedFilters.length > 0 && {
-          productTags: {
-            some: {
-              OR: parsedFilters
-            }
-          }
-        })
-      },
+      where: whereClause,
       include: generateIncludes(include)
     })
 
