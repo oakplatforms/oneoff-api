@@ -95,6 +95,88 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
 
 /**
  * @openapi
+ * /{marketplaceName}/{brandName}/listing/lowest-ask:
+ *   get:
+ *     tags:
+ *       - Listing
+ *     summary: Retrieve the lowest ask listing.
+ *     description: Fetches the listing with the lowest amount for a specific product in a given marketplace and brand. The listing returned is the one with the lowest amount, and if multiple listings have the same amount, the oldest listing is returned.
+ *     parameters:
+ *       - in: path
+ *         name: marketplaceName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the marketplace to retrieve the lowest ask from.
+ *       - in: path
+ *         name: brandName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the brand to retrieve the lowest ask from.
+ *       - in: query
+ *         name: productId
+ *         schema:
+ *           type: string
+ *         description: Filter listings by product ID.
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include in the listing data (e.g., 'product,profile').
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the lowest ask listing.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Listing'
+ *       '400':
+ *         description: Bad request, typically due to invalid query parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req, res) => {
+  const { include, productId } = req.query
+
+  try {
+    const listing = await prisma.listing.findFirst({
+      where: {
+        status: 'ACTIVE',
+        ...(productId ? { productId: productId as string } : {})
+      },
+      orderBy: [
+        { amount: 'asc' },
+        { createdAt: 'asc' }
+      ],
+      include: generateIncludes(include)
+    })
+
+    res.json(listing)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
  * /{marketplaceName}/{brandName}/listing:
  *   post:
  *     tags:

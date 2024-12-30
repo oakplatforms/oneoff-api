@@ -2464,6 +2464,52 @@
 					"response": []
 				},
 				{
+					"name": "create listing 3",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"listing3Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listing",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "create listing 2 - duplicate error",
 					"event": [
 						{
@@ -2603,6 +2649,59 @@
 								{
 									"key": "include",
 									"value": "profile.account"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get lowest ask",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/lowest-ask?productId={{product1Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listing",
+								"lowest-ask"
+							],
+							"query": [
+								{
+									"key": "productId",
+									"value": "{{product1Id}}"
 								}
 							]
 						}
@@ -3101,6 +3200,10 @@
 		},
 		{
 			"key": "supportedTagValue1Id",
+			"value": ""
+		},
+		{
+			"key": "listing3Id",
 			"value": ""
 		}
 	]
