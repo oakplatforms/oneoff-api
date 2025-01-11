@@ -5,20 +5,20 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
-export const categoryRouter = express.Router()
+export const shippingCategoryRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/categories:
+ * /{marketplaceName}/shipping-categories:
  *   get:
  *     tags:
- *       - Category
- *     summary: Retrieve a list of categories for a given marketplace.
- *     description: Fetches a list of categories that belong to the specified marketplace.
+ *       - Shipping Category
+ *     summary: Retrieve a list of shipping categories for a given marketplace.
+ *     description: Fetches a list of shipping categories that belong to the specified marketplace.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace for which to list categories.
+ *         description: The name of the marketplace for which to list shipping categories.
  *         required: true
  *         schema:
  *           type: string
@@ -29,13 +29,13 @@ export const categoryRouter = express.Router()
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully retrieved the list of categories.
+ *         description: Successfully retrieved the list of shipping categories.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Category'
+ *                 $ref: '#/components/schemas/ShippingCategory'
  *       '400':
  *         description: Bad request, typically due to invalid parameters.
  *         content:
@@ -57,19 +57,17 @@ export const categoryRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
+shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, res) => {
   const { marketplaceName } = req.params
   const { include } = req.query
-
   try {
-    const categories = await prisma.category.findMany({
+    const shippingCategories = await prisma.shippingCategory.findMany({
       where: {
         marketplaceName: { contains: marketplaceName as string }
       },
       include: generateIncludes(include)
     })
-  
-    res.json(categories)
+    res.json(shippingCategories)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -78,16 +76,16 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category:
+ * /{marketplaceName}/shipping-category:
  *   post:
  *     tags:
- *       - Category
- *     summary: Create a new category for a given marketplace.
- *     description: Creates a new category in the specified marketplace with the provided details.
+ *       - Shipping Category
+ *     summary: Create a new shipping category for a given marketplace.
+ *     description: Creates a new shipping category in the specified marketplace with the provided details.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the new category will be created.
+ *         description: The name of the marketplace where the new shipping category will be created.
  *         required: true
  *         schema:
  *           type: string
@@ -100,19 +98,21 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
  *             properties:
  *               name:
  *                 type: string
- *                 description: The name of the category.
+ *                 description: The name of the shipping category.
  *               displayName:
  *                 type: string
- *                 description: The display name of the category.
+ *                 description: The display name of the shipping category.
+ *             required:
+ *               - name
  *     responses:
  *       '201':
- *         description: Successfully created a new category.
+ *         description: Successfully created a new shipping category.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Category'
+ *               $ref: '#/components/schemas/ShippingCategory'
  *       '400':
- *         description: Bad request, typically due to invalid parameters.
+ *         description: Bad request, typically due to invalid parameters or missing required fields.
  *         content:
  *           application/json:
  *             schema:
@@ -132,19 +132,19 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
+shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, res) => {
   const { marketplaceName } = req.params
   const { name, displayName } = req.body
 
   try {
-    const category = await prisma.category.create({
+    const shippingCategory = await prisma.shippingCategory.create({
       data: {
         name,
         displayName,
         marketplace: { connect: { name: marketplaceName } }
       },
     })
-    res.json(category)
+    res.json(shippingCategory)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -153,22 +153,22 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category/{id}:
+ * /{marketplaceName}/shipping-category/{id}:
  *   put:
  *     tags:
- *       - Category
- *     summary: Update an existing category in the specified marketplace.
- *     description: Updates the details of a category by its ID within the specified marketplace.
+ *       - Shipping Category
+ *     summary: Update an existing shipping category in the specified marketplace.
+ *     description: Updates the details of a shipping category by its ID within the specified marketplace.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the category exists.
+ *         description: The name of the marketplace where the shipping category exists.
  *         required: true
  *         schema:
  *           type: string
  *       - name: id
  *         in: path
- *         description: The unique identifier of the category to update.
+ *         description: The unique identifier of the shipping category to update.
  *         required: true
  *         schema:
  *           type: string
@@ -178,25 +178,33 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             description: The fields to update in the shipping category.
  *             properties:
  *               name:
  *                 type: string
- *                 description: The updated name of the category.
+ *                 description: The updated name of the shipping category.
  *               displayName:
  *                 type: string
- *                 description: The updated display name of the category.
+ *                 description: The updated display name of the shipping category.
  *               description:
  *                 type: string
- *                 description: A description of the category.
+ *                 description: The updated description of the shipping category.
+ *               maxQuantity:
+ *                 type: integer
+ *                 description: The updated maximum quantity allowed for this shipping category.
+ *               maxWeight:
+ *                 type: number
+ *                 format: float
+ *                 description: The updated maximum weight allowed for this shipping category.
  *     responses:
  *       '200':
- *         description: Successfully updated the category.
+ *         description: Successfully updated the shipping category.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Category'
+ *               $ref: '#/components/schemas/ShippingCategory'
  *       '400':
- *         description: Bad request, typically due to invalid parameters.
+ *         description: Bad request, typically due to invalid parameters or missing fields.
  *         content:
  *           application/json:
  *             schema:
@@ -206,7 +214,7 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  *       '404':
- *         description: Category not found.
+ *         description: Shipping category not found.
  *         content:
  *           application/json:
  *             schema:
@@ -214,7 +222,7 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
  *               properties:
  *                 errorMessage:
  *                   type: string
- *                   description: Error message indicating the category could not be found.
+ *                   description: Error message indicating the shipping category could not be found.
  *       '500':
  *         description: Internal server error, often due to database issues or unexpected errors.
  *         content:
@@ -226,17 +234,17 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
+shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    const category = await prisma.category.update({
+    const shippingCategory = await prisma.shippingCategory.update({
       where: { id },
       data: {
         ...req.body,
       }
     })
-    res.json(category || { errorMessage: 'Something went wrong: Cannot update Category by id' })
+    res.json(shippingCategory || { errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -245,22 +253,22 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category/{id}:
+ * /{marketplaceName}/shipping-category/{id}:
  *   get:
  *     tags:
- *       - Category
- *     summary: Retrieve a specific category by its ID.
- *     description: Fetches details of a specific category by its ID within the given marketplace, with optional inclusion of related data.
+ *       - Shipping Category
+ *     summary: Retrieve details of a specific shipping category by its ID.
+ *     description: Fetches the details of a single shipping category in the specified marketplace using its unique ID.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the category is located.
+ *         description: The name of the marketplace where the shipping category exists.
  *         required: true
  *         schema:
  *           type: string
  *       - name: id
  *         in: path
- *         description: The ID of the category to retrieve.
+ *         description: The unique identifier of the shipping category.
  *         required: true
  *         schema:
  *           type: string
@@ -271,23 +279,13 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully retrieved the category.
+ *         description: Successfully retrieved the shipping category.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Category'
- *       '404':
- *         description: Category not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
+ *               $ref: '#/components/schemas/ShippingCategory'
  *       '400':
- *         description: Bad request, typically due to invalid parameters.
+ *         description: Bad request, typically due to invalid parameters or query syntax.
  *         content:
  *           application/json:
  *             schema:
@@ -296,6 +294,16 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
  *                 errorMessage:
  *                   type: string
  *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Shipping category not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Error message indicating the shipping category could not be found.
  *       '500':
  *         description: Internal server error, often due to database issues or unexpected errors.
  *         content:
@@ -307,19 +315,19 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
+shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
   try {
-    const category = await prisma.category.findUnique({
+    const shippingCategory = await prisma.shippingCategory.findUnique({
       where: {
         id,
       },
       include: generateIncludes(include)
     })
   
-    res.json(category || { errorMessage: 'Something went wrong: No Category ID found' })
+    res.json(shippingCategory || { errorMessage: 'Something went wrong: No Shipping Category ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -328,44 +336,34 @@ categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category/{id}:
+ * /{marketplaceName}/shipping-category/{id}:
  *   delete:
  *     tags:
- *       - Category
- *     summary: Delete a specific category by its ID.
- *     description: Deletes a category by its ID within the given marketplace.
+ *       - Shipping Category
+ *     summary: Delete a specific shipping category by its ID.
+ *     description: Deletes a shipping category in the specified marketplace using its unique ID.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
- *         description: The name of the marketplace where the category is located.
+ *         description: The name of the marketplace where the shipping category exists.
  *         required: true
  *         schema:
  *           type: string
  *       - name: id
  *         in: path
- *         description: The ID of the category to delete.
+ *         description: The unique identifier of the shipping category to delete.
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully deleted the category.
+ *         description: Successfully deleted the shipping category.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Category'
- *       '404':
- *         description: Category not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
+ *               $ref: '#/components/schemas/ShippingCategory'
  *       '400':
- *         description: Bad request, typically due to invalid parameters.
+ *         description: Bad request, typically due to invalid parameters or query syntax.
  *         content:
  *           application/json:
  *             schema:
@@ -374,6 +372,16 @@ categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Shipping category not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Error message indicating the shipping category could not be found.
  *       '500':
  *         description: Internal server error, often due to database issues or unexpected errors.
  *         content:
@@ -385,16 +393,16 @@ categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.delete(`/:marketplaceName/category/:id`, async (req, res) => {
+shippingCategoryRouter.delete(`/:marketplaceName/shipping-category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    const category = await prisma.category.delete({
+    const category = await prisma.shippingCategory.delete({
       where: {
         id: id,
       },
     })
-    res.json(category || { errorMessage: 'Something went wrong: No Category ID found' })
+    res.json(category || { errorMessage: 'Something went wrong: No Shipping Category ID found' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

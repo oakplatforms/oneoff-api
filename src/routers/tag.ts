@@ -171,7 +171,7 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/tag/{tagId}:
+ * /{marketplaceName}/tag/{id}:
  *   put:
  *     tags:
  *       - Tag
@@ -184,7 +184,7 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *       - name: tagId
+ *       - name: id
  *         in: path
  *         description: The ID of the tag to be updated.
  *         required: true
@@ -256,12 +256,12 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.put('/:marketplaceName/tag/:tagId', async (req, res) => {
-  const { marketplaceName, tagId } = req.params
+tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
+  const { marketplaceName, id } = req.params
 
   try {
     const result = await prisma.tag.update({
-      where: { id: tagId },
+      where: { id },
       data: {
         ...req.body,
         supportedTagValues: {

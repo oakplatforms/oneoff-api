@@ -85,6 +85,7 @@ productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
 
     if (selectedTag?.supportedTagValues?.length) {
       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === tagValue)
+
       if (supportedTagValue) {
         const productTag = await prisma.productTag.create({
           data: {
@@ -95,7 +96,7 @@ productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
         })
         res.json(productTag)
       } else {
-        res.status(404).send({ errorMessage: 'Tag value is not supported' })
+        res.status(404).send({ errorMessage: `Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
       }
     } else {
       const productTag = await prisma.productTag.create({
@@ -192,8 +193,8 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
 
     if (selectedTag?.supportedTagValues?.length) {
       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === tagValue)
+
       if (supportedTagValue) {
-        console.log(productId, tagId)
         const productTag = await prisma.productTag.updateMany({
           where: {
             productId,
@@ -203,14 +204,12 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
             tagValue
           }
         })
-        console.log(productTag)
         if (productTag.count === 0) {
-          return res.status(404).send({ errorMessage: 'Product-tag association not found' })
+          return res.status(404).send({ errorMessage: 'Product tag association not found' })
         }
-    
         res.json(productTag)
       } else {
-        res.status(404).send({ errorMessage: 'Tag value is not supported' })
+        res.status(404).send({ errorMessage: `Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
       }
     } else {
       const productTag = await prisma.productTag.updateMany({
@@ -224,7 +223,7 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
       })
   
       if (productTag.count === 0) {
-        return res.status(404).send({ errorMessage: 'Product-tag association not found' })
+        return res.status(404).send({ errorMessage: 'Product tag association not found' })
       }
   
       res.json(productTag)

@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaClient, Prisma, Status } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -75,15 +75,22 @@ export const listingRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
-  const { include, productId, profileId } = req.query
+  const { include, productId, profileId, status } = req.query
   try {
     const listings = await prisma.listing.findMany({
-      where: productId || profileId ? {
-        OR: [
-          productId ? { productId: productId as string } : {},
-          profileId ? { profileId: profileId as string } : {}
+      where: {
+        AND: [
+          status ? { status: status as Status } : {},
+          productId || profileId
+            ? {
+                OR: [
+                  productId ? { productId: productId as string } : {},
+                  profileId ? { profileId: profileId as string } : {}
+                ]
+              }
+            : {}
         ]
-      } : {},
+      },
       include: generateIncludes(include)
     })
     res.json(listings)
@@ -100,7 +107,7 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
  *     tags:
  *       - Listing
  *     summary: Retrieve the lowest ask listing.
- *     description: Fetches the listing with the lowest amount for a specific product in a given marketplace and brand. The listing returned is the one with the lowest amount, and if multiple listings have the same amount, the oldest listing is returned.
+ *     description: Fetches the listing with the lowest price for a specific product in a given marketplace and brand. The listing returned is the one with the lowest price, and if multiple listings have the same price, the oldest listing is returned.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -155,23 +162,29 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
 listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req, res) => {
   const { include, productId } = req.query
 
-  try {
-    const listing = await prisma.listing.findFirst({
-      where: {
-        status: 'ACTIVE',
-        ...(productId ? { productId: productId as string } : {})
-      },
-      orderBy: [
-        { amount: 'asc' },
-        { createdAt: 'asc' }
-      ],
-      include: generateIncludes(include)
-    })
-
-    res.json(listing)
-  } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+  if (!productId) {
+    res.json({ errorMessage: 'Product ID is required to retrieve lowest ask listing' })
+  } else {
+    try {
+      const listing = await prisma.listing.findFirst({
+        where: {
+          AND: [
+            { status: 'ACTIVE' },
+            { productId: productId as string },
+          ],
+        },
+        orderBy: [
+          { price: 'asc' },
+          { createdAt: 'asc' }
+        ],
+        include: generateIncludes(include)
+      })
+  
+      res.json(listing)
+    } catch (error) {
+      const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+      res.status(statusCode).send({ errorMessage })
+    }
   }
 })
 
@@ -182,7 +195,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *     tags:
  *       - Listing
  *     summary: Create a new listing.
- *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `amount`, `quantity`, `status`, `profileId`, and `productId`. If the user already has a listing for this product, an error will be returned.
+ *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, and `productId`. If the user already has a listing for this product, an error will be returned.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -203,9 +216,9 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *           schema:
  *             type: object
  *             properties:
- *               amount:
+ *               price:
  *                 type: number
- *                 description: The amount for the listing.
+ *                 description: The price for the listing.
  *               quantity:
  *                 type: integer
  *                 description: The quantity of items in the listing.
@@ -222,7 +235,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *                 type: string
  *                 description: The product ID associated with the listing.
  *             required:
- *               - amount
+ *               - price
  *               - quantity
  *               - status
  *               - profileId
@@ -257,35 +270,48 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  */
 listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
   const {
-    amount,
+    price,
     quantity,
     status,
     multiTransactionsEnabled,
     profileId,
-    productId
+    productId,
+    listingShippingCategories
   } = req.body
 
   try {
+
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
           { profileId: profileId },
           { productId: productId },
+          { status: 'ACTIVE' }
         ],
       },
     })
-
+    
+    
     if (userListing) {
       res.json({ errorMessage: 'User already has a listing for this product' })
+    } else if (price <= 0) {
+      res.json({ errorMessage: 'A listing cannot have a zero or negative price' })
     } else {
       const listing = await prisma.listing.create({
         data: {
-          amount,
+          price,
           quantity,
           status,
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
-          product: { connect: { id: productId } }
+          product: { connect: { id: productId } },
+          listingShippingCategories: listingShippingCategories?.length
+            ? {
+                create: listingShippingCategories.map((listingShippingCategory: { shippingCategoryId: string }) => ({
+                  shippingCategoryId: listingShippingCategory.shippingCategoryId,
+                })),
+              }
+            : undefined,
         },
       })
   
@@ -293,10 +319,8 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
       if (bids.length) {
         createListingTransactions(listing, bids)
       }
-
       res.json(listing)
     }
-
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -305,7 +329,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing/{listingId}/purchase:
+ * /{marketplaceName}/{brandName}/listing/{id}/purchase:
  *   put:
  *     tags:
  *       - Listing
@@ -325,7 +349,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  *           type: string
  *         description: The name of the brand for the listing.
  *       - in: path
- *         name: listingId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -370,21 +394,21 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId/purchase`, async (req, res) => {
-  const { listingId } = req.params
+listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (req, res) => {
+  const { id } = req.params
   const { profileId } = req.body
 
   try {
     const listing = await prisma.listing.findUnique({
       where: {
-        id: listingId,
+        id,
       },
     })
 
     if (listing) {
       const bid = await prisma.bid.create({
         data: {
-          amount: listing.amount,
+          price: listing.price,
           quantity: listing.quantity,
           status: 'ACTIVE',
           multiTransactionsEnabled: false,
@@ -405,7 +429,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId/purchase`, as
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing/{listingId}:
+ * /{marketplaceName}/{brandName}/listing/{id}:
  *   put:
  *     tags:
  *       - Listing
@@ -425,7 +449,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId/purchase`, as
  *           type: string
  *         description: The name of the brand for the listing.
  *       - in: path
- *         name: listingId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -437,9 +461,9 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId/purchase`, as
  *           schema:
  *             type: object
  *             properties:
- *               amount:
+ *               price:
  *                 type: number
- *                 description: The updated amount for the listing.
+ *                 description: The updated price for the listing.
  *               quantity:
  *                 type: integer
  *                 description: The updated quantity of items in the listing.
@@ -485,14 +509,25 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId/purchase`, as
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId`, async (req, res) => {
-  const { listingId } = req.params
+listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) => {
+  const { id } = req.params
+  const { listingShippingCategories } = req.body
 
   try {
     const listing = await prisma.listing.update({
-      where: { id: listingId },
+      where: { id },
       data: {
         ...req.body,
+        listingShippingCategories: listingShippingCategories
+          ? {
+              create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
+                shippingCategoryId: listingShippingCategory.shippingCategoryId,
+              })),
+              deleteMany: listingShippingCategories.delete?.map((listingShippingCategoryId: string) => ({
+                id: listingShippingCategoryId
+              })),
+            }
+          : undefined,
       }
     })
 
@@ -500,7 +535,6 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:listingId`, async (req,
     if (bids.length) {
       createListingTransactions(listing, bids)
     }
-
     res.json(listing || { errorMessage: 'Something went wrong: Cannot update listing by id' })
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -644,6 +678,11 @@ listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res
   const { id } = req.params
 
   try {
+    await prisma.listingShippingCategory.deleteMany({
+      where: {
+        listingId: id,
+      },
+    })
     const listing = await prisma.listing.delete({
       where: { id: id },
     })

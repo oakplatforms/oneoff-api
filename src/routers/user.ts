@@ -71,7 +71,7 @@ userRouter.get('/users', async (req, res) => {
  *     tags:
  *       - User
  *     summary: Create a new user.
- *     description: Adds a new user to the database. The request body must include the `cognitoId` and `account` details. If successful, the created user object will be returned.
+ *     description: Adds a new user to the database. The request body must include the `authId` and `account` details. If successful, the created user object will be returned.
  *     requestBody:
  *       required: true
  *       content:
@@ -79,7 +79,7 @@ userRouter.get('/users', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               cognitoId:
+ *               authId:
  *                 type: string
  *                 description: The unique identifier for the user from Cognito.
  *               account:
@@ -92,7 +92,7 @@ userRouter.get('/users', async (req, res) => {
  *                     type: string
  *                     description: The email associated with the account.
  *               required:
- *                 - cognitoId
+ *                 - authId
  *                 - account
  *     responses:
  *       '200':
@@ -123,13 +123,13 @@ userRouter.get('/users', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 userRouter.post(`/user`, async (req, res) => {
-  const { cognitoId, account } = req.body
+  const { authId, account } = req.body
   const { profile: profileProps, ...accountProps } = account || {}
 
   try {
     const result = await prisma.user.create({
       data: {
-        cognitoId,
+        authId,
         account: {
           create: {
             ...accountProps,
@@ -149,7 +149,7 @@ userRouter.post(`/user`, async (req, res) => {
 
 /**
  * @openapi
- * /user/{userId}:
+ * /user/{id}:
  *   put:
  *     tags:
  *       - User
@@ -157,7 +157,7 @@ userRouter.post(`/user`, async (req, res) => {
  *     description: Updates an existing user and associated account details in the database by user ID. The request body must include the `account` details. If successful, the updated user object will be returned.
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: id
  *         schema:
  *           type: string
  *         required: true
@@ -218,13 +218,13 @@ userRouter.post(`/user`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-userRouter.put(`/user/:userId`, async (req, res) => {
-  const { userId } = req.params
+userRouter.put(`/user/:id`, async (req, res) => {
+  const { id } = req.params
   const { account } = req.body
   const { profile: profileProps, ...accountProps } = account || {}
   try {
     const result = await prisma.user.update({
-      where: { id: userId },
+      where: { id },
       data: {
         account: {
           update: {
@@ -251,7 +251,7 @@ userRouter.put(`/user/:userId`, async (req, res) => {
  *     summary: Retrieve a specific user by their ID.
  *     description: Fetches details of a user identified by their ID. If the user does not exist, an appropriate message will be returned.
  *     parameters:
- *       - name: cognitoId
+ *       - name: authId
  *         in: path
  *         description: The Cognito Id of the user to retrieve.
  *         required: true
@@ -291,14 +291,14 @@ userRouter.put(`/user/:userId`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-userRouter.get('/user/:cognitoId', async (req, res) => {
-  const { cognitoId } = req.params
+userRouter.get('/user/:authId', async (req, res) => {
+  const { authId } = req.params
   const { include } = req.query
 
   try {
     const users = await prisma.user.findMany({
       where: {
-        cognitoId: { contains: cognitoId as string }
+        authId: { contains: authId as string }
       },
       include: generateIncludes(include)
     })

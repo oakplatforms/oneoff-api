@@ -258,8 +258,31 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
     brandCategoryId,
     image,
     price,
-    releaseDate
+    releaseDate,
+    productTags
   } = req.body
+
+
+  if (productTags.length) {
+     productTags.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+      const selectedTag = await prisma.tag.findUnique({
+        where: {
+          id: productTag.tagId,
+        },
+        include: {
+          supportedTagValues: true
+        }
+      })
+
+      if (selectedTag?.supportedTagValues?.length) {
+        const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
+        
+        if (!supportedTagValue) {
+          res.status(404).send({ errorMessage: `Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
+        }
+      }
+    })
+  }
 
   try {
     const result = await prisma.product.create({
@@ -277,6 +300,14 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
             brandCategory: { connect: { id: brandCategoryId }
           }},
         },
+        productTags: productTags?.length
+        ? {
+            create: productTags.map((productTag: { tagId: string; tagValue: string }) => ({
+              tag: { connect: { id: productTag.tagId } },
+              tagValue: productTag.tagValue,
+            })),
+          }
+        : undefined,
         brandCategory: { connect: { id: brandCategoryId } }
       },
     })
@@ -289,7 +320,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/product/{productId}:
+ * /{marketplaceName}/{brandName}/product/{id}:
  *   put:
  *     tags:
  *       - Product
@@ -308,7 +339,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *       - name: productId
+ *       - name: id
  *         in: path
  *         description: The ID of the product to be updated.
  *         required: true
@@ -388,12 +419,34 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-productRouter.put(`/:marketplaceName/:brandName/product/:productId`, async (req, res) => {
-  const { productId } = req.params
+productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) => {
+  const { id } = req.params
+  const { productTags } = req.body
+
+  if (productTags.create?.length) {
+    productTags.create?.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+     const selectedTag = await prisma.tag.findUnique({
+       where: {
+         id: productTag.tagId,
+       },
+       include: {
+         supportedTagValues: true
+       }
+     })
+
+     if (selectedTag?.supportedTagValues?.length) {
+       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
+       
+       if (!supportedTagValue) {
+         res.status(404).send({ errorMessage: `Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
+       }
+     }
+   })
+ }
 
   try {
     const product = await prisma.product.update({
-      where: { id: productId },
+      where: { id },
       data: {
         ...req.body,
         card: req.body.card ? {
@@ -402,6 +455,17 @@ productRouter.put(`/:marketplaceName/:brandName/product/:productId`, async (req,
             brandCategoryId: req.body.brandCategoryId
           }
         } : undefined,
+        productTags: productTags
+          ? {
+              create: productTags.create?.map((productTag: { tagId: string; tagValue: string }) => ({
+                tagId: productTag.tagId,
+                tagValue: productTag.tagValue,
+              })),
+              deleteMany: productTags.delete?.map((productTagId: string) => ({
+                id: productTagId,
+              })),
+            }
+          : undefined,
         brandCategoryId: req.body.brandCategoryId,
       }
     })
@@ -499,7 +563,7 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  *     tags:
  *       - Product
  *     summary: Delete a specific product.
- *     description: Deletes a product specified by its ID from the given brand and marketplace. If the product does not exist or an error occurs, an appropriate message will be returned.
+ *     description: Deletes a product specified by its ID from the given brand and marketplace. This action also deletes all associated ProductTag records and any related Cards. If the product does not exist or an error occurs, an appropriate message will be returned.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
@@ -521,7 +585,7 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully deleted the product.
+ *         description: Successfully deleted the product along with its associated ProductTags and related data.
  *         content:
  *           application/json:
  *             schema:
@@ -549,10 +613,16 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  */
 productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res) => {
   const { id } = req.params
+
   try {
-    await prisma.card.delete({
+    await prisma.productTag.deleteMany({
       where: {
-        productId: id
+        productId: id,
+      },
+    })
+    await prisma.card.deleteMany({
+      where: {
+        productId: id,
       },
     })
     const product = await prisma.product.delete({
@@ -560,9 +630,9 @@ productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res
         id: id,
       },
     })
-    res.json(product || { errorMessage: 'Something went wrong: No product ID found' })
+    res.json(product || { errorMessage: 'Something went wrong: No Product ID found' })
   } catch (error) {
-    console.log('error', error)
+    console.error('error', error)
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
