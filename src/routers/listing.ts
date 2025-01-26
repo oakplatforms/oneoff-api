@@ -195,7 +195,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *     tags:
  *       - Listing
  *     summary: Create a new listing.
- *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, and `productId`. If the user already has a listing for this product, an error will be returned.
+ *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, `productId`, and optionally `listingShippingCategories`. If the user already has a listing for this product, an error will be returned.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -234,6 +234,19 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *               productId:
  *                 type: string
  *                 description: The product ID associated with the listing.
+ *               listingShippingCategories:
+ *                 type: object
+ *                 description: Shipping categories to associate with the listing.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of shipping categories to create and associate with the listing.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         shippingCategoryId:
+ *                           type: string
+ *                           description: ID of the shipping category to associate.
  *             required:
  *               - price
  *               - quantity
@@ -246,7 +259,38 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Listing'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The ID of the newly created listing.
+ *                 price:
+ *                   type: number
+ *                   description: The price for the listing.
+ *                 quantity:
+ *                   type: integer
+ *                   description: The quantity of items in the listing.
+ *                 status:
+ *                   type: string
+ *                   description: The status of the listing.
+ *                 multiTransactionsEnabled:
+ *                   type: boolean
+ *                   description: Whether multiple transactions are enabled for the listing.
+ *                 profileId:
+ *                   type: string
+ *                   description: The profile ID associated with the listing.
+ *                 productId:
+ *                   type: string
+ *                   description: The product ID associated with the listing.
+ *                 listingShippingCategories:
+ *                   type: array
+ *                   description: List of shipping categories associated with the listing.
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       shippingCategoryId:
+ *                         type: string
+ *                         description: ID of the shipping category.
  *       '400':
  *         description: Bad request, typically due to invalid request data or if the user already has a listing for the product.
  *         content:
@@ -276,7 +320,8 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
     multiTransactionsEnabled,
     profileId,
     productId,
-    listingShippingCategories
+    listingShippingCategories,
+    listingCustomShippingOptions
   } = req.body
 
   try {
@@ -305,10 +350,17 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
           product: { connect: { id: productId } },
-          listingShippingCategories: listingShippingCategories?.length
+          listingShippingCategories: listingShippingCategories?.create?.length
             ? {
-                create: listingShippingCategories.map((listingShippingCategory: { shippingCategoryId: string }) => ({
+                create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
                   shippingCategoryId: listingShippingCategory.shippingCategoryId,
+                })),
+              }
+            : undefined,
+          listingCustomShippingOptions: listingCustomShippingOptions?.create?.length
+            ? {
+                create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
+                  shippingOptionId: listingCustomShippingOption.shippingOptionId,
                 })),
               }
             : undefined,
@@ -433,8 +485,8 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
  *   put:
  *     tags:
  *       - Listing
- *     summary: Update a listing.
- *     description: Updates the details of an existing listing. The request body can contain any field to update. After updating the listing, related bids are resolved, and transactions may be created.
+ *     summary: Update an existing listing.
+ *     description: Updates an existing listing in the database for a specific marketplace and brand. The request body can include fields like `price`, `quantity`, `status`, and optionally `listingShippingCategories` for associating or disassociating shipping categories.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -453,7 +505,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
  *         required: true
  *         schema:
  *           type: string
- *         description: The unique ID of the listing to be updated.
+ *         description: The ID of the listing to be updated.
  *     requestBody:
  *       required: true
  *       content:
@@ -463,13 +515,13 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
  *             properties:
  *               price:
  *                 type: number
- *                 description: The updated price for the listing.
+ *                 description: The price for the listing.
  *               quantity:
  *                 type: integer
- *                 description: The updated quantity of items in the listing.
+ *                 description: The quantity of items in the listing.
  *               status:
  *                 type: string
- *                 description: The updated status of the listing.
+ *                 description: The status of the listing.
  *               multiTransactionsEnabled:
  *                 type: boolean
  *                 description: Whether multiple transactions are enabled for the listing.
@@ -479,17 +531,71 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
  *               productId:
  *                 type: string
  *                 description: The product ID associated with the listing.
- *             additionalProperties: true
- *             description: Any fields related to the listing can be updated.
+ *               listingShippingCategories:
+ *                 type: object
+ *                 description: Manage shipping categories associated with the listing.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of shipping categories to create and associate with the listing.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         shippingCategoryId:
+ *                           type: string
+ *                           description: ID of the shipping category to associate.
+ *                   delete:
+ *                     type: array
+ *                     description: List of shipping category associations to delete by their IDs.
+ *                     items:
+ *                       type: string
+ *             required:
+ *               - price
+ *               - quantity
+ *               - status
  *     responses:
  *       '200':
  *         description: Successfully updated the listing.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Listing'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The ID of the updated listing.
+ *                 price:
+ *                   type: number
+ *                   description: The updated price for the listing.
+ *                 quantity:
+ *                   type: integer
+ *                   description: The updated quantity of items in the listing.
+ *                 status:
+ *                   type: string
+ *                   description: The updated status of the listing.
+ *                 multiTransactionsEnabled:
+ *                   type: boolean
+ *                   description: Whether multiple transactions are enabled for the listing.
+ *                 profileId:
+ *                   type: string
+ *                   description: The profile ID associated with the listing.
+ *                 productId:
+ *                   type: string
+ *                   description: The product ID associated with the listing.
+ *                 listingShippingCategories:
+ *                   type: array
+ *                   description: The updated list of shipping categories associated with the listing.
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: The ID of the shipping category association.
+ *                       shippingCategoryId:
+ *                         type: string
+ *                         description: The ID of the shipping category.
  *       '400':
- *         description: Bad request, typically due to invalid request data or inability to update the listing.
+ *         description: Bad request, typically due to invalid request data or if the listing cannot be updated.
  *         content:
  *           application/json:
  *             schema:
@@ -511,7 +617,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
  */
 listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) => {
   const { id } = req.params
-  const { listingShippingCategories } = req.body
+  const { listingShippingCategories, listingCustomShippingOptions } = req.body
 
   try {
     const listing = await prisma.listing.update({
@@ -525,6 +631,16 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
               })),
               deleteMany: listingShippingCategories.delete?.map((listingShippingCategoryId: string) => ({
                 id: listingShippingCategoryId
+              })),
+            }
+          : undefined,
+        listingCustomShippingOptions: listingCustomShippingOptions
+          ? {
+              create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
+                shippingOptionId: listingCustomShippingOption.shippingOptionId,
+              })),
+              deleteMany: listingCustomShippingOptions.delete?.map((listingCustomShippingOptionId: string) => ({
+                id: listingCustomShippingOptionId
               })),
             }
           : undefined,
@@ -684,7 +800,7 @@ listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res
       },
     })
     const listing = await prisma.listing.delete({
-      where: { id: id },
+      where: { id },
     })
     res.json(listing || { errorMessage: 'Something went wrong: No listing ID found' })
   } catch (error) {

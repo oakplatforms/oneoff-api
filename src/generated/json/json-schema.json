@@ -474,24 +474,6 @@
             "null"
           ]
         },
-        "maxQuantity": {
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "maxWeight": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "price": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "marketplace": {
           "anyOf": [
             {
@@ -508,6 +490,12 @@
             "null"
           ]
         },
+        "shippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingOption"
+          }
+        },
         "listingShippingCategories": {
           "type": "array",
           "items": {
@@ -518,6 +506,92 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/BidShippingCategory"
+          }
+        }
+      }
+    },
+    "ShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maxQuantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maxWeight": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "isRequired": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "shippingCategory": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ShippingCategory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingCategoryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "listingCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListingCustomShippingOption"
+          }
+        },
+        "bidCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BidCustomShippingOption"
           }
         }
       }
@@ -1149,7 +1223,7 @@
             "null"
           ]
         },
-        "amount": {
+        "price": {
           "type": [
             "number",
             "null"
@@ -1257,6 +1331,12 @@
           "items": {
             "$ref": "#/definitions/ListingShippingCategory"
           }
+        },
+        "listingCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListingCustomShippingOption"
+          }
         }
       }
     },
@@ -1346,6 +1426,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/BidShippingCategory"
+          }
+        },
+        "bidCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BidCustomShippingOption"
           }
         }
       }
@@ -1466,6 +1552,34 @@
         }
       }
     },
+    "ListingCustomShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "listing": {
+          "$ref": "#/definitions/Listing"
+        },
+        "listingId": {
+          "type": "string"
+        },
+        "shippingOption": {
+          "$ref": "#/definitions/ShippingOption"
+        },
+        "shippingOptionId": {
+          "type": "string"
+        }
+      }
+    },
     "BidShippingCategory": {
       "type": "object",
       "properties": {
@@ -1490,6 +1604,34 @@
           "$ref": "#/definitions/ShippingCategory"
         },
         "shippingCategoryId": {
+          "type": "string"
+        }
+      }
+    },
+    "BidCustomShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "bid": {
+          "$ref": "#/definitions/Bid"
+        },
+        "bidId": {
+          "type": "string"
+        },
+        "shippingOption": {
+          "$ref": "#/definitions/ShippingOption"
+        },
+        "shippingOptionId": {
           "type": "string"
         }
       }
@@ -1581,6 +1723,9 @@
     "shippingCategory": {
       "$ref": "#/definitions/ShippingCategory"
     },
+    "shippingOption": {
+      "$ref": "#/definitions/ShippingOption"
+    },
     "tag": {
       "$ref": "#/definitions/Tag"
     },
@@ -1623,8 +1768,14 @@
     "listingShippingCategory": {
       "$ref": "#/definitions/ListingShippingCategory"
     },
+    "listingCustomShippingOption": {
+      "$ref": "#/definitions/ListingCustomShippingOption"
+    },
     "bidShippingCategory": {
       "$ref": "#/definitions/BidShippingCategory"
+    },
+    "bidCustomShippingOption": {
+      "$ref": "#/definitions/BidCustomShippingOption"
     },
     "shipment": {
       "$ref": "#/definitions/Shipment"

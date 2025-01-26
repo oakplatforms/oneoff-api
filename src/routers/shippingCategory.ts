@@ -102,6 +102,9 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, 
  *               displayName:
  *                 type: string
  *                 description: The display name of the shipping category.
+ *               description:
+ *                 type: string
+ *                 description: The updated description of the shipping category.
  *             required:
  *               - name
  *     responses:
@@ -134,14 +137,21 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, 
  */
 shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, res) => {
   const { marketplaceName } = req.params
-  const { name, displayName } = req.body
+  const { name, displayName, shippingOptions } = req.body
 
   try {
     const shippingCategory = await prisma.shippingCategory.create({
       data: {
         name,
         displayName,
-        marketplace: { connect: { name: marketplaceName } }
+        marketplace: { connect: { name: marketplaceName } },
+        shippingOptions: shippingOptions?.create?.length
+          ? {
+              create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
+                ...shippingOption
+              })),
+            }
+          : undefined,
       },
     })
     res.json(shippingCategory)
@@ -189,13 +199,6 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
  *               description:
  *                 type: string
  *                 description: The updated description of the shipping category.
- *               maxQuantity:
- *                 type: integer
- *                 description: The updated maximum quantity allowed for this shipping category.
- *               maxWeight:
- *                 type: number
- *                 format: float
- *                 description: The updated maximum weight allowed for this shipping category.
  *     responses:
  *       '200':
  *         description: Successfully updated the shipping category.
@@ -236,12 +239,23 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
  */
 shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req, res) => {
   const { id } = req.params
+  const { shippingOptions } = req.body
 
   try {
     const shippingCategory = await prisma.shippingCategory.update({
       where: { id },
       data: {
         ...req.body,
+        shippingOptions: shippingOptions
+          ? {
+              create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
+                ...shippingOption
+              })),
+              deleteMany: shippingOptions.delete?.map((shippingOptionId: string) => ({
+                id: shippingOptionId
+              })),
+            }
+          : undefined,
       }
     })
     res.json(shippingCategory || { errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })

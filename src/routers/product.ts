@@ -160,7 +160,7 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
  *     tags:
  *       - Product
  *     summary: Create a new product.
- *     description: Adds a new product to a specified brand and marketplace. The request body must include details of the product, and optional data can be provided for related entities such as cards.
+ *     description: Adds a new product to a specified brand and marketplace. The request body must include details of the product, and optional data can be provided for related entities such as cards and product tags.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
@@ -216,6 +216,27 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
  *                 type: string
  *                 format: date-time
  *                 description: Release date of the product.
+ *               productTags:
+ *                 type: object
+ *                 description: Tags to associate with the product.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of tags to create and associate with the product.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         tagId:
+ *                           type: string
+ *                           description: ID of the tag to associate.
+ *                         tagValue:
+ *                           type: string
+ *                           description: Value of the tag to associate.
+ *                   delete:
+ *                     type: array
+ *                     description: List of product tag IDs to remove from the product.
+ *                     items:
+ *                       type: string
  *             required:
  *               - name
  *               - brandCategoryId
@@ -226,9 +247,40 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 productTags:
+ *                   type: object
+ *                   properties:
+ *                     create:
+ *                       type: array
+ *                       description: List of tags that were created and associated with the product.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           tagId:
+ *                             type: string
+ *                             description: ID of the tag.
+ *                           tagValue:
+ *                             type: string
+ *                             description: Value of the tag.
+ *                     delete:
+ *                       type: array
+ *                       description: List of product tag IDs that were removed from the product.
+ *                       items:
+ *                         type: string
  *       '400':
- *         description: Bad request, typically due to invalid request data.
+ *         description: Bad request, typically due to invalid request data or unsupported tag values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Tag value not supported for the specified tag.
  *         content:
  *           application/json:
  *             schema:
@@ -262,9 +314,8 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
     productTags
   } = req.body
 
-
-  if (productTags.length) {
-     productTags.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+  if (productTags?.create?.length) {
+     productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
       const selectedTag = await prisma.tag.findUnique({
         where: {
           id: productTag.tagId,
@@ -300,14 +351,14 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
             brandCategory: { connect: { id: brandCategoryId }
           }},
         },
-        productTags: productTags?.length
-        ? {
-            create: productTags.map((productTag: { tagId: string; tagValue: string }) => ({
-              tag: { connect: { id: productTag.tagId } },
-              tagValue: productTag.tagValue,
-            })),
-          }
-        : undefined,
+        productTags: productTags?.create?.length
+          ? {
+              create: productTags.create.map((productTag: { tagId: string; tagValue: string }) => ({
+                tag: { connect: { id: productTag.tagId } },
+                tagValue: productTag.tagValue,
+              })),
+            }
+          : undefined,
         brandCategory: { connect: { id: brandCategoryId } }
       },
     })
@@ -324,8 +375,8 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *   put:
  *     tags:
  *       - Product
- *     summary: Update an existing product by ID.
- *     description: Updates details of a product for a specified brand and marketplace. The request body must include updated details of the product.
+ *     summary: Update an existing product.
+ *     description: Updates the details of an existing product in a specified brand and marketplace. Allows updating related entities like cards and managing product tags.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
@@ -341,9 +392,9 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *           type: string
  *       - name: id
  *         in: path
- *         description: The ID of the product to be updated.
+ *         description: The ID of the product to update.
  *         required: true
- *         schema:
+ *         schema: 
  *           type: string
  *     requestBody:
  *       required: true
@@ -354,52 +405,106 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *             properties:
  *               name:
  *                 type: string
- *                 description: Updated name of the product.
+ *                 description: Name of the product.
  *               type:
  *                 type: string
- *                 description: Updated type of the product.
+ *                 description: Type of the product.
  *               displayName:
  *                 type: string
- *                 description: Updated display name of the product.
+ *                 description: Display name of the product.
  *               description:
  *                 type: string
- *                 description: Updated description of the product.
+ *                 description: Description of the product.
  *               card:
  *                 type: object
  *                 properties:
  *                   number:
  *                     type: string
- *                     description: Updated card number associated with the product.
+ *                     description: Card number associated with the product.
  *                   shippingCategory:
  *                     type: string
- *                     description: Updated shipping category for the card.
+ *                     description: Shipping category for the card.
  *               brandCategoryId:
  *                 type: string
- *                 description: Updated ID of the brand category associated with the product.
+ *                 description: ID of the brand category associated with the product.
  *               image:
  *                 type: string
- *                 description: Updated URL or path to the image of the product.
+ *                 description: URL or path to the image of the product.
  *               price:
  *                 type: number
  *                 format: float
- *                 description: Updated price of the product.
+ *                 description: Price of the product.
  *               releaseDate:
  *                 type: string
  *                 format: date-time
- *                 description: Updated release date of the product.
- *             required:
- *               - name
- *               - brandCategoryId
- *               - price
+ *                 description: Release date of the product.
+ *               productTags:
+ *                 type: object
+ *                 description: Tags to associate with the product.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of tags to create and associate with the product.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         tagId:
+ *                           type: string
+ *                           description: ID of the tag to associate.
+ *                         tagValue:
+ *                           type: string
+ *                           description: Value of the tag to associate.
+ *                   delete:
+ *                     type: array
+ *                     description: List of product tag IDs to remove from the product.
+ *                     items:
+ *                       type: string
  *     responses:
  *       '200':
  *         description: Successfully updated the product.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The ID of the updated product.
+ *                 name:
+ *                   type: string
+ *                   description: Name of the updated product.
+ *                 productTags:
+ *                   type: object
+ *                   properties:
+ *                     create:
+ *                       type: array
+ *                       description: List of tags that were created and associated with the product.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           tagId:
+ *                             type: string
+ *                             description: ID of the tag.
+ *                           tagValue:
+ *                             type: string
+ *                             description: Value of the tag.
+ *                     delete:
+ *                       type: array
+ *                       description: List of product tag IDs that were removed from the product.
+ *                       items:
+ *                         type: string
  *       '400':
- *         description: Bad request, typically due to invalid request data.
+ *         description: Bad request, typically due to invalid request data or unsupported tag values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Tag value not supported for the specified tag.
  *         content:
  *           application/json:
  *             schema:
@@ -423,8 +528,8 @@ productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) =
   const { id } = req.params
   const { productTags } = req.body
 
-  if (productTags.create?.length) {
-    productTags.create?.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+  if (productTags?.create?.length) {
+    productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
      const selectedTag = await prisma.tag.findUnique({
        where: {
          id: productTag.tagId,

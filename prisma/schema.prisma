@@ -207,15 +207,34 @@ model ShippingCategory {
   name             String?
   displayName      String?
   description      String?
-  maxQuantity      Int?
-  maxWeight        Float?
-  price            Decimal? @db.Decimal(10, 2)
 
   // relations
   marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
   marketplaceName  String?
+  shippingOptions  ShippingOption[]
   listingShippingCategories ListingShippingCategory[]
   bidShippingCategories BidShippingCategory[]
+}
+
+model ShippingOption {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String?
+  displayName      String?
+  description      String?
+  maxQuantity      Int?
+  maxWeight        Float?
+  rate             Decimal? @db.Decimal(10, 2)
+  isRequired       Boolean?
+
+  // relations
+  shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategoryId  String?
+  listingCustomShippingOptions ListingCustomShippingOption[]
+  bidCustomShippingOptions BidCustomShippingOption[]
 }
 
 model Tag {
@@ -383,9 +402,9 @@ model Payout {
   paymentProcessingPayoutId String?
   paymentProcessingMethodType PaymentProcessingMethodType? @default(CARD)
   paymentProcessingtMethodId  String?
-  amount           Decimal? @db.Decimal(10, 2)
+  price           Decimal? @db.Decimal(10, 2)
 
-  // relationsso th
+  // relations
   wallet           Wallet? @relation(fields: [walletId], references: [id])
   walletId         String?
 }
@@ -408,6 +427,7 @@ model Listing {
   productId        String?
   transactions     Transaction[]
   listingShippingCategories ListingShippingCategory[]
+  listingCustomShippingOptions ListingCustomShippingOption[]
 }
 
 model Bid {
@@ -428,6 +448,7 @@ model Bid {
   productId        String?
   transactions     Transaction[]
   bidShippingCategories BidShippingCategory[]
+  bidCustomShippingOptions BidCustomShippingOption[]
 }
 
 model Transaction {
@@ -463,6 +484,20 @@ model ListingShippingCategory {
   @@id([listingId, shippingCategoryId])
 }
 
+model ListingCustomShippingOption {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  listing          Listing @relation(fields: [listingId], references: [id])
+  listingId        String
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id])
+  shippingOptionId String
+
+  @@id([listingId, shippingOptionId])
+}
+
 model BidShippingCategory {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
@@ -475,6 +510,20 @@ model BidShippingCategory {
   shippingCategoryId String
 
   @@id([bidId, shippingCategoryId])
+}
+
+model BidCustomShippingOption {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  bid              Bid @relation(fields: [bidId], references: [id])
+  bidId            String
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id])
+  shippingOptionId String
+
+  @@id([bidId, shippingOptionId])
 }
 
 model Shipment {

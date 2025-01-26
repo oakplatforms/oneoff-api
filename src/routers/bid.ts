@@ -144,6 +144,19 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *               productId:
  *                 type: string
  *                 description: The ID of the product associated with the bid.
+ *               shippingCategories:
+ *                 type: object
+ *                 description: Manage shipping categories associated with the bid.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of shipping categories to associate with the bid.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           description: The ID of the shipping category.
  *             required:
  *               - price
  *               - quantity
@@ -156,7 +169,38 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Bid'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The ID of the created bid.
+ *                 price:
+ *                   type: number
+ *                   description: The price of the bid.
+ *                 quantity:
+ *                   type: integer
+ *                   description: The quantity of the bid.
+ *                 status:
+ *                   type: string
+ *                   description: The status of the bid.
+ *                 multiTransactionsEnabled:
+ *                   type: boolean
+ *                   description: Whether multiple transactions are enabled for the bid.
+ *                 profileId:
+ *                   type: string
+ *                   description: The ID of the profile associated with the bid.
+ *                 productId:
+ *                   type: string
+ *                   description: The ID of the product associated with the bid.
+ *                 shippingCategories:
+ *                   type: array
+ *                   description: The shipping categories associated with the bid.
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: The ID of the shipping category.
  *       '400':
  *         description: Bad request, typically if the user already has a bid for the product or if invalid data is provided.
  *         content:
@@ -186,7 +230,8 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
     multiTransactionsEnabled,
     profileId,
     productId,
-    shippingCategories
+    bidShippingCategories,
+    bidCustomShippingOptions
   } = req.body
   try {
     const userBid = await prisma.bid.findFirst({
@@ -211,10 +256,17 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
           product: { connect: { id: productId } },
-          bidShippingCategories: shippingCategories?.length
+          bidShippingCategories: bidShippingCategories?.create?.length
             ? {
-                create: shippingCategories.map((shippingCategory: Prisma.ShippingCategoryCreateInput) => ({
-                  shippingCategoryId: shippingCategory.id ,
+                create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+                  shippingCategoryId: bidShippingCategory.shippingCategoryId,
+                })),
+              }
+            : undefined,
+          bidCustomShippingOptions: bidCustomShippingOptions?.create?.length
+            ? {
+                create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+                  shippingOptionId: bidCustomShippingOption.shippingOptionId,
                 })),
               }
             : undefined,
@@ -314,19 +366,29 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  */
 bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
   const { id } = req.params
-  const { shippingCategories } = req.body
+  const { bidShippingCategories, bidCustomShippingOptions } = req.body
   try {
     const bid = await prisma.bid.update({
       where: { id },
       data: {
         ...req.body,
-        bidShippingCategories: shippingCategories
+        bidShippingCategories: bidShippingCategories
           ? {
-              create: shippingCategories.create?.map((shippingCategory: Prisma.ShippingCategoryCreateInput) => ({
-                shippingCategoryId: shippingCategory.id,
+              create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+                shippingCategoryId: bidShippingCategory.shippingCategoryId,
               })),
-              deleteMany: shippingCategories.delete?.map((shippingCategoryId: string) => ({
-                shippingCategoryId
+              deleteMany: bidShippingCategories.delete?.map((bidShippingCategoryId: string) => ({
+                id: bidShippingCategoryId
+              })),
+            }
+          : undefined,
+        bidCustomShippingOptions: bidCustomShippingOptions
+          ? {
+              create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+                shippingOptionId: bidCustomShippingOption.shippingOptionId,
+              })),
+              deleteMany: bidCustomShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
+                id: bidCustomShippingOptionId
               })),
             }
           : undefined,
@@ -637,6 +699,11 @@ bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    await prisma.bidShippingCategory.deleteMany({
+      where: {
+        bidId: id,
+      },
+    })
     const bid = await prisma.bid.delete({
       where: { id },
     })
