@@ -118,7 +118,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
       }}
     })
     
-    const result = await prisma.list.create({
+    const list = await prisma.list.create({
       data: {
         name,
         displayName,
@@ -130,7 +130,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
         brandCategory: { connect: { id: brandCategoryId } },
       },
     })
-    res.json(result)
+    res.json(list)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -217,7 +217,11 @@ listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
       include: generateIncludes(include)
     })
   
-    res.json(list || { errorMessage: 'Something went wrong: No list ID found' })
+    if (list) {
+      res.json(list)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No list ID found' })
+    }
   } catch (error) {
     console.log('error')
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -298,7 +302,11 @@ listRouter.delete(`/:marketplaceName/:brandName/list/:id`, async (req, res) => {
         id: id
       },
     })
-    res.json(list || { errorMessage: 'Something went wrong: No list ID found' })
+    if (list) {
+      res.json(list)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No list ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

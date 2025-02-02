@@ -244,9 +244,9 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
       },
     })
     if (userBid) {
-      res.json({ errorMessage: 'User already has a bid for this product' })
+      return res.status(400).json({ errorMessage: 'User already has a bid for this product' })
     } else if (price <= 0) {
-      res.json({ errorMessage: 'A bid cannot have a zero or negative price' })
+      return res.status(400).json({ errorMessage: 'A bid cannot have a zero or negative price' })
     } else {
       const bid = await prisma.bid.create({
         data: {
@@ -398,7 +398,11 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     if (listings.length) {
       await createBidTransactions(bid, listings)
     }
-    res.json(bid || { errorMessage: 'Something went wrong: Cannot update Bid by id' })
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -536,7 +540,11 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
         await createBidTransactions(bid, [newListing])
       }
     }
-    res.json(bid || { errorMessage: 'Something went wrong: Cannot update Bid by id' })
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id'  })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -622,8 +630,12 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
       where: { id },
       include: generateIncludes(include)
     })
-  
-    res.json(bid || { errorMessage: 'Something went wrong: No bid ID found' })
+
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -707,7 +719,12 @@ bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     const bid = await prisma.bid.delete({
       where: { id },
     })
-    res.json(bid || { errorMessage: 'Something went wrong: No bid ID found' })
+    
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

@@ -163,7 +163,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
   const { include, productId } = req.query
 
   if (!productId) {
-    res.json({ errorMessage: 'Product ID is required to retrieve lowest ask listing' })
+    res.status(400).json({ errorMessage: 'Product ID is required to retrieve lowest ask listing' })
   } else {
     try {
       const listing = await prisma.listing.findFirst({
@@ -325,7 +325,6 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
   } = req.body
 
   try {
-
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
@@ -336,11 +335,10 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
       },
     })
     
-    
     if (userListing) {
-      res.json({ errorMessage: 'User already has a listing for this product' })
+      res.status(400).json({ errorMessage: 'User already has a listing for this product' })
     } else if (price <= 0) {
-      res.json({ errorMessage: 'A listing cannot have a zero or negative price' })
+      res.status(400).json({ errorMessage: 'A listing cannot have a zero or negative price' })
     } else {
       const listing = await prisma.listing.create({
         data: {
@@ -651,7 +649,11 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
     if (bids.length) {
       createListingTransactions(listing, bids)
     }
-    res.json(listing || { errorMessage: 'Something went wrong: Cannot update listing by id' })
+    if (listing) {
+      res.json(listing)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update listing by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -728,7 +730,11 @@ listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) =
       include: generateIncludes(include)
     })
   
-    res.json(listing || { errorMessage: 'Something went wrong: No listing ID found' })
+    if (listing) {
+      res.json(listing)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No listing ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -802,7 +808,12 @@ listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res
     const listing = await prisma.listing.delete({
       where: { id },
     })
-    res.json(listing || { errorMessage: 'Something went wrong: No listing ID found' })
+    
+    if (listing) {
+      res.json(listing)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No listing ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

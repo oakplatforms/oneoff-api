@@ -258,7 +258,11 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
           : undefined,
       }
     })
-    res.json(shippingCategory || { errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })
+    if (shippingCategory) {
+      res.json(shippingCategory)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -340,8 +344,11 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req
       },
       include: generateIncludes(include)
     })
-  
-    res.json(shippingCategory || { errorMessage: 'Something went wrong: No Shipping Category ID found' })
+    if (shippingCategory) {
+      res.json(shippingCategory)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -411,12 +418,16 @@ shippingCategoryRouter.delete(`/:marketplaceName/shipping-category/:id`, async (
   const { id } = req.params
 
   try {
-    const category = await prisma.shippingCategory.delete({
+    const shippingCategory = await prisma.shippingCategory.delete({
       where: {
         id: id,
       },
     })
-    res.json(category || { errorMessage: 'Something went wrong: No Shipping Category ID found' })
+    if (shippingCategory) {
+      res.json(shippingCategory)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Shipping Category ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

@@ -236,7 +236,11 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
         ...req.body,
       }
     })
-    res.json(category || { errorMessage: 'Something went wrong: Cannot update Category by id' })
+    if (category) {
+      res.json(category)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Category by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -318,8 +322,11 @@ categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-  
-    res.json(category || { errorMessage: 'Something went wrong: No Category ID found' })
+    if (category) {
+      res.json(category)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Category ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -394,7 +401,11 @@ categoryRouter.delete(`/:marketplaceName/category/:id`, async (req, res) => {
         id: id,
       },
     })
-    res.json(category || { errorMessage: 'Something went wrong: No Category ID found' })
+    if (category) {
+      res.json(category)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Category ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

@@ -299,8 +299,11 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-  
-    res.json(productTag || { errorMessage: 'Something went wrong: No Product Tag ID found' })
+    if (productTag) {
+      res.json(productTag)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product Tag ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -375,7 +378,11 @@ productTagRouter.delete('/:marketplaceName/product-tag/:id', async (req, res) =>
         id: id
       },
     })
-    res.json(productTag || { errorMessage: 'Something went wrong: No Product Tag ID found' })
+    if (productTag) {
+      res.json(productTag)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product Tag ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

@@ -336,7 +336,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
   }
 
   try {
-    const result = await prisma.product.create({
+    const product = await prisma.product.create({
       data: {
         name,
         type,
@@ -362,7 +362,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
         brandCategory: { connect: { id: brandCategoryId } }
       },
     })
-    res.json(result)
+    res.json(product)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -574,7 +574,11 @@ productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) =
         brandCategoryId: req.body.brandCategoryId,
       }
     })
-    res.json(product || { errorMessage: 'Something went wrong: Cannot update product by id' })
+    if (product) {
+      res.json(product)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update product by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -654,7 +658,11 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
       include: generateIncludes(include)
     })
   
-    res.json(product || { errorMessage: 'Something went wrong: No Product ID found' })
+    if (product) {
+      res.json(product)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -735,7 +743,11 @@ productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res
         id: id,
       },
     })
-    res.json(product || { errorMessage: 'Something went wrong: No Product ID found' })
+    if (product) {
+      res.json(product)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product ID found' })
+    }
   } catch (error) {
     console.error('error', error)
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

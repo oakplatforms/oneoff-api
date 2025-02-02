@@ -81,7 +81,7 @@ userRouter.get('/users', async (req, res) => {
  *             properties:
  *               authId:
  *                 type: string
- *                 description: The unique identifier for the user from Cognito.
+ *                 description: The unique identifier for the user from Auth.
  *               account:
  *                 type: object
  *                 properties:
@@ -127,7 +127,7 @@ userRouter.post(`/user`, async (req, res) => {
   const { profile: profileProps, ...accountProps } = account || {}
 
   try {
-    const result = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         authId,
         account: {
@@ -140,7 +140,7 @@ userRouter.post(`/user`, async (req, res) => {
       },
       },
     })
-    res.json(result)
+    res.json(user)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -223,7 +223,7 @@ userRouter.put(`/user/:id`, async (req, res) => {
   const { account } = req.body
   const { profile: profileProps, ...accountProps } = account || {}
   try {
-    const result = await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id },
       data: {
         account: {
@@ -235,7 +235,7 @@ userRouter.put(`/user/:id`, async (req, res) => {
         },
       },
     }})
-    res.json(result)
+    res.json(user)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -253,7 +253,7 @@ userRouter.put(`/user/:id`, async (req, res) => {
  *     parameters:
  *       - name: authId
  *         in: path
- *         description: The Cognito Id of the user to retrieve.
+ *         description: The Auth Id of the user to retrieve.
  *         required: true
  *         schema:
  *           type: string
@@ -303,7 +303,11 @@ userRouter.get('/user/:authId', async (req, res) => {
       include: generateIncludes(include)
     })
    
-    res.json(users?.[0] || { errorMessage: 'Something went wrong: No Cognito ID found' })
+    if (users?.[0]) {
+      res.json(users?.[0])
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Auth ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

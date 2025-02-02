@@ -152,7 +152,7 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
   const { name, displayName, supportedTagValues } = req.body
   
   try {
-    const result = await prisma.tag.create({
+    const tag = await prisma.tag.create({
       data: {
         name,
         displayName,
@@ -162,7 +162,7 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
         marketplace: { connect: { name: marketplaceName } }
       },
     })
-    res.json(result)
+    res.json(tag)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -260,7 +260,7 @@ tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
   const { marketplaceName, id } = req.params
 
   try {
-    const result = await prisma.tag.update({
+    const tag = await prisma.tag.update({
       where: { id },
       data: {
         ...req.body,
@@ -271,7 +271,7 @@ tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
       }
     })
 
-    res.json(result)
+    res.json(tag)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -353,8 +353,11 @@ tagRouter.get('/:marketplaceName/tag/:id', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-  
-    res.json(tag || { errorMessage: 'Something went wrong: No Tag ID found' })
+    if (tag) {
+      res.json(tag)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Tag ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -429,7 +432,11 @@ tagRouter.delete(`/:marketplaceName/tag/:id`, async (req, res) => {
         id: id,
       },
     })
-    res.json(tag || { errorMessage: 'Something went wrong: No Tag ID found' })
+    if (tag) {
+      res.json(tag)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Tag ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

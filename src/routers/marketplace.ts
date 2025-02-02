@@ -53,10 +53,10 @@ export const marketplaceRouter = express.Router()
 marketplaceRouter.get('/marketplaces', async (req, res) => {
   const { include } = req.query 
   try {
-    const result = await prisma.marketplace.findMany({
+    const marketplaces = await prisma.marketplace.findMany({
       include: generateIncludes(include)
     })
-    res.json(result)
+    res.json(marketplaces)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -137,7 +137,7 @@ marketplaceRouter.post(`/marketplace`, async (req, res) => {
   })
 
   try {
-    const result = await prisma.marketplace.create({
+    const marketplace = await prisma.marketplace.create({
       data: {
         name,
         displayName,
@@ -146,7 +146,7 @@ marketplaceRouter.post(`/marketplace`, async (req, res) => {
         },
       },
     })
-    res.json(result)
+    res.json(marketplace)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
