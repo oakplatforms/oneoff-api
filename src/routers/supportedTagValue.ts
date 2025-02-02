@@ -70,18 +70,17 @@ export const supportedTagValueRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 supportedTagValueRouter.post(`/:marketplaceName/supported-tag-value`, async (req, res) => {
-  const { marketplaceName } = req.params
   const { name, displayName, tagId } = req.body
   
   try {
-    const result = await prisma.supportedTagValues.create({
+    const supportedTagValue = await prisma.supportedTagValues.create({
       data: {
         name,
         displayName,
         tagId,
       },
     })
-    res.json(result)
+    res.json(supportedTagValue)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -141,12 +140,16 @@ supportedTagValueRouter.delete(`/:marketplaceName/supported-tag-value/:id`, asyn
   const { id } = req.params
 
   try {
-    const tag = await prisma.supportedTagValues.delete({
+    const supportedTagValue = await prisma.supportedTagValues.delete({
       where: {
         id: id,
       },
     })
-    res.json(tag || { errorMessage: 'Something went wrong: No Supported Tag Value ID found' })
+    if (supportedTagValue) {
+      res.json(supportedTagValue)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Supported Tag Value ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

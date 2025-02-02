@@ -19,7 +19,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"user1Id\", jsonData.id)",
-									"    pm.collectionVariables.set(\"user1CognitoId\", jsonData.cognitoId)",
+									"    pm.collectionVariables.set(\"user1AuthId\", jsonData.authId)",
 									"})"
 								],
 								"type": "text/javascript"
@@ -31,7 +31,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"cognitoId\": \"213ewq213213\", \n    \"account\": {\n        \"firstName\": \"Skylar\",\n        \"lastName\": \"Banks\",\n        \"email\": \"skylar@test.com\",\n        \"profile\": {\n            \"isPrivate\": true\n        }\n    }\n}",
+							"raw": "{\n    \"authId\": \"213ewq213213\", \n    \"account\": {\n        \"firstName\": \"Skylar\",\n        \"lastName\": \"Banks\",\n        \"email\": \"skylar@test.com\",\n        \"profile\": {\n            \"isPrivate\": true\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -63,7 +63,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"user2Id\", jsonData.id)",
-									"    pm.collectionVariables.set(\"user2CognitoId\", jsonData.cognitoId)",
+									"    pm.collectionVariables.set(\"user2AuthId\", jsonData.authId)",
 									"})"
 								],
 								"type": "text/javascript"
@@ -75,7 +75,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"cognitoId\": \"23112eqwesqe\", \n    \"account\": {\n        \"firstName\": \"Tahir\",\n        \"lastName\": \"Madyun\",\n        \"email\": \"tahir@test.com\",\n        \"profile\": {\n            \"isPrivate\": false\n        }\n    }\n}",
+							"raw": "{\n    \"authId\": \"23112eqwesqe\", \n    \"account\": {\n        \"firstName\": \"Tahir\",\n        \"lastName\": \"Madyun\",\n        \"email\": \"tahir@test.com\",\n        \"profile\": {\n            \"isPrivate\": false\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -151,7 +151,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"profile1Id\", jsonData.account.profile.id)",
-									"    pm.expect(jsonData.cognitoId).to.eq('213ewq213213')",
+									"    pm.expect(jsonData.authId).to.eq('213ewq213213')",
 									"    pm.expect(jsonData.account.firstName).to.eq('Skylar')",
 									"    pm.expect(jsonData.account.lastName).to.eq('Banks')",
 									"})",
@@ -177,7 +177,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/user/{{user1CognitoId}}?include=account.profile",
+							"raw": "{{HOST_NAME}}/api/v1/user/{{user1AuthId}}?include=account.profile",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -185,7 +185,7 @@
 								"api",
 								"v1",
 								"user",
-								"{{user1CognitoId}}"
+								"{{user1AuthId}}"
 							],
 							"query": [
 								{
@@ -208,7 +208,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"profile2Id\", jsonData.account.profile.id)",
-									"    pm.expect(jsonData.cognitoId).to.eq('23112eqwesqe')",
+									"    pm.expect(jsonData.authId).to.eq('23112eqwesqe')",
 									"    pm.expect(jsonData.account.firstName).to.eq('Tahir')",
 									"    pm.expect(jsonData.account.lastName).to.eq('Madyun')",
 									"})",
@@ -234,7 +234,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/user/{{user2CognitoId}}?include=account.profile",
+							"raw": "{{HOST_NAME}}/api/v1/user/{{user2AuthId}}?include=account.profile",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -242,7 +242,7 @@
 								"api",
 								"v1",
 								"user",
-								"{{user2CognitoId}}"
+								"{{user2AuthId}}"
 							],
 							"query": [
 								{
@@ -1454,7 +1454,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 343242343,\n    \"price\": \"13.00\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"102\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 343242343,\n    \"price\": 13.00,\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"102\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1549,7 +1549,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Sanji\", \n    \"name\": \"sanji-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 343253243,\n    \"price\": \"3.72\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"099\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Sanji\", \n    \"name\": \"sanji-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 343253243,\n    \"price\": 3.72,\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"099\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1598,7 +1598,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Nami\", \n    \"name\": \"nami-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 532242343,\n    \"price\": \"175.99\",\n    \"color\": \"BLUE\",\n    \"productImage\": \"https://i.imgur.com/d8AcaUE.jpeg\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"setId\": \"{{set3Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"040\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Nami\", \n    \"name\": \"nami-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 532242343,\n    \"price\": 175.99,\n    \"color\": \"BLUE\",\n    \"productImage\": \"https://i.imgur.com/d8AcaUE.jpeg\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"setId\": \"{{set3Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"040\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1631,7 +1631,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"product3Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"product4Id\", jsonData.id)",
 									"    pm.expect(jsonData.name).to.eq('roronoa-zoro-tcg')",
 									"    pm.expect(jsonData.displayName).to.eq('Roronoa Zoro')",
 									"    pm.expect(jsonData.type).to.eq('CARD')",
@@ -1647,7 +1647,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Roronoa Zoro\", \n    \"name\": \"roronoa-zoro-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 432253343,\n    \"price\": \"14.99\",\n    \"color\": \"RED\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"setId\": \"{{set2Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"001\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Roronoa Zoro\", \n    \"name\": \"roronoa-zoro-tcg\",\n    \"type\": \"CARD\",\n    \"sku\": 432253343,\n    \"price\": 14.99,\n    \"color\": \"RED\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"setId\": \"{{set2Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"101\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1671,7 +1671,7 @@
 					"response": []
 				},
 				{
-					"name": "get product1 include set",
+					"name": "create product 5 with productTag",
 					"event": [
 						{
 							"listen": "test",
@@ -1680,7 +1680,145 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.length).to.eq(4)",
+									"    pm.collectionVariables.set(\"product5Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Test Product\", \n    \"name\": \"test-product\",\n    \"type\": \"CARD\",\n    \"sku\": 432253343,\n    \"price\": 11.05,\n    \"color\": \"RED\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"101\"\n    },\n    \"productTags\": [\n        {\n            \"tagId\": \"{{tag1Id}}\",\n            \"tagValue\": \"Black\"\n        },\n        {\n            \"tagId\": \"{{tag2Id}}\",\n            \"tagValue\": \"23812\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/product",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get product 5 with productTag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"product5ProductTag1Id\", jsonData.productTags[0].id)",
+									"    pm.collectionVariables.set(\"product5ProductTag2Id\", jsonData.productTags[1].id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"Test Product\", \n    \"name\": \"test-product\",\n    \"type\": \"CARD\",\n    \"sku\": 432253343,\n    \"price\": 11.05,\n    \"color\": \"RED\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"101\"\n    },\n    \"productTags\": [\n        {\n            \"tagId\": \"{{tag1Id}}\",\n            \"tagValue\": \"Black\"\n        },\n        {\n            \"tagId\": \"{{tag2Id}}\",\n            \"tagValue\": \"23812\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/product/",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"product",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update product 5 with productTag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"product1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"price\": 11.25,\n      \"productTags\": {\n            \"create\": [\n                { \"tagId\": \"{{tag1Id}}\", \"tagValue\": \"White\" },\n                { \"tagId\": \"{{tag6Id}}\", \"tagValue\": \"Special\" }\n            ],\n            \"delete\": [\"{{product5ProductTag1Id}}\"]\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/product/{{product5Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"product",
+								"{{product5Id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get products include set and card",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.length).to.eq(5)",
 									"})",
 									""
 								],
@@ -1704,7 +1842,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=list&include=card&include=productTags",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=list&include=card",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -1728,10 +1866,6 @@
 								{
 									"key": "include",
 									"value": "card"
-								},
-								{
-									"key": "include",
-									"value": "productTags"
 								}
 							]
 						}
@@ -1808,7 +1942,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Black\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"productId\": \"{{product1Id}}\",\n    \"tagValue\": \"Green\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2302,6 +2436,215 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "get products with productTag filters",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.length).to.eq(2)",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/products/?category=tcg&include=productTags.tag&productTag=color:White&productTag=rarity:SEC",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"products",
+								""
+							],
+							"query": [
+								{
+									"key": "category",
+									"value": "tcg"
+								},
+								{
+									"key": "include",
+									"value": "productTags.tag"
+								},
+								{
+									"key": "productTag",
+									"value": "color:White"
+								},
+								{
+									"key": "productTag",
+									"value": "rarity:SEC"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "shippingCategories",
+			"item": [
+				{
+					"name": "create shipping category 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"shippingCategory1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"envelope\",\n    \"displayName\": \"Envelope\",\n    \"maxQuantity\": 3,\n    \"maxWeight\": 1.25,\n    \"price\": 0.89\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/shipping-category",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"shipping-category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create shipping category 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"shippingCategory2Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"tracking-envelope\",\n    \"displayName\": \"Tracking Envelope\",\n    \"maxQuantity\": 9,\n    \"maxWeight\": 3.75,\n    \"price\": 5.50\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/shipping-category",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"shipping-category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all shipping categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.expect(jsonData.length).to.eq(2)",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/shipping-categories",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"shipping-categories"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -2330,7 +2673,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"amount\": 13,\n    \"quantity\": 10,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 13,\n    \"quantity\": 10,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2376,7 +2719,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"amount\": \"15\",\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2409,7 +2752,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"listing2Id\", jsonData.id)",
+									"    pm.expect(jsonData.errorMessage).to.eq('User already has a listing for this product')",
 									"})"
 								],
 								"type": "text/javascript"
@@ -2421,7 +2764,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"amount\": \"15\",\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2439,6 +2782,152 @@
 								"{{marketplace1Name}}",
 								"{{brand1Name}}",
 								"listing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create listing 3 with shippingCategories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"listing3Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"listingShippingCategories\": [\n        {\n            \"shippingCategoryId\": \"{{shippingCategory1Id}}\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listing",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create listing 3 with shippingCategories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"listing3ListingShippingCategory1Id\", jsonData.listingShippingCategories[0].id)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"listingShippingCategories\": [\n        {\n            \"shippingCategoryId\": \"{{shippingCategory1Id}}\"\n        },\n        {\n            \"shippingCategoryId\": \"{{shippingCategory2Id}}\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/{{listing3Id}}?include=listingShippingCategories",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listing",
+								"{{listing3Id}}"
+							],
+							"query": [
+								{
+									"key": "include",
+									"value": "listingShippingCategories"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update listing 3 with shippingCategories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"listingShippingCategories\": {\n        \"create\": [{ \"shippingCategoryId\": \"{{shippingCategory2Id}}\" }],\n        \"delete\": [\"{{listing3ListingShippingCategory1Id}}\"]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/{{listing3Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listing",
+								"{{listing3Id}}"
 							]
 						}
 					},
@@ -2544,6 +3033,59 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "get lowest ask",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/lowest-ask?productId={{product2Id}}",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listing",
+								"lowest-ask"
+							],
+							"query": [
+								{
+									"key": "productId",
+									"value": "{{product2Id}}"
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -2572,7 +3114,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"amount\": 14,\n    \"quantity\": 19,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 14,\n    \"quantity\": 19,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2617,7 +3159,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"amount\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2662,7 +3204,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"amount\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3037,6 +3579,50 @@
 		},
 		{
 			"key": "supportedTagValue1Id",
+			"value": ""
+		},
+		{
+			"key": "listing3Id",
+			"value": ""
+		},
+		{
+			"key": "product5Id",
+			"value": ""
+		},
+		{
+			"key": "user1AuthId",
+			"value": ""
+		},
+		{
+			"key": "user2AuthId",
+			"value": ""
+		},
+		{
+			"key": "product4Id",
+			"value": ""
+		},
+		{
+			"key": "shippingCategory1Id",
+			"value": ""
+		},
+		{
+			"key": "shippingCategory2Id",
+			"value": ""
+		},
+		{
+			"key": "product5ProductTag1Id",
+			"value": ""
+		},
+		{
+			"key": "product5ProductTag2Id",
+			"value": ""
+		},
+		{
+			"key": "listing3ListingShippingCategory1Id",
+			"value": ""
+		},
+		{
+			"key": "listing3ListingShippingCategory2Id",
 			"value": ""
 		}
 	]

@@ -6,7 +6,7 @@ const prisma = getPrismaClient()
 const findBestAvailableListing = (bid: Prisma.BidWhereInput, listings: Prisma.ListingWhereInput[]) => {
   const bestAvailableListings = listings
     .filter(listing => (listing.quantity! > bid.quantity! && listing.multiTransactionsEnabled || listing.quantity === bid.quantity) && listing.status === 'ACTIVE')
-    .sort((a, b) => (b.amount as number) - (a.amount as number))
+    .sort((a, b) => (b.price as number) - (a.price as number))
 
   return bestAvailableListings.length ? [bestAvailableListings[0]] : []
 }
@@ -15,7 +15,7 @@ export const filterBestAvailableListings = (bid: Prisma.BidWhereInput, listings:
   return bid.multiTransactionsEnabled
     ? listings
         .filter(listing => listing.status === 'ACTIVE')
-        .sort((a, b) => (b.amount as number) - (a.amount as number) || (a.createdAt as Date).getTime() - (b.createdAt as Date)?.getTime())
+        .sort((a, b) => (b.price as number) - (a.price as number) || (a.createdAt as Date).getTime() - (b.createdAt as Date)?.getTime())
     : findBestAvailableListing(bid, listings)
 }
 
@@ -25,11 +25,14 @@ export const resolveListings = async (bid: Prisma.BidWhereInput) => {
       where: {
         productId: bid.productId as string,
         status: 'ACTIVE',
-        amount: {
-          lte: bid.amount as string,
+        price: {
+          lte: bid.price as string,
         },
         quantity: {
           gt: 0,
+        },
+        profileId: {
+          not: bid.profileId as string,
         },
       },
       take: 100,
@@ -43,7 +46,7 @@ export const resolveListings = async (bid: Prisma.BidWhereInput) => {
 const findBestAvailableBid = (listing: Prisma.ListingWhereInput, bids: Prisma.BidWhereInput[]) => {
   const bestAvailableBids = bids
     .filter(bid => (bid.quantity! > listing.quantity! && bid.multiTransactionsEnabled || bid.quantity === listing.quantity) && bid.status === 'ACTIVE')
-    .sort((a, b) => (b.amount as number) - (a.amount as number))
+    .sort((a, b) => (b.price as number) - (a.price as number))
 
   return bestAvailableBids.length ? [bestAvailableBids[0]] : []
 }
@@ -52,7 +55,7 @@ const filterBestAvailableBids = (listing: Prisma.ListingWhereInput, bids: Prisma
   return listing.multiTransactionsEnabled
     ? bids
         .filter(bid => bid.status === 'ACTIVE')
-        .sort((a, b) => (b.amount as number) - (a.amount as number) || (a.createdAt as Date).getTime() - (b.createdAt as Date)?.getTime())
+        .sort((a, b) => (b.price as number) - (a.price as number) || (a.createdAt as Date).getTime() - (b.createdAt as Date)?.getTime())
     : findBestAvailableBid(listing, bids)
 }
 
@@ -62,12 +65,15 @@ export const resolveBids = async (listing: Prisma.ListingWhereInput) => {
       where: {
         productId: listing.productId as string,
         status: 'ACTIVE',
-        amount: {
-          gte: listing.amount as string,
+        price: {
+          gte: listing.price as string,
         },
         quantity: {
           gt: 0,
-        }
+        },
+        profileId: {
+          not: listing.profileId as string,
+        },
       },
       take: 100
     })

@@ -37,9 +37,23 @@ export const productRouter = express.Router()
  *         description: Optional category name to filter products by.
  *         schema:
  *           type: string
+ *       - name: productTag
+ *         in: query
+ *         description: Optional key-value pairs to filter products by tag name and value in the format "tagName:tagValue". Multiple pairs can be specified.
+ *         schema:
+ *           oneOf:
+ *             - type: string
+ *             - type: array
+ *               items:
+ *                 type: string
+ *       - name: search
+ *         in: query
+ *         description: Optional string to search for products by matching against the name or display name.
+ *         schema:
+ *           type: string
  *     responses:
  *       '200':
- *         description: Successfully retrieved a list of products matching the specified brand and category.
+ *         description: Successfully retrieved a list of products matching the specified filters.
  *         content:
  *           application/json:
  *             schema:
@@ -79,7 +93,7 @@ export const productRouter = express.Router()
  */
 productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
   const { brandName } = req.params
-  const { include, category } = req.query
+  const { include, category, productTag, search } = req.query
 
   try {
     const brandCategory = await prisma.brandCategory.findFirstOrThrow({
@@ -88,15 +102,51 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
         categoryName: category as string || ''
       }
     })
-    if (brandCategory) {
-      const categories = await prisma.product.findMany({
-        where: {
-          brandCategoryId: brandCategory.id as string
-        },
-        include: generateIncludes(include)
-      })
-      res.json(categories)
+
+    const productTagFilters = Array.isArray(productTag)
+      ? productTag.filter(tag => typeof tag === 'string')
+      : typeof productTag === 'string'
+      ? [productTag]
+      : []
+
+    const parsedFilters = productTagFilters.map(tagFilter => {
+      const [tagName, tagValue] = (tagFilter as string)?.split?.(':')
+      return { tag: { name: tagName }, tagValue }
+    })
+
+    const whereClause: Prisma.ProductWhereInput = {
+      brandCategoryId: brandCategory.id,
+      AND: [
+        ...(parsedFilters.length > 0
+          ? [
+              {
+                productTags: {
+                  some: {
+                    OR: parsedFilters
+                  }
+                }
+              }
+            ]
+          : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { displayName: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } },
+                  { name: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } }
+                ]
+              }
+            ]
+          : [])
+      ]
     }
+
+    const products = await prisma.product.findMany({
+      where: whereClause,
+      include: generateIncludes(include)
+    })
+
+    res.json(products)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -110,7 +160,7 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
  *     tags:
  *       - Product
  *     summary: Create a new product.
- *     description: Adds a new product to a specified brand and marketplace. The request body must include details of the product, and optional data can be provided for related entities such as cards.
+ *     description: Adds a new product to a specified brand and marketplace. The request body must include details of the product, and optional data can be provided for related entities such as cards and product tags.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
@@ -166,6 +216,27 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
  *                 type: string
  *                 format: date-time
  *                 description: Release date of the product.
+ *               productTags:
+ *                 type: object
+ *                 description: Tags to associate with the product.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of tags to create and associate with the product.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         tagId:
+ *                           type: string
+ *                           description: ID of the tag to associate.
+ *                         tagValue:
+ *                           type: string
+ *                           description: Value of the tag to associate.
+ *                   delete:
+ *                     type: array
+ *                     description: List of product tag IDs to remove from the product.
+ *                     items:
+ *                       type: string
  *             required:
  *               - name
  *               - brandCategoryId
@@ -176,9 +247,40 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 productTags:
+ *                   type: object
+ *                   properties:
+ *                     create:
+ *                       type: array
+ *                       description: List of tags that were created and associated with the product.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           tagId:
+ *                             type: string
+ *                             description: ID of the tag.
+ *                           tagValue:
+ *                             type: string
+ *                             description: Value of the tag.
+ *                     delete:
+ *                       type: array
+ *                       description: List of product tag IDs that were removed from the product.
+ *                       items:
+ *                         type: string
  *       '400':
- *         description: Bad request, typically due to invalid request data.
+ *         description: Bad request, typically due to invalid request data or unsupported tag values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Tag value not supported for the specified tag.
  *         content:
  *           application/json:
  *             schema:
@@ -208,11 +310,33 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
     brandCategoryId,
     image,
     price,
-    releaseDate
+    releaseDate,
+    productTags
   } = req.body
 
+  if (productTags?.create?.length) {
+     productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+      const selectedTag = await prisma.tag.findUnique({
+        where: {
+          id: productTag.tagId,
+        },
+        include: {
+          supportedTagValues: true
+        }
+      })
+
+      if (selectedTag?.supportedTagValues?.length) {
+        const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
+        
+        if (!supportedTagValue) {
+          res.status(404).send({ errorMessage: `Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
+        }
+      }
+    })
+  }
+
   try {
-    const result = await prisma.product.create({
+    const product = await prisma.product.create({
       data: {
         name,
         type,
@@ -227,25 +351,32 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
             brandCategory: { connect: { id: brandCategoryId }
           }},
         },
+        productTags: productTags?.create?.length
+          ? {
+              create: productTags.create.map((productTag: { tagId: string; tagValue: string }) => ({
+                tag: { connect: { id: productTag.tagId } },
+                tagValue: productTag.tagValue,
+              })),
+            }
+          : undefined,
         brandCategory: { connect: { id: brandCategoryId } }
       },
     })
-    res.json(result)
+    res.json(product)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
 })
 
-
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/product/{productId}:
+ * /{marketplaceName}/{brandName}/product/{id}:
  *   put:
  *     tags:
  *       - Product
- *     summary: Update an existing product by ID.
- *     description: Updates details of a product for a specified brand and marketplace. The request body must include updated details of the product.
+ *     summary: Update an existing product.
+ *     description: Updates the details of an existing product in a specified brand and marketplace. Allows updating related entities like cards and managing product tags.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
@@ -259,11 +390,11 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *       - name: productId
+ *       - name: id
  *         in: path
- *         description: The ID of the product to be updated.
+ *         description: The ID of the product to update.
  *         required: true
- *         schema:
+ *         schema: 
  *           type: string
  *     requestBody:
  *       required: true
@@ -274,52 +405,106 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *             properties:
  *               name:
  *                 type: string
- *                 description: Updated name of the product.
+ *                 description: Name of the product.
  *               type:
  *                 type: string
- *                 description: Updated type of the product.
+ *                 description: Type of the product.
  *               displayName:
  *                 type: string
- *                 description: Updated display name of the product.
+ *                 description: Display name of the product.
  *               description:
  *                 type: string
- *                 description: Updated description of the product.
+ *                 description: Description of the product.
  *               card:
  *                 type: object
  *                 properties:
  *                   number:
  *                     type: string
- *                     description: Updated card number associated with the product.
+ *                     description: Card number associated with the product.
  *                   shippingCategory:
  *                     type: string
- *                     description: Updated shipping category for the card.
+ *                     description: Shipping category for the card.
  *               brandCategoryId:
  *                 type: string
- *                 description: Updated ID of the brand category associated with the product.
+ *                 description: ID of the brand category associated with the product.
  *               image:
  *                 type: string
- *                 description: Updated URL or path to the image of the product.
+ *                 description: URL or path to the image of the product.
  *               price:
  *                 type: number
  *                 format: float
- *                 description: Updated price of the product.
+ *                 description: Price of the product.
  *               releaseDate:
  *                 type: string
  *                 format: date-time
- *                 description: Updated release date of the product.
- *             required:
- *               - name
- *               - brandCategoryId
- *               - price
+ *                 description: Release date of the product.
+ *               productTags:
+ *                 type: object
+ *                 description: Tags to associate with the product.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of tags to create and associate with the product.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         tagId:
+ *                           type: string
+ *                           description: ID of the tag to associate.
+ *                         tagValue:
+ *                           type: string
+ *                           description: Value of the tag to associate.
+ *                   delete:
+ *                     type: array
+ *                     description: List of product tag IDs to remove from the product.
+ *                     items:
+ *                       type: string
  *     responses:
  *       '200':
  *         description: Successfully updated the product.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Product'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The ID of the updated product.
+ *                 name:
+ *                   type: string
+ *                   description: Name of the updated product.
+ *                 productTags:
+ *                   type: object
+ *                   properties:
+ *                     create:
+ *                       type: array
+ *                       description: List of tags that were created and associated with the product.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           tagId:
+ *                             type: string
+ *                             description: ID of the tag.
+ *                           tagValue:
+ *                             type: string
+ *                             description: Value of the tag.
+ *                     delete:
+ *                       type: array
+ *                       description: List of product tag IDs that were removed from the product.
+ *                       items:
+ *                         type: string
  *       '400':
- *         description: Bad request, typically due to invalid request data.
+ *         description: Bad request, typically due to invalid request data or unsupported tag values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Tag value not supported for the specified tag.
  *         content:
  *           application/json:
  *             schema:
@@ -339,12 +524,34 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-productRouter.put(`/:marketplaceName/:brandName/product/:productId`, async (req, res) => {
-  const { productId } = req.params
+productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) => {
+  const { id } = req.params
+  const { productTags } = req.body
+
+  if (productTags?.create?.length) {
+    productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+     const selectedTag = await prisma.tag.findUnique({
+       where: {
+         id: productTag.tagId,
+       },
+       include: {
+         supportedTagValues: true
+       }
+     })
+
+     if (selectedTag?.supportedTagValues?.length) {
+       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
+       
+       if (!supportedTagValue) {
+         res.status(404).send({ errorMessage: `Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
+       }
+     }
+   })
+ }
 
   try {
     const product = await prisma.product.update({
-      where: { id: productId },
+      where: { id },
       data: {
         ...req.body,
         card: req.body.card ? {
@@ -353,10 +560,25 @@ productRouter.put(`/:marketplaceName/:brandName/product/:productId`, async (req,
             brandCategoryId: req.body.brandCategoryId
           }
         } : undefined,
+        productTags: productTags
+          ? {
+              create: productTags.create?.map((productTag: { tagId: string; tagValue: string }) => ({
+                tagId: productTag.tagId,
+                tagValue: productTag.tagValue,
+              })),
+              deleteMany: productTags.delete?.map((productTagId: string) => ({
+                id: productTagId,
+              })),
+            }
+          : undefined,
         brandCategoryId: req.body.brandCategoryId,
       }
     })
-    res.json(product || { errorMessage: 'Something went wrong: Cannot update product by id' })
+    if (product) {
+      res.json(product)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update product by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -436,7 +658,11 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
       include: generateIncludes(include)
     })
   
-    res.json(product || { errorMessage: 'Something went wrong: No Product ID found' })
+    if (product) {
+      res.json(product)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -450,7 +676,7 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  *     tags:
  *       - Product
  *     summary: Delete a specific product.
- *     description: Deletes a product specified by its ID from the given brand and marketplace. If the product does not exist or an error occurs, an appropriate message will be returned.
+ *     description: Deletes a product specified by its ID from the given brand and marketplace. This action also deletes all associated ProductTag records and any related Cards. If the product does not exist or an error occurs, an appropriate message will be returned.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
@@ -472,7 +698,7 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  *           type: string
  *     responses:
  *       '200':
- *         description: Successfully deleted the product.
+ *         description: Successfully deleted the product along with its associated ProductTags and related data.
  *         content:
  *           application/json:
  *             schema:
@@ -500,10 +726,16 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
  */
 productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res) => {
   const { id } = req.params
+
   try {
-    await prisma.card.delete({
+    await prisma.productTag.deleteMany({
       where: {
-        productId: id
+        productId: id,
+      },
+    })
+    await prisma.card.deleteMany({
+      where: {
+        productId: id,
       },
     })
     const product = await prisma.product.delete({
@@ -511,9 +743,13 @@ productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res
         id: id,
       },
     })
-    res.json(product || { errorMessage: 'Something went wrong: No product ID found' })
+    if (product) {
+      res.json(product)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product ID found' })
+    }
   } catch (error) {
-    console.log('error', error)
+    console.error('error', error)
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }

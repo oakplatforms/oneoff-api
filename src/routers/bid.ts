@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, Status } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -73,15 +73,22 @@ export const bidRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
-  const { include, productId, profileId } = req.query
+  const { include, productId, profileId, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
-        where: productId || profileId ? {
-            OR: [
-                productId ? { productId: productId as string } : {},
-                profileId ? { profileId: profileId as string } : {}
+          where: {
+            AND: [
+              status ? { status: status as Status } : {},
+              productId || profileId
+                ? {
+                    OR: [
+                      productId ? { productId: productId as string } : {},
+                      profileId ? { profileId: profileId as string } : {}
+                    ]
+                  }
+                : {}
             ]
-            } : {},
+          },
         include: generateIncludes(include)
     })
     res.json(bids)
@@ -119,9 +126,9 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               amount:
+ *               price:
  *                 type: number
- *                 description: The amount of the bid.
+ *                 description: The price of the bid.
  *               quantity:
  *                 type: integer
  *                 description: The quantity being bid.
@@ -137,8 +144,21 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *               productId:
  *                 type: string
  *                 description: The ID of the product associated with the bid.
+ *               shippingCategories:
+ *                 type: object
+ *                 description: Manage shipping categories associated with the bid.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     description: List of shipping categories to associate with the bid.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           description: The ID of the shipping category.
  *             required:
- *               - amount
+ *               - price
  *               - quantity
  *               - status
  *               - profileId
@@ -149,7 +169,38 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Bid'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The ID of the created bid.
+ *                 price:
+ *                   type: number
+ *                   description: The price of the bid.
+ *                 quantity:
+ *                   type: integer
+ *                   description: The quantity of the bid.
+ *                 status:
+ *                   type: string
+ *                   description: The status of the bid.
+ *                 multiTransactionsEnabled:
+ *                   type: boolean
+ *                   description: Whether multiple transactions are enabled for the bid.
+ *                 profileId:
+ *                   type: string
+ *                   description: The ID of the profile associated with the bid.
+ *                 productId:
+ *                   type: string
+ *                   description: The ID of the product associated with the bid.
+ *                 shippingCategories:
+ *                   type: array
+ *                   description: The shipping categories associated with the bid.
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: The ID of the shipping category.
  *       '400':
  *         description: Bad request, typically if the user already has a bid for the product or if invalid data is provided.
  *         content:
@@ -173,31 +224,52 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  */
 bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
   const {
-    amount,
+    price,
     quantity,
     status,
     multiTransactionsEnabled,
     profileId,
     productId,
+    bidShippingCategories,
+    bidCustomShippingOptions
   } = req.body
   try {
     const userBid = await prisma.bid.findFirst({
       where: {
-        profileId,
-        productId,
+        AND: [
+          { profileId: profileId },
+          { productId: productId },
+          { status: 'ACTIVE' }
+        ],
       },
     })
     if (userBid) {
-      res.json({ errorMessage: 'User already has a bid for this product' })
+      return res.status(400).json({ errorMessage: 'User already has a bid for this product' })
+    } else if (price <= 0) {
+      return res.status(400).json({ errorMessage: 'A bid cannot have a zero or negative price' })
     } else {
       const bid = await prisma.bid.create({
         data: {
-          amount,
+          price,
           quantity,
           status,
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
-          product: { connect: { id: productId } }
+          product: { connect: { id: productId } },
+          bidShippingCategories: bidShippingCategories?.create?.length
+            ? {
+                create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+                  shippingCategoryId: bidShippingCategory.shippingCategoryId,
+                })),
+              }
+            : undefined,
+          bidCustomShippingOptions: bidCustomShippingOptions?.create?.length
+            ? {
+                create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+                  shippingOptionId: bidCustomShippingOption.shippingOptionId,
+                })),
+              }
+            : undefined,
         },
       })
       const listings = await resolveListings(bid)
@@ -214,7 +286,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bid/{bidId}:
+ * /{marketplaceName}/{brandName}/bid/{id}:
  *   put:
  *     tags:
  *       - Bid
@@ -234,7 +306,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  *           type: string
  *         description: The name of the brand for which the bid is being updated.
  *       - in: path
- *         name: bidId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -246,9 +318,9 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               amount:
+ *               price:
  *                 type: number
- *                 description: The new amount of the bid.
+ *                 description: The new price of the bid.
  *               quantity:
  *                 type: integer
  *                 description: The new quantity of the bid.
@@ -292,21 +364,45 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId`, async (req, res) => {
-  const { bidId } = req.params
-
+bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
+  const { id } = req.params
+  const { bidShippingCategories, bidCustomShippingOptions } = req.body
   try {
     const bid = await prisma.bid.update({
-      where: { id: bidId },
+      where: { id },
       data: {
         ...req.body,
+        bidShippingCategories: bidShippingCategories
+          ? {
+              create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+                shippingCategoryId: bidShippingCategory.shippingCategoryId,
+              })),
+              deleteMany: bidShippingCategories.delete?.map((bidShippingCategoryId: string) => ({
+                id: bidShippingCategoryId
+              })),
+            }
+          : undefined,
+        bidCustomShippingOptions: bidCustomShippingOptions
+          ? {
+              create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+                shippingOptionId: bidCustomShippingOption.shippingOptionId,
+              })),
+              deleteMany: bidCustomShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
+                id: bidCustomShippingOptionId
+              })),
+            }
+          : undefined,
       }
     })
     const listings = await resolveListings(bid)
     if (listings.length) {
       await createBidTransactions(bid, listings)
     }
-    res.json(bid || { errorMessage: 'Something went wrong: Cannot update Bid by id' })
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -315,7 +411,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bid/{bidId}/accept:
+ * /{marketplaceName}/{brandName}/bid/{id}/accept:
  *   put:
  *     tags:
  *       - Bid
@@ -335,7 +431,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId`, async (req, res) => {
  *           type: string
  *         description: The name of the brand.
  *       - in: path
- *         name: bidId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -383,13 +479,13 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId/accept`, async (req, res) => {
-  const { bidId } = req.params
+bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) => {
+  const { id } = req.params
   const { listingId,  profileId } = req.body
   
   try {
     const bid = await prisma.bid.findUnique({
-      where: { id: bidId },
+      where: { id },
     })
     if (bid) {
       if (listingId) {
@@ -400,7 +496,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId/accept`, async (req, res)
           const updatedListing = await prisma.listing.update({
             where: { id: listingId },
             data: {
-              amount: bid.amount,
+              price: bid.price,
               quantity: bid.quantity,
               status: 'ACTIVE',
               profile: { connect: { id: profileId } },
@@ -411,7 +507,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId/accept`, async (req, res)
         } else {
           const newListing = await prisma.listing.create({
             data: {
-              amount: bid.amount,
+              price: bid.price,
               quantity: bid.quantity,
               status: 'ACTIVE',
               multiTransactionsEnabled: false,
@@ -433,7 +529,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId/accept`, async (req, res)
       } else {
         const newListing = await prisma.listing.create({
           data: {
-            amount: bid.amount,
+            price: bid.price,
             quantity: bid.quantity,
             status: 'ACTIVE',
             multiTransactionsEnabled: false,
@@ -444,7 +540,11 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:bidId/accept`, async (req, res)
         await createBidTransactions(bid, [newListing])
       }
     }
-    res.json(bid || { errorMessage: 'Something went wrong: Cannot update Bid by id' })
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id'  })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -530,8 +630,12 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
       where: { id },
       include: generateIncludes(include)
     })
-  
-    res.json(bid || { errorMessage: 'Something went wrong: No bid ID found' })
+
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -607,10 +711,20 @@ bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    const bid = await prisma.bid.delete({
-      where: { id: id },
+    await prisma.bidShippingCategory.deleteMany({
+      where: {
+        bidId: id,
+      },
     })
-    res.json(bid || { errorMessage: 'Something went wrong: No bid ID found' })
+    const bid = await prisma.bid.delete({
+      where: { id },
+    })
+    
+    if (bid) {
+      res.json(bid)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

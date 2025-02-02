@@ -81,7 +81,7 @@ model User {
   status        Status @default(ACTIVE)
 
   // custom
-  cognitoId     String
+  authId     String?
   
   // relations
   account       Account?
@@ -146,6 +146,7 @@ model Marketplace {
   theme            Theme?
   brands           Brand[]
   categories       Category[]
+  shippingCategories ShippingCategory[]
   tags             Tag[]
 }
 
@@ -197,6 +198,45 @@ model Category {
   brandCategories  BrandCategory[]
 }
 
+model ShippingCategory {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String?
+  displayName      String?
+  description      String?
+
+  // relations
+  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
+  marketplaceName  String?
+  shippingOptions  ShippingOption[]
+  listingShippingCategories ListingShippingCategory[]
+  bidShippingCategories BidShippingCategory[]
+}
+
+model ShippingOption {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String?
+  displayName      String?
+  description      String?
+  maxQuantity      Int?
+  maxWeight        Float?
+  rate             Decimal? @db.Decimal(10, 2)
+  isRequired       Boolean?
+
+  // relations
+  shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategoryId  String?
+  listingCustomShippingOptions ListingCustomShippingOption[]
+  bidCustomShippingOptions BidCustomShippingOption[]
+}
+
 model Tag {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
@@ -219,12 +259,12 @@ model SupportedTagValues {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String
+  name             String?
   displayName      String?
   
   // relations
-  tag              Tag @relation(fields: [tagId], references: [id])
-  tagId            String
+  tag              Tag? @relation(fields: [tagId], references: [id])
+  tagId            String?
 }
 
 model ProductTag {
@@ -241,8 +281,6 @@ model ProductTag {
   tagId            String
   product          Product @relation(fields: [productId], references: [id])
   productId        String
-
-  @@id([tagId, productId])
 }
 
 model BrandCategory {
@@ -253,7 +291,7 @@ model BrandCategory {
   // relations
   brand            Brand @relation(fields: [brandName], references: [name])
   brandName        String
-  category         Category @relation(fields: [categoryName], references: [name])
+  category         Category? @relation(fields: [categoryName], references: [name])
   categoryName     String
   lists            List[]
   products         Product[]
@@ -271,11 +309,11 @@ model List {
   displayName      String?
   name             String?
   description      String?
-  type             ListType
+  type             ListType?
 
   // relations
-  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
-  brandCategoryId  String
+  brandCategory    BrandCategory? @relation(fields: [brandCategoryId], references: [id])
+  brandCategoryId  String?
   products         Product[]
   profile          Profile? @relation(fields: [profileId], references: [id])
   profileId        String?
@@ -287,24 +325,25 @@ model Product {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  displayName      String?
   name             String?
+  displayName      String?
   description      String?
-  type             ProductType
+  type             ProductType?
   image            String?
-  price            String?
+  price            Decimal? @db.Decimal(10, 2)
   releaseDate      DateTime?
+  weight           Float?
 
   // relations
-  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
-  brandCategoryId  String
+  brandCategory    BrandCategory? @relation(fields: [brandCategoryId], references: [id])
+  brandCategoryId  String?
   list             List? @relation(fields: [listId], references: [id])
   listId           String?
   productTags      ProductTag[]
   card             Card?
   reviews          Review[]
-  bids          Bid[]
-  listings      Listing[]
+  bids             Bid[]
+  listings         Listing[]
 }
 
 model Card {
@@ -314,13 +353,12 @@ model Card {
 
   // custom
   number           String?
-  shippingCategory String?
 
   // relations
-  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id])
-  brandCategoryId  String
-  product          Product @relation(fields: [productId], references: [id])
-  productId        String  @unique
+  brandCategory    BrandCategory? @relation(fields: [brandCategoryId], references: [id])
+  brandCategoryId  String?
+  product          Product? @relation(fields: [productId], references: [id])
+  productId        String?  @unique
 }
 
 model Review {
@@ -329,7 +367,7 @@ model Review {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  rating           Int?
+  rating           Float?
   description      String?
 
   // relations
@@ -345,12 +383,12 @@ model Wallet {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  balance          Int?
+  balance          Decimal? @db.Decimal(10, 2)
 
   // relations
   payouts          Payout[]
-  account          Account @relation(fields: [accountId], references: [id])
-  accountId        String  @unique
+  account          Account? @relation(fields: [accountId], references: [id])
+  accountId        String?  @unique
 }
 
 model Payout {
@@ -359,12 +397,12 @@ model Payout {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  status           PayoutStatus
-  paymentProcessingType PaymentProcessingType @default(STRIPE)
-  paymentProcessingPayoutId String
-  paymentProcessingMethodType PaymentProcessingMethodType @default(CARD)
-  paymentProcessingtMethodId  String
-  amount           Int
+  status           PayoutStatus?
+  paymentProcessingType PaymentProcessingType? @default(STRIPE)
+  paymentProcessingPayoutId String?
+  paymentProcessingMethodType PaymentProcessingMethodType? @default(CARD)
+  paymentProcessingtMethodId  String?
+  price           Decimal? @db.Decimal(10, 2)
 
   // relations
   wallet           Wallet? @relation(fields: [walletId], references: [id])
@@ -377,9 +415,9 @@ model Listing {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  amount           Decimal? @db.Decimal(10, 2)
+  price            Decimal? @db.Decimal(10, 2)
   quantity         Int?
-  status           Status
+  status           Status?
   multiTransactionsEnabled Boolean @default(false) 
 
   // relations
@@ -388,6 +426,8 @@ model Listing {
   product          Product? @relation(fields: [productId], references: [id])
   productId        String?
   transactions     Transaction[]
+  listingShippingCategories ListingShippingCategory[]
+  listingCustomShippingOptions ListingCustomShippingOption[]
 }
 
 model Bid {
@@ -396,10 +436,10 @@ model Bid {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  amount           Decimal? @db.Decimal(10, 2)
+  price            Decimal? @db.Decimal(10, 2)
   quantity         Int?
-  status           Status
-  multiTransactionsEnabled Boolean @default(false) 
+  status           Status?
+  multiTransactionsEnabled Boolean? @default(false) 
 
   // relations
   profile          Profile? @relation(fields: [profileId], references: [id])
@@ -407,6 +447,8 @@ model Bid {
   product          Product? @relation(fields: [productId], references: [id])
   productId        String?
   transactions     Transaction[]
+  bidShippingCategories BidShippingCategory[]
+  bidCustomShippingOptions BidCustomShippingOption[]
 }
 
 model Transaction {
@@ -418,14 +460,70 @@ model Transaction {
   subTotal         Decimal? @db.Decimal(10, 2)
   tax              Decimal? @db.Decimal(10, 2)
   total            Decimal? @db.Decimal(10, 2)
-  status           TransactionStatus
+  status           TransactionStatus?
+
+  // relations
+  bid              Bid? @relation(fields: [bidId], references: [id])
+  bidId            String?
+  listing          Listing? @relation(fields: [listingId], references: [id])
+  listingId        String?
+  shipment         Shipment?
+}
+
+model ListingShippingCategory {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  listing          Listing @relation(fields: [listingId], references: [id])
+  listingId        String
+  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategoryId String
+
+  @@id([listingId, shippingCategoryId])
+}
+
+model ListingCustomShippingOption {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  listing          Listing @relation(fields: [listingId], references: [id])
+  listingId        String
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id])
+  shippingOptionId String
+
+  @@id([listingId, shippingOptionId])
+}
+
+model BidShippingCategory {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // relations
   bid              Bid @relation(fields: [bidId], references: [id])
   bidId            String
-  listing          Listing @relation(fields: [listingId], references: [id])
-  listingId        String
-  shipment         Shipment?
+  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategoryId String
+
+  @@id([bidId, shippingCategoryId])
+}
+
+model BidCustomShippingOption {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  bid              Bid @relation(fields: [bidId], references: [id])
+  bidId            String
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id])
+  shippingOptionId String
+
+  @@id([bidId, shippingOptionId])
 }
 
 model Shipment {
@@ -435,7 +533,7 @@ model Shipment {
 
   // custom
   fee              Decimal? @db.Decimal(10, 2)
-  deliveryType     DeliveryType
+  deliveryType     DeliveryType?
   deliveryMethodType DeliveryMethodType?
   trackingNumber   String?
 

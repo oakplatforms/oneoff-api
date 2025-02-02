@@ -24,8 +24,11 @@
             "DELETED"
           ]
         },
-        "cognitoId": {
-          "type": "string"
+        "authId": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "account": {
           "anyOf": [
@@ -275,6 +278,12 @@
             "$ref": "#/definitions/Category"
           }
         },
+        "shippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingCategory"
+          }
+        },
         "tags": {
           "type": "array",
           "items": {
@@ -433,6 +442,160 @@
         }
       }
     },
+    "ShippingCategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "marketplace": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Marketplace"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marketplaceName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingOption"
+          }
+        },
+        "listingShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListingShippingCategory"
+          }
+        },
+        "bidShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BidShippingCategory"
+          }
+        }
+      }
+    },
+    "ShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maxQuantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maxWeight": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "isRequired": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "shippingCategory": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ShippingCategory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingCategoryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "listingCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListingCustomShippingOption"
+          }
+        },
+        "bidCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BidCustomShippingOption"
+          }
+        }
+      }
+    },
     "Tag": {
       "type": "object",
       "properties": {
@@ -501,7 +664,10 @@
           "format": "date-time"
         },
         "name": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "displayName": {
           "type": [
@@ -510,10 +676,20 @@
           ]
         },
         "tag": {
-          "$ref": "#/definitions/Tag"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Tag"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "tagId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -581,7 +757,14 @@
           "type": "string"
         },
         "category": {
-          "$ref": "#/definitions/Category"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Category"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "categoryName": {
           "type": "string"
@@ -639,7 +822,10 @@
           ]
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "COLLECTION",
             "SET",
@@ -648,10 +834,20 @@
           ]
         },
         "brandCategory": {
-          "$ref": "#/definitions/BrandCategory"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BrandCategory"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "brandCategoryId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "products": {
           "type": "array",
@@ -691,13 +887,13 @@
           "type": "string",
           "format": "date-time"
         },
-        "displayName": {
+        "name": {
           "type": [
             "string",
             "null"
           ]
         },
-        "name": {
+        "displayName": {
           "type": [
             "string",
             "null"
@@ -710,7 +906,10 @@
           ]
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "CARD"
           ]
@@ -723,7 +922,7 @@
         },
         "price": {
           "type": [
-            "string",
+            "number",
             "null"
           ]
         },
@@ -734,11 +933,27 @@
           ],
           "format": "date-time"
         },
+        "weight": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "brandCategory": {
-          "$ref": "#/definitions/BrandCategory"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BrandCategory"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "brandCategoryId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "list": {
           "anyOf": [
@@ -812,23 +1027,37 @@
             "null"
           ]
         },
-        "shippingCategory": {
+        "brandCategory": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BrandCategory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brandCategoryId": {
           "type": [
             "string",
             "null"
           ]
         },
-        "brandCategory": {
-          "$ref": "#/definitions/BrandCategory"
-        },
-        "brandCategoryId": {
-          "type": "string"
-        },
         "product": {
-          "$ref": "#/definitions/Product"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Product"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "productId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -848,7 +1077,7 @@
         },
         "rating": {
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
@@ -908,7 +1137,7 @@
         },
         "balance": {
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
@@ -919,10 +1148,20 @@
           }
         },
         "account": {
-          "$ref": "#/definitions/Account"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "accountId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -941,7 +1180,10 @@
           "format": "date-time"
         },
         "status": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "COMPLETED",
             "PENDING",
@@ -949,17 +1191,26 @@
           ]
         },
         "paymentProcessingType": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "default": "STRIPE",
           "enum": [
             "STRIPE"
           ]
         },
         "paymentProcessingPayoutId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "paymentProcessingMethodType": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "default": "CARD",
           "enum": [
             "CARD",
@@ -967,10 +1218,16 @@
           ]
         },
         "paymentProcessingtMethodId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
-        "amount": {
-          "type": "integer"
+        "price": {
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "wallet": {
           "anyOf": [
@@ -1004,7 +1261,7 @@
           "type": "string",
           "format": "date-time"
         },
-        "amount": {
+        "price": {
           "type": [
             "number",
             "null"
@@ -1017,7 +1274,10 @@
           ]
         },
         "status": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "ACTIVE",
             "INACTIVE",
@@ -1065,6 +1325,18 @@
           "items": {
             "$ref": "#/definitions/Transaction"
           }
+        },
+        "listingShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListingShippingCategory"
+          }
+        },
+        "listingCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListingCustomShippingOption"
+          }
         }
       }
     },
@@ -1082,7 +1354,7 @@
           "type": "string",
           "format": "date-time"
         },
-        "amount": {
+        "price": {
           "type": [
             "number",
             "null"
@@ -1095,7 +1367,10 @@
           ]
         },
         "status": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "ACTIVE",
             "INACTIVE",
@@ -1103,7 +1378,10 @@
           ]
         },
         "multiTransactionsEnabled": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "profile": {
@@ -1142,6 +1420,18 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Transaction"
+          }
+        },
+        "bidShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BidShippingCategory"
+          }
+        },
+        "bidCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BidCustomShippingOption"
           }
         }
       }
@@ -1179,7 +1469,10 @@
           ]
         },
         "status": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "COMPLETED",
             "PENDING",
@@ -1188,16 +1481,36 @@
           ]
         },
         "bid": {
-          "$ref": "#/definitions/Bid"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Bid"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "bidId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "listing": {
-          "$ref": "#/definitions/Listing"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Listing"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "listingId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "shipment": {
           "anyOf": [
@@ -1208,6 +1521,118 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "ListingShippingCategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "listing": {
+          "$ref": "#/definitions/Listing"
+        },
+        "listingId": {
+          "type": "string"
+        },
+        "shippingCategory": {
+          "$ref": "#/definitions/ShippingCategory"
+        },
+        "shippingCategoryId": {
+          "type": "string"
+        }
+      }
+    },
+    "ListingCustomShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "listing": {
+          "$ref": "#/definitions/Listing"
+        },
+        "listingId": {
+          "type": "string"
+        },
+        "shippingOption": {
+          "$ref": "#/definitions/ShippingOption"
+        },
+        "shippingOptionId": {
+          "type": "string"
+        }
+      }
+    },
+    "BidShippingCategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "bid": {
+          "$ref": "#/definitions/Bid"
+        },
+        "bidId": {
+          "type": "string"
+        },
+        "shippingCategory": {
+          "$ref": "#/definitions/ShippingCategory"
+        },
+        "shippingCategoryId": {
+          "type": "string"
+        }
+      }
+    },
+    "BidCustomShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "bid": {
+          "$ref": "#/definitions/Bid"
+        },
+        "bidId": {
+          "type": "string"
+        },
+        "shippingOption": {
+          "$ref": "#/definitions/ShippingOption"
+        },
+        "shippingOptionId": {
+          "type": "string"
         }
       }
     },
@@ -1232,7 +1657,10 @@
           ]
         },
         "deliveryType": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "USPS",
             "UPS",
@@ -1292,6 +1720,12 @@
     "category": {
       "$ref": "#/definitions/Category"
     },
+    "shippingCategory": {
+      "$ref": "#/definitions/ShippingCategory"
+    },
+    "shippingOption": {
+      "$ref": "#/definitions/ShippingOption"
+    },
     "tag": {
       "$ref": "#/definitions/Tag"
     },
@@ -1330,6 +1764,18 @@
     },
     "transaction": {
       "$ref": "#/definitions/Transaction"
+    },
+    "listingShippingCategory": {
+      "$ref": "#/definitions/ListingShippingCategory"
+    },
+    "listingCustomShippingOption": {
+      "$ref": "#/definitions/ListingCustomShippingOption"
+    },
+    "bidShippingCategory": {
+      "$ref": "#/definitions/BidShippingCategory"
+    },
+    "bidCustomShippingOption": {
+      "$ref": "#/definitions/BidCustomShippingOption"
     },
     "shipment": {
       "$ref": "#/definitions/Shipment"

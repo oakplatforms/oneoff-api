@@ -12,6 +12,7 @@ import { productRouter } from './product'
 import { productTagRouter } from './productTag'
 import { bidRouter } from './bid'
 import { listingRouter } from './listing'
+import { shippingCategoryRouter } from './shippingCategory'
 
 router.use(userRouter)
 router.use(marketplaceRouter)
@@ -25,6 +26,7 @@ router.use(productRouter)
 router.use(productTagRouter)
 router.use(bidRouter)
 router.use(listingRouter)
+router.use(shippingCategoryRouter)
 
 export default router
 

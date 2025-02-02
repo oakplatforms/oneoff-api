@@ -85,6 +85,7 @@ productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
 
     if (selectedTag?.supportedTagValues?.length) {
       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === tagValue)
+
       if (supportedTagValue) {
         const productTag = await prisma.productTag.create({
           data: {
@@ -95,7 +96,7 @@ productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
         })
         res.json(productTag)
       } else {
-        res.status(404).send({ errorMessage: 'Tag value is not supported' })
+        res.status(404).send({ errorMessage: `Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
       }
     } else {
       const productTag = await prisma.productTag.create({
@@ -192,8 +193,8 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
 
     if (selectedTag?.supportedTagValues?.length) {
       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === tagValue)
+
       if (supportedTagValue) {
-        console.log(productId, tagId)
         const productTag = await prisma.productTag.updateMany({
           where: {
             productId,
@@ -203,14 +204,12 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
             tagValue
           }
         })
-        console.log(productTag)
         if (productTag.count === 0) {
-          return res.status(404).send({ errorMessage: 'Product-tag association not found' })
+          return res.status(404).send({ errorMessage: 'Product tag association not found' })
         }
-    
         res.json(productTag)
       } else {
-        res.status(404).send({ errorMessage: 'Tag value is not supported' })
+        res.status(404).send({ errorMessage: `Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
       }
     } else {
       const productTag = await prisma.productTag.updateMany({
@@ -224,7 +223,7 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
       })
   
       if (productTag.count === 0) {
-        return res.status(404).send({ errorMessage: 'Product-tag association not found' })
+        return res.status(404).send({ errorMessage: 'Product tag association not found' })
       }
   
       res.json(productTag)
@@ -234,7 +233,6 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
-
 
 /**
  * @openapi
@@ -301,8 +299,11 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-  
-    res.json(productTag || { errorMessage: 'Something went wrong: No Product Tag ID found' })
+    if (productTag) {
+      res.json(productTag)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product Tag ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -311,22 +312,16 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/brand-category/{id}:
+ * /{marketplaceName}/product-tag/{id}:
  *   delete:
  *     tags:
  *       - Product Tag
  *     summary: Delete a specific product-tag association.
- *     description: Deletes a product-tag association by its ID from the given marketplace and brand name.
+ *     description: Deletes a product-tag association by its ID from the given marketplace.
  *     parameters:
  *       - name: marketplaceName
  *         in: path
  *         description: The name of the marketplace.
- *         required: true
- *         schema:
- *           type: string
- *       - name: brandName
- *         in: path
- *         description: The name of the brand.
  *         required: true
  *         schema:
  *           type: string
@@ -343,6 +338,16 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ProductTag'
+ *       '400':
+ *         description: Bad Request. Something went wrong with the deletion process, such as a missing ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
  *       '404':
  *         description: Product-tag association not found. The specified ID does not match any existing product-tag association.
  *         content:
@@ -364,7 +369,7 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-productTagRouter.delete('/:marketplaceName/:brandName/brand-category/:id', async (req, res) => {
+productTagRouter.delete('/:marketplaceName/product-tag/:id', async (req, res) => {
   const { id } = req.params
 
   try {
@@ -373,7 +378,11 @@ productTagRouter.delete('/:marketplaceName/:brandName/brand-category/:id', async
         id: id
       },
     })
-    res.json(productTag || { errorMessage: 'Something went wrong: No Product Tag ID found' })
+    if (productTag) {
+      res.json(productTag)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Product Tag ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

@@ -74,13 +74,13 @@ brandCategoryRouter.post('/:marketplaceName/:brandName/brand-category', async (r
   const { categoryName } = req.body
 
   try {
-    const result = await prisma.brandCategory.create({
+    const brandCategory = await prisma.brandCategory.create({
       data: {
         brand: { connect: { name: brandName } },
         category: { connect: { name: categoryName } }
       },
     })
-    res.json(result)
+    res.json(brandCategory)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -170,8 +170,11 @@ brandCategoryRouter.get('/:marketplaceName/:brandName/brand-category/:id', async
       },
       include: generateIncludes(include)
     })
-  
-    res.json(brandCategory || { errorMessage: 'Something went wrong: No Brand Category ID found' })
+    if (brandCategory) {
+      res.json(brandCategory)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Brand Category ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -253,7 +256,11 @@ brandCategoryRouter.delete('/:marketplaceName/:brandName/brand-category/:id', as
         brandName: { contains: brandName },
       },
     })
-    res.json(brandCategory || { errorMessage: 'Something went wrong: No Brand Category ID found' })
+    if (brandCategory) {
+      res.json(brandCategory)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No Brand Category ID found' })
+    }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
