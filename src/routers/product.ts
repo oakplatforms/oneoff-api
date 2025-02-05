@@ -728,16 +728,6 @@ productRouter.delete(`/:marketplaceName/:brandName/product/:id`, async (req, res
   const { id } = req.params
 
   try {
-    await prisma.productTag.deleteMany({
-      where: {
-        productId: id,
-      },
-    })
-    await prisma.card.deleteMany({
-      where: {
-        productId: id,
-      },
-    })
     const product = await prisma.product.delete({
       where: {
         id: id,

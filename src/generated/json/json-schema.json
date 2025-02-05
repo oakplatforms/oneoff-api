@@ -20,15 +20,12 @@
           "default": "ACTIVE",
           "enum": [
             "ACTIVE",
-            "INACTIVE",
-            "DELETED"
+            "DELETED",
+            "INACTIVE"
           ]
         },
         "authId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "account": {
           "anyOf": [
@@ -61,8 +58,8 @@
           "default": "ACTIVE",
           "enum": [
             "ACTIVE",
-            "INACTIVE",
-            "DELETED"
+            "DELETED",
+            "INACTIVE"
           ]
         },
         "type": {
@@ -128,6 +125,19 @@
             "null"
           ]
         },
+        "paymentCustomerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paymentProcessorType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
         "profile": {
           "anyOf": [
             {
@@ -153,6 +163,12 @@
         },
         "userId": {
           "type": "string"
+        },
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
         }
       }
     },
@@ -316,20 +332,10 @@
           ]
         },
         "marketplace": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Marketplace"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Marketplace"
         },
         "marketplaceName": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "theme": {
           "anyOf": [
@@ -419,20 +425,10 @@
           ]
         },
         "marketplace": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Marketplace"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Marketplace"
         },
         "marketplaceName": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "brandCategories": {
           "type": "array",
@@ -457,10 +453,7 @@
           "format": "date-time"
         },
         "name": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "displayName": {
           "type": [
@@ -474,21 +467,48 @@
             "null"
           ]
         },
-        "marketplace": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Marketplace"
-            },
-            {
-              "type": "null"
-            }
+        "level": {
+          "type": [
+            "number",
+            "null"
           ]
         },
-        "marketplaceName": {
+        "deliveryType": {
           "type": [
             "string",
             "null"
+          ],
+          "default": "USPS",
+          "enum": [
+            "USPS",
+            "UPS",
+            "FEDEX",
+            "IN_PERSON"
           ]
+        },
+        "deliveryMethodType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "ECONOMY",
+          "enum": [
+            "FIRST_CLASS_MAIL",
+            "NEXT_DAY_AIR",
+            "OVERNIGHT",
+            "PRIORITY",
+            "FLAT_RATE",
+            "EXPRESS",
+            "ECONOMY",
+            "INTERNATIONAL",
+            "IN_PERSON"
+          ]
+        },
+        "marketplace": {
+          "$ref": "#/definitions/Marketplace"
+        },
+        "marketplaceName": {
+          "type": "string"
         },
         "shippingOptions": {
           "type": "array",
@@ -525,10 +545,7 @@
           "format": "date-time"
         },
         "name": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "displayName": {
           "type": [
@@ -555,10 +572,7 @@
           ]
         },
         "rate": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         },
         "isRequired": {
           "type": [
@@ -620,20 +634,10 @@
           ]
         },
         "marketplace": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Marketplace"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Marketplace"
         },
         "marketplaceName": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "productTags": {
           "type": "array",
@@ -664,10 +668,7 @@
           "format": "date-time"
         },
         "name": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "displayName": {
           "type": [
@@ -676,20 +677,10 @@
           ]
         },
         "tag": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Tag"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Tag"
         },
         "tagId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       }
     },
@@ -757,14 +748,7 @@
           "type": "string"
         },
         "category": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Category"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Category"
         },
         "categoryName": {
           "type": "string"
@@ -803,13 +787,10 @@
           "type": "string",
           "format": "date-time"
         },
-        "displayName": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "name": {
+          "type": "string"
+        },
+        "displayName": {
           "type": [
             "string",
             "null"
@@ -834,20 +815,10 @@
           ]
         },
         "brandCategory": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/BrandCategory"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/BrandCategory"
         },
         "brandCategoryId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "products": {
           "type": "array",
@@ -856,20 +827,10 @@
           }
         },
         "profile": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Profile"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Profile"
         },
         "profileId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       }
     },
@@ -888,10 +849,7 @@
           "format": "date-time"
         },
         "name": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "displayName": {
           "type": [
@@ -906,10 +864,8 @@
           ]
         },
         "type": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
+          "default": "CARD",
           "enum": [
             "CARD"
           ]
@@ -940,20 +896,10 @@
           ]
         },
         "brandCategory": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/BrandCategory"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/BrandCategory"
         },
         "brandCategoryId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "list": {
           "anyOf": [
@@ -1028,36 +974,16 @@
           ]
         },
         "brandCategory": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/BrandCategory"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/BrandCategory"
         },
         "brandCategoryId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "product": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Product"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Product"
         },
         "productId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       }
     },
@@ -1076,48 +1002,22 @@
           "format": "date-time"
         },
         "rating": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         },
         "description": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "profile": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Profile"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Profile"
         },
         "profileId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "product": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Product"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Product"
         },
         "productId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       }
     },
@@ -1136,10 +1036,7 @@
           "format": "date-time"
         },
         "balance": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         },
         "payouts": {
           "type": "array",
@@ -1148,20 +1045,10 @@
           }
         },
         "account": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Account"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Account"
         },
         "accountId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       }
     },
@@ -1180,70 +1067,54 @@
           "format": "date-time"
         },
         "status": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "COMPLETED",
             "PENDING",
             "CANCELED"
           ]
         },
-        "paymentProcessingType": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "STRIPE",
-          "enum": [
-            "STRIPE"
-          ]
-        },
-        "paymentProcessingPayoutId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "paymentProcessingMethodType": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "CARD",
-          "enum": [
-            "CARD",
-            "BANK_ACCOUNT"
-          ]
-        },
-        "paymentProcessingtMethodId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "price": {
+        "subTotal": {
           "type": [
             "number",
             "null"
           ]
         },
-        "wallet": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Wallet"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "walletId": {
+        "taxRate": {
           "type": [
-            "string",
+            "number",
             "null"
           ]
+        },
+        "tax": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
+        },
+        "wallet": {
+          "$ref": "#/definitions/Wallet"
+        },
+        "walletId": {
+          "type": "string"
+        },
+        "invoice": {
+          "$ref": "#/definitions/Invoice"
+        },
+        "invoiceId": {
+          "type": "string"
         }
       }
     },
@@ -1262,26 +1133,17 @@
           "format": "date-time"
         },
         "price": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         },
         "quantity": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": "integer"
         },
         "status": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "ACTIVE",
-            "INACTIVE",
-            "DELETED"
+            "DELETED",
+            "INACTIVE"
           ]
         },
         "multiTransactionsEnabled": {
@@ -1355,26 +1217,17 @@
           "format": "date-time"
         },
         "price": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         },
         "quantity": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": "integer"
         },
         "status": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "ACTIVE",
-            "INACTIVE",
-            "DELETED"
+            "DELETED",
+            "INACTIVE"
           ]
         },
         "multiTransactionsEnabled": {
@@ -1436,7 +1289,7 @@
         }
       }
     },
-    "Transaction": {
+    "Invoice": {
       "type": "object",
       "properties": {
         "id": {
@@ -1450,7 +1303,49 @@
           "type": "string",
           "format": "date-time"
         },
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "payouts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Payout"
+          }
+        }
+      }
+    },
+    "Order": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED"
+          ]
+        },
         "subTotal": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "taxRate": {
           "type": [
             "number",
             "null"
@@ -1468,16 +1363,139 @@
             "null"
           ]
         },
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
+        },
+        "shipment": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Shipment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "invoice": {
+          "$ref": "#/definitions/Invoice"
+        },
+        "invoiceId": {
+          "type": "string"
+        }
+      }
+    },
+    "Transaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "refundedAmount": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "transactionType": {
+          "type": "string",
+          "default": "ORDER",
+          "enum": [
+            "ORDER",
+            "PAYOUT"
+          ]
+        },
         "status": {
+          "type": "string",
+          "enum": [
+            "COMPLETED",
+            "FAILED",
+            "PENDING",
+            "CANCELED",
+            "REFUNDED",
+            "REQUIRES_ACTION"
+          ]
+        },
+        "description": {
           "type": [
             "string",
             "null"
-          ],
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD",
           "enum": [
-            "COMPLETED",
-            "PENDING",
-            "CANCELED",
-            "REFUNDED"
+            "USD",
+            "EUR",
+            "CAD"
+          ]
+        },
+        "paymentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paymentProcessorType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
+        "paymentMethodType": {
+          "type": "string",
+          "default": "CARD",
+          "enum": [
+            "CARD",
+            "BANK_ACCOUNT",
+            "APPLE_PAY"
+          ]
+        },
+        "order": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Order"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "orderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "payout": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Payout"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payoutId": {
+          "type": [
+            "string",
+            "null"
           ]
         },
         "bid": {
@@ -1512,15 +1530,11 @@
             "null"
           ]
         },
-        "shipment": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Shipment"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
         }
       }
     },
@@ -1657,10 +1671,7 @@
           ]
         },
         "deliveryType": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "USPS",
             "UPS",
@@ -1669,17 +1680,17 @@
           ]
         },
         "deliveryMethodType": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "FIRST_CLASS_MAIL",
+            "NEXT_DAY_AIR",
             "OVERNIGHT",
             "PRIORITY",
             "FLAT_RATE",
+            "EXPRESS",
             "ECONOMY",
-            "INTERNATIONAL"
+            "INTERNATIONAL",
+            "IN_PERSON"
           ]
         },
         "trackingNumber": {
@@ -1688,8 +1699,8 @@
             "null"
           ]
         },
-        "transaction": {
-          "$ref": "#/definitions/Transaction"
+        "order": {
+          "$ref": "#/definitions/Order"
         },
         "transactionId": {
           "type": "string"
@@ -1761,6 +1772,12 @@
     },
     "bid": {
       "$ref": "#/definitions/Bid"
+    },
+    "invoice": {
+      "$ref": "#/definitions/Invoice"
+    },
+    "order": {
+      "$ref": "#/definitions/Order"
     },
     "transaction": {
       "$ref": "#/definitions/Transaction"

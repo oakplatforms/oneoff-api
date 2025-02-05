@@ -108,7 +108,7 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
-  const { name, type, displayName, description, products, brandCategoryId } = req.body
+  const { name, type, displayName, description, products, profileId, brandCategoryId } = req.body
 
   try {
     const productData = products?.map((product: Prisma.ProductCreateInput) => {
@@ -127,6 +127,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
         products: {
           create: productData,
         },
+        profile: { connect: { id: profileId } },
         brandCategory: { connect: { id: brandCategoryId } },
       },
     })

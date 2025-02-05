@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
-import { createListingTransactions } from '../services/transaction'
+import { createListingInvoice } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -364,10 +364,10 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
             : undefined,
         },
       })
-  
       const bids = await resolveBids(listing)
+
       if (bids.length) {
-        createListingTransactions(listing, bids)
+        createListingInvoice(listing, bids)
       }
       res.json(listing)
     }
@@ -467,7 +467,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
         },
       })
 
-      createListingTransactions(listing, [bid])
+      createListingInvoice(listing, [bid])
     }
 
     res.json(listing)
@@ -647,7 +647,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
 
     const bids = await resolveBids(listing)
     if (bids.length) {
-      createListingTransactions(listing, bids)
+      createListingInvoice(listing, bids)
     }
     if (listing) {
       res.json(listing)

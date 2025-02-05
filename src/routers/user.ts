@@ -313,3 +313,24 @@ userRouter.get('/user/:authId', async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
+
+
+userRouter.delete(`/user/:id`, async (req, res) => {
+  const { id } = req.params
+
+  try {
+    const user = await prisma.user.delete({
+      where: {
+        id: id,
+      },
+    })
+    if (user) {
+      res.json(user)
+    } else {
+      res.status(400).json({ errorMessage: 'Something went wrong: No User ID found' })
+    }
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})

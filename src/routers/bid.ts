@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
-import { createBidTransactions } from '../services/transaction'
+import { createBidInvoice } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -274,7 +274,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
       })
       const listings = await resolveListings(bid)
       if (listings.length) {
-        await createBidTransactions(bid, listings)
+        await createBidInvoice(bid, listings)
       } 
       res.json(bid)
     }
@@ -396,7 +396,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     })
     const listings = await resolveListings(bid)
     if (listings.length) {
-      await createBidTransactions(bid, listings)
+      await createBidInvoice(bid, listings)
     }
     if (bid) {
       res.json(bid)
@@ -503,7 +503,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
               product: { connect: { id: bid.productId as string } }
             }
           })
-          await createBidTransactions(bid, [updatedListing])
+          await createBidInvoice(bid, [updatedListing])
         } else {
           const newListing = await prisma.listing.create({
             data: {
@@ -515,7 +515,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
               product: { connect: { id: bid.productId as string } }
             },
           })
-          await createBidTransactions(bid, [newListing])
+          await createBidInvoice(bid, [newListing])
           await prisma.listing.update({
             where: { id: listingId },
             data: {
@@ -537,7 +537,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
             product: { connect: { id: bid.productId as string } }
           },
         })
-        await createBidTransactions(bid, [newListing])
+        await createBidInvoice(bid, [newListing])
       }
     }
     if (bid) {
