@@ -131,6 +131,7 @@ model Account {
   wallet        Wallet?
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String  @unique
+  invoices      Invoice[]
   transactions  Transaction[]
 }
 
@@ -484,6 +485,8 @@ model Invoice {
   updatedAt        DateTime  @updatedAt
   
   // relations
+  createdBy        Account @relation(fields: [createdById], references: [id])
+  createdById      String
   orders           Order[]
   payouts          Payout[]
 }
@@ -533,8 +536,8 @@ model Transaction {
   bidId            String?
   listing          Listing? @relation(fields: [listingId], references: [id])
   listingId        String?
-  account          Account @relation(fields: [accountId], references: [id])
-  accountId        String
+  chargedAccount   Account @relation(fields: [chargedAccountId], references: [id])
+  chargedAccountId String
 }
 
 model ListingShippingCategory {

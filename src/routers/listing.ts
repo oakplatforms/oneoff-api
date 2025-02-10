@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
-import { createListingInvoice } from '../services/invoice'
+import { createListingInvoiceByResolvedBids } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -81,13 +81,12 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          productId || profileId
-            ? {
-                OR: [
-                  productId ? { productId: productId as string } : {},
-                  profileId ? { profileId: profileId as string } : {}
-                ]
-              }
+          productId && profileId
+            ? { productId: productId as string, profileId: profileId as string }
+            : productId
+            ? { productId: productId as string }
+            : profileId
+            ? { profileId: profileId as string }
             : {}
         ]
       },
@@ -363,11 +362,14 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
               }
             : undefined,
         },
+        include: {
+          profile: true
+        }
       })
       const bids = await resolveBids(listing)
 
       if (bids.length) {
-        createListingInvoice(listing, bids)
+        await createListingInvoiceByResolvedBids(listing, bids)
       }
       res.json(listing)
     }
@@ -453,6 +455,9 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
       where: {
         id,
       },
+      include: {
+        profile: true
+      }
     })
 
     if (listing) {
@@ -465,9 +470,12 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (re
           profile: { connect: { id: profileId } },
           product: { connect: { id: listing.productId as string } }
         },
+        include: {
+          profile: true
+        }
       })
 
-      createListingInvoice(listing, [bid])
+      await createListingInvoiceByResolvedBids(listing, [bid])
     }
 
     res.json(listing)
@@ -642,12 +650,15 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
               })),
             }
           : undefined,
+      },
+      include: {
+        profile: true
       }
     })
 
     const bids = await resolveBids(listing)
     if (bids.length) {
-      createListingInvoice(listing, bids)
+      await createListingInvoiceByResolvedBids(listing, bids)
     }
     if (listing) {
       res.json(listing)

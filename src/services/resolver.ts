@@ -36,6 +36,9 @@ export const resolveListings = async (bid: Prisma.BidWhereInput) => {
         },
       },
       take: 100,
+      include: {
+        profile: true
+      }
     })
     return filterBestAvailableListings(bid, listings)
   } catch (error) {
@@ -75,7 +78,10 @@ export const resolveBids = async (listing: Prisma.ListingWhereInput) => {
           not: listing.profileId as string,
         },
       },
-      take: 100
+      take: 100,
+      include: {
+        profile: true
+      }
     })
     return filterBestAvailableBids(listing, bids)
   } catch (error) {

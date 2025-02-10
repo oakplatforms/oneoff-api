@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
-import { createBidInvoice } from '../services/invoice'
+import { createBidInvoiceByResolvedListings } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -76,20 +76,19 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
   const { include, productId, profileId, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
-          where: {
-            AND: [
-              status ? { status: status as Status } : {},
-              productId || profileId
-                ? {
-                    OR: [
-                      productId ? { productId: productId as string } : {},
-                      profileId ? { profileId: profileId as string } : {}
-                    ]
-                  }
-                : {}
-            ]
-          },
-        include: generateIncludes(include)
+      where: {
+        AND: [
+          status ? { status: status as Status } : {},
+          productId && profileId
+            ? { productId: productId as string, profileId: profileId as string }
+            : productId
+            ? { productId: productId as string }
+            : profileId
+            ? { profileId: profileId as string }
+            : {}
+        ]
+      },
+      include: generateIncludes(include)
     })
     res.json(bids)
   } catch (error) {
@@ -271,10 +270,13 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
               }
             : undefined,
         },
+        include: {
+          profile: true
+        }
       })
       const listings = await resolveListings(bid)
       if (listings.length) {
-        await createBidInvoice(bid, listings)
+        await createBidInvoiceByResolvedListings(bid, listings)
       } 
       res.json(bid)
     }
@@ -392,11 +394,14 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
               })),
             }
           : undefined,
+      },
+      include: {
+        profile: true
       }
     })
     const listings = await resolveListings(bid)
     if (listings.length) {
-      await createBidInvoice(bid, listings)
+      await createBidInvoiceByResolvedListings(bid, listings)
     }
     if (bid) {
       res.json(bid)
@@ -486,6 +491,9 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
   try {
     const bid = await prisma.bid.findUnique({
       where: { id },
+      include: {
+        profile: true
+      }
     })
     if (bid) {
       if (listingId) {
@@ -501,9 +509,12 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
               status: 'ACTIVE',
               profile: { connect: { id: profileId } },
               product: { connect: { id: bid.productId as string } }
+            },
+            include: {
+              profile: true
             }
           })
-          await createBidInvoice(bid, [updatedListing])
+          await createBidInvoiceByResolvedListings(bid, [updatedListing])
         } else {
           const newListing = await prisma.listing.create({
             data: {
@@ -514,8 +525,11 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
               profile: { connect: { id: profileId } },
               product: { connect: { id: bid.productId as string } }
             },
+            include: {
+              profile: true
+            }
           })
-          await createBidInvoice(bid, [newListing])
+          await createBidInvoiceByResolvedListings(bid, [newListing])
           await prisma.listing.update({
             where: { id: listingId },
             data: {
@@ -536,8 +550,11 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) =>
             profile: { connect: { id: profileId } },
             product: { connect: { id: bid.productId as string } }
           },
+          include: {
+            profile: true
+          }
         })
-        await createBidInvoice(bid, [newListing])
+        await createBidInvoiceByResolvedListings(bid, [newListing])
       }
     }
     if (bid) {

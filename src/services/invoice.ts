@@ -3,12 +3,14 @@ import { getPrismaClient } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
 
-export const createBidInvoice = async (bid: Prisma.BidWhereInput, listings: Prisma.ListingWhereInput[]) => {
+export const createBidInvoiceByResolvedListings = async (bid: Prisma.BidWhereInput, listings: Prisma.ListingWhereInput[]) => {
   let remainingQuantity = bid.quantity as number
   try {
     // create empty invoice
     const invoice = await prisma.invoice.create({
-      data: {},
+      data: {
+        createdById: bid?.profile?.accountId as string
+      },
     })
 
     for (const listing of listings) {
@@ -16,7 +18,7 @@ export const createBidInvoice = async (bid: Prisma.BidWhereInput, listings: Pris
       const quantityToUse = Math.min(remainingQuantity, listing.quantity as number)
       const subTotal = quantityToUse * (listing.price as number)
 
-      if  (listing.profile?.accountId) {
+      if  (bid.profile?.accountId) {
         if (listing.quantity as number <= remainingQuantity || listing.quantity! as number > remainingQuantity && listing.multiTransactionsEnabled) {
           try {
             await prisma.order.create({
@@ -31,7 +33,7 @@ export const createBidInvoice = async (bid: Prisma.BidWhereInput, listings: Pris
                     status: "PENDING",
                     bidId: bid.id as string,
                     listingId: listing.id as string,
-                    accountId: listing.profile.accountId as string
+                    chargedAccountId: bid.profile.accountId as string
                   }]
                 }
               },
@@ -76,14 +78,15 @@ export const createBidInvoice = async (bid: Prisma.BidWhereInput, listings: Pris
   }
 }
 
-export const createListingInvoice = async (listing: Prisma.ListingWhereInput, bids: Prisma.BidWhereInput[]) => {
+export const createListingInvoiceByResolvedBids = async (listing: Prisma.ListingWhereInput, bids: Prisma.BidWhereInput[]) => {
   let remainingQuantity = listing.quantity as number
   try {
     // create empty invoice
     const invoice = await prisma.invoice.create({
-      data: {},
+      data: {
+        createdById: listing?.profile?.accountId as string
+      },
     })
-
     for (const bid of bids) {
       if (remainingQuantity === 0) break
       const quantityToUse = Math.min(remainingQuantity, bid.quantity as number)
@@ -104,7 +107,7 @@ export const createListingInvoice = async (listing: Prisma.ListingWhereInput, bi
                     status: "PENDING",
                     bidId: bid.id as string,
                     listingId: listing.id as string,
-                    accountId: bid.profile.accountId as string
+                    chargedAccountId: bid.profile.accountId as string
                   }]
                 }
               },

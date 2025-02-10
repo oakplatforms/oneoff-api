@@ -164,6 +164,12 @@
         "userId": {
           "type": "string"
         },
+        "invoices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Invoice"
+          }
+        },
         "transactions": {
           "type": "array",
           "items": {
@@ -1303,6 +1309,12 @@
           "type": "string",
           "format": "date-time"
         },
+        "createdBy": {
+          "$ref": "#/definitions/Account"
+        },
+        "createdById": {
+          "type": "string"
+        },
         "orders": {
           "type": "array",
           "items": {
@@ -1530,10 +1542,10 @@
             "null"
           ]
         },
-        "account": {
+        "chargedAccount": {
           "$ref": "#/definitions/Account"
         },
-        "accountId": {
+        "chargedAccountId": {
           "type": "string"
         }
       }
