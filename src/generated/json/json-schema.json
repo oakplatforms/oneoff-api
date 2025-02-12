@@ -164,16 +164,22 @@
         "userId": {
           "type": "string"
         },
-        "invoices": {
+        "createdOrders": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Invoice"
+            "$ref": "#/definitions/Order"
           }
         },
-        "transactions": {
+        "purchasedOrders": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Transaction"
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "soldOrders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
           }
         }
       }
@@ -1309,11 +1315,14 @@
           "type": "string",
           "format": "date-time"
         },
-        "createdBy": {
-          "$ref": "#/definitions/Account"
-        },
-        "createdById": {
-          "type": "string"
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
         },
         "orders": {
           "type": "array",
@@ -1335,11 +1344,11 @@
         "id": {
           "type": "string"
         },
-        "createdAt": {
+        "updatedAt": {
           "type": "string",
           "format": "date-time"
         },
-        "updatedAt": {
+        "createdAt": {
           "type": "string",
           "format": "date-time"
         },
@@ -1374,6 +1383,24 @@
             "number",
             "null"
           ]
+        },
+        "createdBy": {
+          "$ref": "#/definitions/Account"
+        },
+        "createdById": {
+          "type": "string"
+        },
+        "purchasedBy": {
+          "$ref": "#/definitions/Account"
+        },
+        "purchasedById": {
+          "type": "string"
+        },
+        "soldBy": {
+          "$ref": "#/definitions/Account"
+        },
+        "soldById": {
+          "type": "string"
         },
         "transactions": {
           "type": "array",
@@ -1510,7 +1537,7 @@
             "null"
           ]
         },
-        "bid": {
+        "bids": {
           "anyOf": [
             {
               "$ref": "#/definitions/Bid"
@@ -1526,7 +1553,7 @@
             "null"
           ]
         },
-        "listing": {
+        "listings": {
           "anyOf": [
             {
               "$ref": "#/definitions/Listing"
@@ -1541,12 +1568,6 @@
             "string",
             "null"
           ]
-        },
-        "chargedAccount": {
-          "$ref": "#/definitions/Account"
-        },
-        "chargedAccountId": {
-          "type": "string"
         }
       }
     },

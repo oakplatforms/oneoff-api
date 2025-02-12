@@ -8,17 +8,15 @@ export const createBidInvoiceByResolvedListings = async (bid: Prisma.BidWhereInp
   try {
     // create empty invoice
     const invoice = await prisma.invoice.create({
-      data: {
-        createdById: bid?.profile?.accountId as string
-      },
+      data: {},
     })
 
     for (const listing of listings) {
       if (remainingQuantity === 0) break
       const quantityToUse = Math.min(remainingQuantity, listing.quantity as number)
-      const subTotal = quantityToUse * (listing.price as number)
+      const subTotal = quantityToUse * (bid.price as number)
 
-      if  (bid.profile?.accountId) {
+      if  (bid.profile?.accountId && listing.profile?.accountId) {
         if (listing.quantity as number <= remainingQuantity || listing.quantity! as number > remainingQuantity && listing.multiTransactionsEnabled) {
           try {
             await prisma.order.create({
@@ -27,13 +25,15 @@ export const createBidInvoiceByResolvedListings = async (bid: Prisma.BidWhereInp
                 total: subTotal,
                 status: 'PENDING',
                 invoiceId: invoice.id,
+                createdById: bid.profile.accountId as string,
+                purchasedById: bid.profile.accountId as string,
+                soldById: listing.profile?.accountId as string,
                 transactions: {
                   create: [{
                     amount: subTotal,
                     status: "PENDING",
                     bidId: bid.id as string,
                     listingId: listing.id as string,
-                    chargedAccountId: bid.profile.accountId as string
                   }]
                 }
               },
@@ -83,16 +83,14 @@ export const createListingInvoiceByResolvedBids = async (listing: Prisma.Listing
   try {
     // create empty invoice
     const invoice = await prisma.invoice.create({
-      data: {
-        createdById: listing?.profile?.accountId as string
-      },
+      data: {},
     })
     for (const bid of bids) {
       if (remainingQuantity === 0) break
       const quantityToUse = Math.min(remainingQuantity, bid.quantity as number)
-      const subTotal = quantityToUse * (bid.price as number)
+      const subTotal = quantityToUse * (listing.price as number)
 
-      if  (bid.profile?.accountId) {
+      if  (bid.profile?.accountId && listing.profile?.accountId) {
         if (bid.quantity as number <= remainingQuantity || bid.quantity! as number > remainingQuantity && bid.multiTransactionsEnabled) {
           try {
             await prisma.order.create({
@@ -101,13 +99,15 @@ export const createListingInvoiceByResolvedBids = async (listing: Prisma.Listing
                 total: subTotal,
                 status: 'PENDING',
                 invoiceId: invoice.id,
+                createdById: listing.profile.accountId as string,
+                purchasedById: bid.profile.accountId as string,
+                soldById: listing.profile?.accountId as string,
                 transactions: {
                   create: [{
                     amount: subTotal,
                     status: "PENDING",
                     bidId: bid.id as string,
                     listingId: listing.id as string,
-                    chargedAccountId: bid.profile.accountId as string
                   }]
                 }
               },

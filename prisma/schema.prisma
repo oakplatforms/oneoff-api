@@ -131,8 +131,9 @@ model Account {
   wallet        Wallet?
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String  @unique
-  invoices      Invoice[]
-  transactions  Transaction[]
+  createdOrders Order[] @relation(name: "CreatedBy")
+  purchasedOrders Order[] @relation(name: "PurchasedBy")
+  soldOrders     Order[] @relation(name: "SoldBy")
 }
 
 model Profile {
@@ -453,7 +454,7 @@ model Listing {
   profileId        String?
   product          Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId        String?
-  transactions     Transaction[]
+  orderListings    OrderListing[]
   listingShippingCategories ListingShippingCategory[]
   listingCustomShippingOptions ListingCustomShippingOption[]
 }
@@ -474,7 +475,7 @@ model Bid {
   profileId        String?
   product          Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId        String?
-  transactions     Transaction[]
+  orderBids        OrderBid[]
   bidShippingCategories BidShippingCategory[]
   bidCustomShippingOptions BidCustomShippingOption[]
 }
@@ -483,18 +484,19 @@ model Invoice {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  
+
+  // custom
+  status           Status @default(ACTIVE)
+
   // relations
-  createdBy        Account @relation(fields: [createdById], references: [id])
-  createdById      String
   orders           Order[]
   payouts          Payout[]
 }
 
 model Order {
   id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  createdAt        DateTime  @default(now())
 
   // custom
   status           ProcessStatus
@@ -503,11 +505,49 @@ model Order {
   tax              Decimal? @db.Decimal(10, 2)
   total            Decimal? @db.Decimal(10, 2)
 
+  // account
+  createdBy        Account @relation(name: "CreatedBy", fields: [createdById], references: [id])
+  createdById      String
+  purchasedBy      Account @relation(name: "PurchasedBy", fields: [purchasedById], references: [id])
+  purchasedById    String
+  soldBy           Account @relation(name: "SoldBy", fields: [soldById], references: [id])
+  soldById         String
+  
   // relations
   transactions     Transaction[]
   shipment         Shipment?
   invoice          Invoice @relation(fields: [invoiceId], references: [id])
   invoiceId        String
+  orderBids        OrderBid[]
+  orderListings    OrderListing[]
+}
+
+model OrderListing {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  order            Order @relation(fields: [orderId], references: [id])
+  orderId          String
+  listing          Listing @relation(fields: [listingId], references: [id])
+  listingId        String
+
+  @@id([orderId, listingId])
+}
+
+model OrderBid {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+    // relations
+  order            Order @relation(fields: [orderId], references: [id])
+  orderId          String
+  bid              Bid @relation(fields: [bidId], references: [id])
+  bidId            String
+
+  @@id([orderId, bidId])
 }
 
 model Transaction {
@@ -532,12 +572,6 @@ model Transaction {
   orderId          String?
   payout           Payout? @relation(fields: [payoutId], references: [id])
   payoutId         String?
-  bid              Bid? @relation(fields: [bidId], references: [id])
-  bidId            String?
-  listing          Listing? @relation(fields: [listingId], references: [id])
-  listingId        String?
-  chargedAccount   Account @relation(fields: [chargedAccountId], references: [id])
-  chargedAccountId String
 }
 
 model ListingShippingCategory {
