@@ -1,9 +1,9 @@
-import { PrismaClient, Prisma, Status } from '@prisma/client'
+import { Prisma, Status } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
-import { createListingInvoiceByResolvedBids } from '../services/invoice'
+import { createInvoiceBasedOnResolvedBids } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -324,6 +324,12 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
   } = req.body
 
   try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+    })
+    if (!profile) {
+      return res.status(400).json({ errorMessage: 'Profile does not exist' })
+    }
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
@@ -369,7 +375,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
       const bids = await resolveBids(listing)
 
       if (bids.length) {
-        await createListingInvoiceByResolvedBids(listing, bids)
+        await createInvoiceBasedOnResolvedBids(listing, bids)
       }
       res.json(listing)
     }
@@ -552,7 +558,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
 
     const bids = await resolveBids(listing)
     if (bids.length) {
-      await createListingInvoiceByResolvedBids(listing, bids)
+      await createInvoiceBasedOnResolvedBids(listing, bids)
     }
     if (listing) {
       res.json(listing)

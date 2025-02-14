@@ -1194,10 +1194,10 @@
             "null"
           ]
         },
-        "transactions": {
+        "orderListings": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Transaction"
+            "$ref": "#/definitions/OrderListing"
           }
         },
         "listingShippingCategories": {
@@ -1281,10 +1281,10 @@
             "null"
           ]
         },
-        "transactions": {
+        "orderBids": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Transaction"
+            "$ref": "#/definitions/OrderBid"
           }
         },
         "bidShippingCategories": {
@@ -1423,6 +1423,74 @@
         },
         "invoiceId": {
           "type": "string"
+        },
+        "orderBids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderBid"
+          }
+        },
+        "orderListings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderListing"
+          }
+        }
+      }
+    },
+    "OrderListing": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "order": {
+          "$ref": "#/definitions/Order"
+        },
+        "orderId": {
+          "type": "string"
+        },
+        "listing": {
+          "$ref": "#/definitions/Listing"
+        },
+        "listingId": {
+          "type": "string"
+        }
+      }
+    },
+    "OrderBid": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "order": {
+          "$ref": "#/definitions/Order"
+        },
+        "orderId": {
+          "type": "string"
+        },
+        "bid": {
+          "$ref": "#/definitions/Bid"
+        },
+        "bidId": {
+          "type": "string"
         }
       }
     },
@@ -1532,38 +1600,6 @@
           ]
         },
         "payoutId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "bids": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Bid"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "bidId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "listings": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Listing"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "listingId": {
           "type": [
             "string",
             "null"
@@ -1811,6 +1847,12 @@
     },
     "order": {
       "$ref": "#/definitions/Order"
+    },
+    "orderListing": {
+      "$ref": "#/definitions/OrderListing"
+    },
+    "orderBid": {
+      "$ref": "#/definitions/OrderBid"
     },
     "transaction": {
       "$ref": "#/definitions/Transaction"

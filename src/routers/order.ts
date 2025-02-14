@@ -3,9 +3,27 @@ import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { createInvoiceBasedOnListingsInCart  } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
+
+orderRouter.post('/:marketplaceName/orders/buy-now', async (req, res) => {
+  const { ordersInCart } = req.body
+
+    try {
+      const invoice = await createInvoiceBasedOnListingsInCart(ordersInCart)
+
+      if (invoice) {
+        res.json(invoice)
+      } else {
+        return res.status(400).json({ errorMessage: 'There was an error while creating your invoice' })
+      }
+    } catch (error) {
+      const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+      res.status(statusCode).send({ errorMessage })
+    }
+  })
 
 /**
  * @openapi

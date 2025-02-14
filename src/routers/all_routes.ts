@@ -13,6 +13,9 @@ import { productTagRouter } from './productTag'
 import { bidRouter } from './bid'
 import { listingRouter } from './listing'
 import { shippingCategoryRouter } from './shippingCategory'
+import { orderRouter } from './order'
+import { transactionRouter } from './transaction'
+import { invoiceRouter } from './invoice'
 
 router.use(userRouter)
 router.use(marketplaceRouter)
@@ -27,6 +30,9 @@ router.use(productTagRouter)
 router.use(bidRouter)
 router.use(listingRouter)
 router.use(shippingCategoryRouter)
+router.use(transactionRouter)
+router.use(orderRouter)
+router.use(invoiceRouter)
 
 export default router
 

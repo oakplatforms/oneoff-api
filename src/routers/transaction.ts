@@ -78,20 +78,14 @@ export const transactionRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 transactionRouter.get('/:marketplaceName/transactions', async (req, res) => {
-  const { include, status, listingId, bidId, orderId } = req.query
+  const { include, status, orderId } = req.query
 
   try {
     const transactions = await prisma.transaction.findMany({
       where: {
         AND: [
           status ? { status: status as TransactionStatus } : {},
-          listingId && bidId
-            ? { listingId: listingId as string, bidId: bidId as string, }
-            : listingId
-            ? { listingId: listingId as string }
-            : bidId
-            ? { bidId: bidId as string }
-            : orderId
+          orderId
             ? { orderId: orderId as string }
             : {}
         ]
