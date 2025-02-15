@@ -233,6 +233,12 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
     bidCustomShippingOptions
   } = req.body
   try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+    })
+    if (!profile) {
+      throw new Error('Profile does not exist')
+    }
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
@@ -243,9 +249,9 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
       },
     })
     if (userBid) {
-      return res.status(400).json({ errorMessage: 'User already has a bid for this product' })
+      throw new Error('User already has a bid for this product')
     } else if (price <= 0) {
-      return res.status(400).json({ errorMessage: 'A bid cannot have a zero or negative price' })
+      throw new Error('A bid cannot have a zero or negative price')
     } else {
       const bid = await prisma.bid.create({
         data: {
@@ -406,7 +412,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     if (bid) {
       res.json(bid)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id' })
+      throw new Error('Cannot update Bid by id')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -497,7 +503,7 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
     if (bid) {
       res.json(bid)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+      throw new Error('No bid ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -586,7 +592,7 @@ bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     if (bid) {
       res.json(bid)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+      throw new Error('No bid ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

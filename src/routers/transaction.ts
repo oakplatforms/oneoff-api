@@ -166,7 +166,7 @@ transactionRouter.get('/:marketplaceName/transaction/:id', async (req, res) => {
     if (transaction) {
       res.json(transaction)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No transaction ID found' })
+      throw new Error('No transaction ID found')
     }
   } catch (error) {
     console.log('error')

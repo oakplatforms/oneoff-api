@@ -148,7 +148,7 @@ supportedTagValueRouter.delete(`/:marketplaceName/supported-tag-value/:id`, asyn
     if (supportedTagValue) {
       res.json(supportedTagValue)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Supported Tag Value ID found' })
+      throw new Error('No supported tag value ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

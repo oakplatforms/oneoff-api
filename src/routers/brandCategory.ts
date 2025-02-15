@@ -173,7 +173,7 @@ brandCategoryRouter.get('/:marketplaceName/:brandName/brand-category/:id', async
     if (brandCategory) {
       res.json(brandCategory)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Brand Category ID found' })
+      throw new Error('No brand category ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -259,7 +259,7 @@ brandCategoryRouter.delete('/:marketplaceName/:brandName/brand-category/:id', as
     if (brandCategory) {
       res.json(brandCategory)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Brand Category ID found' })
+      throw new Error('No brand category ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

@@ -96,7 +96,7 @@ productTagRouter.post('/:marketplaceName/product-tag', async (req, res) => {
         })
         res.json(productTag)
       } else {
-        res.status(404).send({ errorMessage: `Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
+        throw new Error(`Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
       }
     } else {
       const productTag = await prisma.productTag.create({
@@ -205,11 +205,11 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
           }
         })
         if (productTag.count === 0) {
-          return res.status(404).send({ errorMessage: 'Product tag association not found' })
+          throw new Error('Product tag association not found')
         }
         res.json(productTag)
       } else {
-        res.status(404).send({ errorMessage: `Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag` })
+        throw new Error(`Tag value ${tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
       }
     } else {
       const productTag = await prisma.productTag.updateMany({
@@ -223,7 +223,7 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
       })
   
       if (productTag.count === 0) {
-        return res.status(404).send({ errorMessage: 'Product tag association not found' })
+        throw new Error('Product tag association not found')
       }
   
       res.json(productTag)
@@ -302,7 +302,7 @@ productTagRouter.get('/:marketplaceName/product-tag/:id', async (req, res) => {
     if (productTag) {
       res.json(productTag)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Product Tag ID found' })
+      throw new Error('No product tag ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -381,7 +381,7 @@ productTagRouter.delete('/:marketplaceName/product-tag/:id', async (req, res) =>
     if (productTag) {
       res.json(productTag)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Product Tag ID found' })
+      throw new Error('No product tag ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

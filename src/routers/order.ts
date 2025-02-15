@@ -17,7 +17,7 @@ orderRouter.post('/:marketplaceName/orders/buy-now', async (req, res) => {
       if (invoice) {
         res.json(invoice)
       } else {
-        return res.status(400).json({ errorMessage: 'There was an error while creating your invoice' })
+        throw new Error('There was an error while creating your invoice')
       }
     } catch (error) {
       const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -191,7 +191,7 @@ orderRouter.get('/:marketplaceName/order/:id', async (req, res) => {
     if (order) {
       res.json(order)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No order ID found' })
+      throw new Error('No order ID found')
     }
   } catch (error) {
     console.log('error')
