@@ -108,7 +108,7 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
-  const { name, type, displayName, description, products, brandCategoryId } = req.body
+  const { name, type, displayName, description, products, profileId, brandCategoryId } = req.body
 
   try {
     const productData = products?.map((product: Prisma.ProductCreateInput) => {
@@ -127,6 +127,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
         products: {
           create: productData,
         },
+        profile: { connect: { id: profileId } },
         brandCategory: { connect: { id: brandCategoryId } },
       },
     })
@@ -220,10 +221,9 @@ listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
     if (list) {
       res.json(list)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No list ID found' })
+      throw new Error('No list ID found')
     }
   } catch (error) {
-    console.log('error')
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }
@@ -305,7 +305,7 @@ listRouter.delete(`/:marketplaceName/:brandName/list/:id`, async (req, res) => {
     if (list) {
       res.json(list)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No list ID found' })
+      throw new Error('No list ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

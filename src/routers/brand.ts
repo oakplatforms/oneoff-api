@@ -90,7 +90,7 @@ brandRouter.get('/:marketplaceName/brand/:id', async (req, res) => {
     if (brand) {
       res.json(brand)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Brand ID found' })
+      throw new Error('No brand ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -111,7 +111,7 @@ brandRouter.delete(`/:marketplaceName/brand/:id`, async (req, res) => {
     if (brand) {
       res.json(brand)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Brand ID found' })
+      throw new Error('No brand ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

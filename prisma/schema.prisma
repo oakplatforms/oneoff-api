@@ -32,30 +32,44 @@ enum AccountType {
 
 enum Status {
   ACTIVE
-  INACTIVE
   DELETED
+  INACTIVE
 }
 
-enum PayoutStatus {
+enum ProcessStatus {
   COMPLETED
   PENDING
   CANCELED
+}
+
+enum TransactionType {
+  ORDER
+  PAYOUT
 }
 
 enum TransactionStatus {
   COMPLETED
+  FAILED
   PENDING
   CANCELED
   REFUNDED
+  REQUIRES_ACTION
 }
 
-enum PaymentProcessingType {
+enum PaymentProcessorType {
   STRIPE
 }
 
-enum PaymentProcessingMethodType {
+enum PaymentMethodType {
   CARD
   BANK_ACCOUNT
+  APPLE_PAY
+}
+
+enum Currency {
+  USD
+  EUR
+  CAD
 }
 
 enum DeliveryType {
@@ -67,11 +81,14 @@ enum DeliveryType {
 
 enum DeliveryMethodType {
   FIRST_CLASS_MAIL
+  NEXT_DAY_AIR
   OVERNIGHT
   PRIORITY
   FLAT_RATE
+  EXPRESS
   ECONOMY
   INTERNATIONAL
+  IN_PERSON
 }
 
 model User {
@@ -81,7 +98,7 @@ model User {
   status        Status @default(ACTIVE)
 
   // custom
-  authId     String?
+  authId     String
   
   // relations
   account       Account?
@@ -104,12 +121,19 @@ model Account {
   city          String?
   state         String?
   zipCode       String?
-  
+
+  // processor
+  paymentCustomerId  String?
+  paymentProcessorType PaymentProcessorType @default(STRIPE)
+
   // relations
   profile       Profile?
   wallet        Wallet?
-  user          User @relation(fields: [userId], references: [id])
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String  @unique
+  createdOrders Order[] @relation(name: "CreatedBy")
+  purchasedOrders Order[] @relation(name: "PurchasedBy")
+  soldOrders     Order[] @relation(name: "SoldBy")
 }
 
 model Profile {
@@ -125,7 +149,7 @@ model Profile {
   qrCode        String?
 
   // relations
-  account       Account @relation(fields: [accountId], references: [id])
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
   lists         List[]
   reviews       Review[]
@@ -160,8 +184,8 @@ model Brand {
   displayName      String?
 
   // relations
-  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
-  marketplaceName  String?
+  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
+  marketplaceName  String
   theme            Theme?
   brandCategories  BrandCategory[]
 }
@@ -177,9 +201,9 @@ model Theme {
   secondaryColor   String?
 
   // relations
-  marketplace      Marketplace @relation(fields: [marketplaceId], references: [id])
+  marketplace      Marketplace @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
   marketplaceId    String  @unique
-  brand            Brand @relation(fields: [brandId], references: [id])
+  brand            Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   brandId          String  @unique
 }
 
@@ -193,8 +217,8 @@ model Category {
   displayName      String?
 
   // relations
-  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
-  marketplaceName  String?
+  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
+  marketplaceName  String
   brandCategories  BrandCategory[]
 }
 
@@ -204,13 +228,16 @@ model ShippingCategory {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String?
+  name             String
   displayName      String?
   description      String?
+  level            Float?
+  deliveryType     DeliveryType? @default(USPS)
+  deliveryMethodType DeliveryMethodType? @default(ECONOMY)
 
   // relations
-  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
-  marketplaceName  String?
+  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
+  marketplaceName  String
   shippingOptions  ShippingOption[]
   listingShippingCategories ListingShippingCategory[]
   bidShippingCategories BidShippingCategory[]
@@ -222,16 +249,16 @@ model ShippingOption {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String?
+  name             String
   displayName      String?
   description      String?
   maxQuantity      Int?
   maxWeight        Float?
-  rate             Decimal? @db.Decimal(10, 2)
+  rate             Decimal @db.Decimal(10, 2)
   isRequired       Boolean?
 
   // relations
-  shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId  String?
   listingCustomShippingOptions ListingCustomShippingOption[]
   bidCustomShippingOptions BidCustomShippingOption[]
@@ -247,8 +274,8 @@ model Tag {
   displayName      String?
   
   // relations
-  marketplace      Marketplace?  @relation(fields: [marketplaceName], references: [name])
-  marketplaceName  String?
+  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
+  marketplaceName  String
   productTags      ProductTag[]
   supportedTagValues SupportedTagValues[]
 }
@@ -259,12 +286,12 @@ model SupportedTagValues {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String?
+  name             String
   displayName      String?
   
   // relations
-  tag              Tag? @relation(fields: [tagId], references: [id])
-  tagId            String?
+  tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId            String
 }
 
 model ProductTag {
@@ -277,9 +304,9 @@ model ProductTag {
   index            Int?
 
   // relations
-  tag              Tag @relation(fields: [tagId], references: [id])
+  tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId            String
-  product          Product @relation(fields: [productId], references: [id])
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId        String
 }
 
@@ -289,9 +316,9 @@ model BrandCategory {
   updatedAt        DateTime  @updatedAt
 
   // relations
-  brand            Brand @relation(fields: [brandName], references: [name])
+  brand            Brand @relation(fields: [brandName], references: [name], onDelete: Cascade)
   brandName        String
-  category         Category? @relation(fields: [categoryName], references: [name])
+  category         Category @relation(fields: [categoryName], references: [name], onDelete: Cascade)
   categoryName     String
   lists            List[]
   products         Product[]
@@ -306,17 +333,17 @@ model List {
   updatedAt        DateTime  @updatedAt
 
   // custom
+  name             String
   displayName      String?
-  name             String?
   description      String?
   type             ListType?
 
   // relations
-  brandCategory    BrandCategory? @relation(fields: [brandCategoryId], references: [id])
-  brandCategoryId  String?
+  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
+  brandCategoryId  String
   products         Product[]
-  profile          Profile? @relation(fields: [profileId], references: [id])
-  profileId        String?
+  profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId        String
 }
 
 model Product {
@@ -325,19 +352,19 @@ model Product {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String?
+  name             String
   displayName      String?
   description      String?
-  type             ProductType?
+  type             ProductType @default(CARD)
   image            String?
   price            Decimal? @db.Decimal(10, 2)
   releaseDate      DateTime?
   weight           Float?
 
   // relations
-  brandCategory    BrandCategory? @relation(fields: [brandCategoryId], references: [id])
-  brandCategoryId  String?
-  list             List? @relation(fields: [listId], references: [id])
+  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
+  brandCategoryId  String
+  list             List? @relation(fields: [listId], references: [id], onDelete: Cascade)
   listId           String?
   productTags      ProductTag[]
   card             Card?
@@ -355,10 +382,10 @@ model Card {
   number           String?
 
   // relations
-  brandCategory    BrandCategory? @relation(fields: [brandCategoryId], references: [id])
-  brandCategoryId  String?
-  product          Product? @relation(fields: [productId], references: [id])
-  productId        String?  @unique
+  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
+  brandCategoryId  String
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String  @unique
 }
 
 model Review {
@@ -367,14 +394,14 @@ model Review {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  rating           Float?
-  description      String?
+  rating           Float
+  description      String
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id])
-  profileId        String?
-  product          Product? @relation(fields: [productId], references: [id])
-  productId        String?
+  profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId        String
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
 }
 
 model Wallet {
@@ -383,12 +410,12 @@ model Wallet {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  balance          Decimal? @db.Decimal(10, 2)
+  balance          Decimal @db.Decimal(10, 2)
 
   // relations
   payouts          Payout[]
-  account          Account? @relation(fields: [accountId], references: [id])
-  accountId        String?  @unique
+  account          Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId        String  @unique
 }
 
 model Payout {
@@ -397,16 +424,18 @@ model Payout {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  status           PayoutStatus?
-  paymentProcessingType PaymentProcessingType? @default(STRIPE)
-  paymentProcessingPayoutId String?
-  paymentProcessingMethodType PaymentProcessingMethodType? @default(CARD)
-  paymentProcessingtMethodId  String?
-  price           Decimal? @db.Decimal(10, 2)
+  status           ProcessStatus
+  subTotal         Decimal? @db.Decimal(10, 2)
+  taxRate          Decimal? @db.Decimal(10, 2)
+  tax              Decimal? @db.Decimal(10, 2)
+  total            Decimal? @db.Decimal(10, 2)
 
   // relations
-  wallet           Wallet? @relation(fields: [walletId], references: [id])
-  walletId         String?
+  transactions     Transaction[]
+  wallet           Wallet @relation(fields: [walletId], references: [id])
+  walletId         String
+  invoice          Invoice @relation(fields: [invoiceId], references: [id])
+  invoiceId        String
 }
 
 model Listing {
@@ -415,17 +444,17 @@ model Listing {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  price            Decimal? @db.Decimal(10, 2)
-  quantity         Int?
-  status           Status?
+  price            Decimal @db.Decimal(10, 2)
+  quantity         Int
+  status           Status
   multiTransactionsEnabled Boolean @default(false) 
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id])
+  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId        String?
-  product          Product? @relation(fields: [productId], references: [id])
+  product          Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId        String?
-  transactions     Transaction[]
+  orderListings    OrderListing[]
   listingShippingCategories ListingShippingCategory[]
   listingCustomShippingOptions ListingCustomShippingOption[]
 }
@@ -436,19 +465,89 @@ model Bid {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  price            Decimal? @db.Decimal(10, 2)
-  quantity         Int?
-  status           Status?
+  price            Decimal @db.Decimal(10, 2)
+  quantity         Int
+  status           Status
   multiTransactionsEnabled Boolean? @default(false) 
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id])
+  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId        String?
-  product          Product? @relation(fields: [productId], references: [id])
+  product          Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId        String?
-  transactions     Transaction[]
+  orderBids        OrderBid[]
   bidShippingCategories BidShippingCategory[]
   bidCustomShippingOptions BidCustomShippingOption[]
+}
+
+model Invoice {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  status           Status @default(ACTIVE)
+
+  // relations
+  orders           Order[]
+  payouts          Payout[]
+}
+
+model Order {
+  id               String  @id @default(cuid()) 
+  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime  @default(now())
+
+  // custom
+  status           ProcessStatus
+  subTotal         Decimal? @db.Decimal(10, 2)
+  taxRate          Decimal? @db.Decimal(10, 2)
+  tax              Decimal? @db.Decimal(10, 2)
+  total            Decimal? @db.Decimal(10, 2)
+
+  // account
+  createdBy        Account @relation(name: "CreatedBy", fields: [createdById], references: [id])
+  createdById      String
+  purchasedBy      Account @relation(name: "PurchasedBy", fields: [purchasedById], references: [id])
+  purchasedById    String
+  soldBy           Account @relation(name: "SoldBy", fields: [soldById], references: [id])
+  soldById         String
+  
+  // relations
+  transactions     Transaction[]
+  shipment         Shipment?
+  invoice          Invoice @relation(fields: [invoiceId], references: [id])
+  invoiceId        String
+  orderBids        OrderBid[]
+  orderListings    OrderListing[]
+}
+
+model OrderListing {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  order            Order @relation(fields: [orderId], references: [id])
+  orderId          String
+  listing          Listing @relation(fields: [listingId], references: [id])
+  listingId        String
+
+  @@id([orderId, listingId])
+}
+
+model OrderBid {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+    // relations
+  order            Order @relation(fields: [orderId], references: [id])
+  orderId          String
+  bid              Bid @relation(fields: [bidId], references: [id])
+  bidId            String
+
+  @@id([orderId, bidId])
 }
 
 model Transaction {
@@ -457,17 +556,22 @@ model Transaction {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  subTotal         Decimal? @db.Decimal(10, 2)
-  tax              Decimal? @db.Decimal(10, 2)
-  total            Decimal? @db.Decimal(10, 2)
-  status           TransactionStatus?
+  amount           Decimal @db.Decimal(10, 2)
+  refundedAmount   Decimal? @db.Decimal(10, 2)
+  transactionType  TransactionType @default(ORDER)
+  status           TransactionStatus
+  description      String?
+  currency         Currency @default(USD)
+
+  paymentId        String?
+  paymentProcessorType PaymentProcessorType @default(STRIPE)
+  paymentMethodType PaymentMethodType @default(CARD)
 
   // relations
-  bid              Bid? @relation(fields: [bidId], references: [id])
-  bidId            String?
-  listing          Listing? @relation(fields: [listingId], references: [id])
-  listingId        String?
-  shipment         Shipment?
+  order            Order? @relation(fields: [orderId], references: [id])
+  orderId          String?
+  payout           Payout? @relation(fields: [payoutId], references: [id])
+  payoutId         String?
 }
 
 model ListingShippingCategory {
@@ -476,9 +580,9 @@ model ListingShippingCategory {
   updatedAt        DateTime  @updatedAt
 
   // relations
-  listing          Listing @relation(fields: [listingId], references: [id])
+  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   listingId        String
-  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId String
 
   @@id([listingId, shippingCategoryId])
@@ -490,9 +594,9 @@ model ListingCustomShippingOption {
   updatedAt        DateTime  @updatedAt
 
   // relations
-  listing          Listing @relation(fields: [listingId], references: [id])
+  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   listingId        String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id])
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
   shippingOptionId String
 
   @@id([listingId, shippingOptionId])
@@ -504,9 +608,9 @@ model BidShippingCategory {
   updatedAt        DateTime  @updatedAt
 
   // relations
-  bid              Bid @relation(fields: [bidId], references: [id])
+  bid              Bid @relation(fields: [bidId], references: [id], onDelete: Cascade)
   bidId            String
-  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id])
+  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId String
 
   @@id([bidId, shippingCategoryId])
@@ -518,9 +622,9 @@ model BidCustomShippingOption {
   updatedAt        DateTime  @updatedAt
 
   // relations
-  bid              Bid @relation(fields: [bidId], references: [id])
+  bid              Bid @relation(fields: [bidId], references: [id], onDelete: Cascade)
   bidId            String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id])
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
   shippingOptionId String
 
   @@id([bidId, shippingOptionId])
@@ -533,11 +637,11 @@ model Shipment {
 
   // custom
   fee              Decimal? @db.Decimal(10, 2)
-  deliveryType     DeliveryType?
-  deliveryMethodType DeliveryMethodType?
+  deliveryType     DeliveryType
+  deliveryMethodType DeliveryMethodType
   trackingNumber   String?
 
   // relations
-  transaction      Transaction @relation(fields: [transactionId], references: [id])
+  order            Order @relation(fields: [transactionId], references: [id])
   transactionId    String  @unique
 }

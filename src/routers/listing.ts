@@ -1,9 +1,9 @@
-import { PrismaClient, Prisma, Status } from '@prisma/client'
+import { Prisma, Status } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
-import { createListingTransactions } from '../services/transaction'
+import { createInvoiceBasedOnResolvedBids } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -81,13 +81,12 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          productId || profileId
-            ? {
-                OR: [
-                  productId ? { productId: productId as string } : {},
-                  profileId ? { profileId: profileId as string } : {}
-                ]
-              }
+          productId && profileId
+            ? { productId: productId as string, profileId: profileId as string }
+            : productId
+            ? { productId: productId as string }
+            : profileId
+            ? { profileId: profileId as string }
             : {}
         ]
       },
@@ -163,7 +162,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
   const { include, productId } = req.query
 
   if (!productId) {
-    res.status(400).json({ errorMessage: 'Product ID is required to retrieve lowest ask listing' })
+    throw new Error('Product ID is required to retrieve lowest ask listing')
   } else {
     try {
       const listing = await prisma.listing.findFirst({
@@ -325,6 +324,12 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
   } = req.body
 
   try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+    })
+    if (!profile) {
+      throw new Error('Profile does not exist')
+    }
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
@@ -336,9 +341,9 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
     })
     
     if (userListing) {
-      res.status(400).json({ errorMessage: 'User already has a listing for this product' })
+      throw new Error('User already has a listing for this product')
     } else if (price <= 0) {
-      res.status(400).json({ errorMessage: 'A listing cannot have a zero or negative price' })
+      throw new Error('A listing cannot have a zero or negative price')
     } else {
       const listing = await prisma.listing.create({
         data: {
@@ -363,114 +368,17 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
               }
             : undefined,
         },
+        include: {
+          profile: true
+        }
       })
-  
       const bids = await resolveBids(listing)
+
       if (bids.length) {
-        createListingTransactions(listing, bids)
+        await createInvoiceBasedOnResolvedBids(listing, bids)
       }
       res.json(listing)
     }
-  } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
-  }
-})
-
-/**
- * @openapi
- * /{marketplaceName}/{brandName}/listing/{id}/purchase:
- *   put:
- *     tags:
- *       - Listing
- *     summary: Purchase a listing.
- *     description: Creates a bid for a listing and processes the transaction. The request body must include the `profileId` of the buyer. If the listing is found, a bid will be created and the listing transactions will be processed.
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace for the listing.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand for the listing.
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the listing to be purchased.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               profileId:
- *                 type: string
- *                 description: The profile ID of the buyer who is purchasing the listing.
- *             required:
- *               - profileId
- *     responses:
- *       '200':
- *         description: Successfully processed the purchase of the listing.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Listing'
- *       '400':
- *         description: Bad request, typically due to invalid request data or if the listing cannot be found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- *       '500':
- *         description: Internal Server Error. An error occurred while processing the request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- */
-listingRouter.put(`/:marketplaceName/:brandName/listing/:id/purchase`, async (req, res) => {
-  const { id } = req.params
-  const { profileId } = req.body
-
-  try {
-    const listing = await prisma.listing.findUnique({
-      where: {
-        id,
-      },
-    })
-
-    if (listing) {
-      const bid = await prisma.bid.create({
-        data: {
-          price: listing.price,
-          quantity: listing.quantity,
-          status: 'ACTIVE',
-          multiTransactionsEnabled: false,
-          profile: { connect: { id: profileId } },
-          product: { connect: { id: listing.productId as string } }
-        },
-      })
-
-      createListingTransactions(listing, [bid])
-    }
-
-    res.json(listing)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -642,17 +550,20 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
               })),
             }
           : undefined,
+      },
+      include: {
+        profile: true
       }
     })
 
     const bids = await resolveBids(listing)
     if (bids.length) {
-      createListingTransactions(listing, bids)
+      await createInvoiceBasedOnResolvedBids(listing, bids)
     }
     if (listing) {
       res.json(listing)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update listing by id' })
+      throw new Error('Cannot update listing by id')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -733,7 +644,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) =
     if (listing) {
       res.json(listing)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No listing ID found' })
+      throw new Error('No listing ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -812,7 +723,7 @@ listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res
     if (listing) {
       res.json(listing)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No listing ID found' })
+      throw new Error('No listing ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

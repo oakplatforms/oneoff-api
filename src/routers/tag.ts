@@ -356,7 +356,7 @@ tagRouter.get('/:marketplaceName/tag/:id', async (req, res) => {
     if (tag) {
       res.json(tag)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Tag ID found' })
+      throw new Error('No tag ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -435,7 +435,7 @@ tagRouter.delete(`/:marketplaceName/tag/:id`, async (req, res) => {
     if (tag) {
       res.json(tag)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Tag ID found' })
+      throw new Error('No tag ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "7f7642ce-e6ed-42e3-88ef-a0e98174b2b8",
+		"_postman_id": "cce28670-ce5c-4f0f-a8bd-093e7abb1910",
 		"name": "tcgx-api",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "497093"
 	},
 	"item": [
 		{
@@ -517,6 +518,7 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.expect(jsonData.length).to.eq(2)",
+									"    pm.collectionVariables.set(\"brand1Id\", jsonData.id)",
 									"    pm.expect(jsonData[0].name).to.eq('one-piece')",
 									"    pm.expect(jsonData[0].displayName).to.eq('One Piece')",
 									"    pm.expect(jsonData[1].name).to.eq('pokemon')",
@@ -524,7 +526,8 @@
 									"})",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1250,7 +1253,8 @@
 									"    pm.expect(jsonData.displayName).to.eq('One Piece Set 1')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1259,7 +1263,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"One Piece Set 1\", \n    \"name\": \"one-piece-set-1\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"One Piece Set 1\", \n    \"name\": \"one-piece-set-1\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1297,7 +1301,8 @@
 									"    pm.expect(jsonData.displayName).to.eq('Romance Dawn')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1306,7 +1311,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Romance Dawn\", \n    \"name\": \"romance-dawn\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"Romance Dawn\", \n    \"name\": \"romance-dawn\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1344,7 +1349,8 @@
 									"    pm.expect(jsonData.displayName).to.eq('Pillars of Strength')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1353,7 +1359,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Pillars of Strength\", \n    \"name\": \"pillars-of-strength\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"Pillars of Strength\", \n    \"name\": \"pillars-of-strength\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1716,53 +1722,6 @@
 					"response": []
 				},
 				{
-					"name": "get product 5 with productTag",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
-									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"product5ProductTag1Id\", jsonData.productTags[0].id)",
-									"    pm.collectionVariables.set(\"product5ProductTag2Id\", jsonData.productTags[1].id)",
-									"})"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Test Product\", \n    \"name\": \"test-product\",\n    \"type\": \"CARD\",\n    \"sku\": 432253343,\n    \"price\": 11.05,\n    \"color\": \"RED\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n    \"card\": {\n        \"number\": \"101\"\n    },\n    \"productTags\": [\n        {\n            \"tagId\": \"{{tag1Id}}\",\n            \"tagValue\": \"Black\"\n        },\n        {\n            \"tagId\": \"{{tag2Id}}\",\n            \"tagValue\": \"23812\"\n        }\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/product/",
-							"host": [
-								"{{HOST_NAME}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"{{marketplace1Name}}",
-								"{{brand1Name}}",
-								"product",
-								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "update product 5 with productTag",
 					"event": [
 						{
@@ -1887,10 +1846,11 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(404)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.errorMessage).to.eq('Tag value is not supported')",
+									"    pm.expect(jsonData.errorMessage).to.eq('Tag value Black2 is not supported for Color tag')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2750,12 +2710,13 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
+									"    pm.response.to.have.status(400)",
 									"    const jsonData = pm.response.json()",
 									"    pm.expect(jsonData.errorMessage).to.eq('User already has a listing for this product')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2828,61 +2789,6 @@
 								"{{brand1Name}}",
 								"listing",
 								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "create listing 3 with shippingCategories",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
-									"    const jsonData = pm.response.json()",
-									"    pm.collectionVariables.set(\"listing3ListingShippingCategory1Id\", jsonData.listingShippingCategories[0].id)",
-									"})"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product2Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"listingShippingCategories\": [\n        {\n            \"shippingCategoryId\": \"{{shippingCategory1Id}}\"\n        },\n        {\n            \"shippingCategoryId\": \"{{shippingCategory2Id}}\"\n        }\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/{{listing3Id}}?include=listingShippingCategories",
-							"host": [
-								"{{HOST_NAME}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"{{marketplace1Name}}",
-								"{{brand1Name}}",
-								"listing",
-								"{{listing3Id}}"
-							],
-							"query": [
-								{
-									"key": "include",
-									"value": "listingShippingCategories"
-								}
 							]
 						}
 					},
@@ -3190,12 +3096,13 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
+									"    pm.response.to.have.status(400)",
 									"    const jsonData = pm.response.json()",
 									"    pm.expect(jsonData.errorMessage).to.eq(\"User already has a bid for this product\")",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -3623,6 +3530,10 @@
 		},
 		{
 			"key": "listing3ListingShippingCategory2Id",
+			"value": ""
+		},
+		{
+			"key": "brand1Id",
 			"value": ""
 		}
 	]

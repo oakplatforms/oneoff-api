@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
-import { createBidTransactions } from '../services/transaction'
+import { createInvoiceBasedOnResolvedListings } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -76,20 +76,19 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
   const { include, productId, profileId, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
-          where: {
-            AND: [
-              status ? { status: status as Status } : {},
-              productId || profileId
-                ? {
-                    OR: [
-                      productId ? { productId: productId as string } : {},
-                      profileId ? { profileId: profileId as string } : {}
-                    ]
-                  }
-                : {}
-            ]
-          },
-        include: generateIncludes(include)
+      where: {
+        AND: [
+          status ? { status: status as Status } : {},
+          productId && profileId
+            ? { productId: productId as string, profileId: profileId as string }
+            : productId
+            ? { productId: productId as string }
+            : profileId
+            ? { profileId: profileId as string }
+            : {}
+        ]
+      },
+      include: generateIncludes(include)
     })
     res.json(bids)
   } catch (error) {
@@ -234,6 +233,12 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
     bidCustomShippingOptions
   } = req.body
   try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+    })
+    if (!profile) {
+      throw new Error('Profile does not exist')
+    }
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
@@ -244,9 +249,9 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
       },
     })
     if (userBid) {
-      return res.status(400).json({ errorMessage: 'User already has a bid for this product' })
+      throw new Error('User already has a bid for this product')
     } else if (price <= 0) {
-      return res.status(400).json({ errorMessage: 'A bid cannot have a zero or negative price' })
+      throw new Error('A bid cannot have a zero or negative price')
     } else {
       const bid = await prisma.bid.create({
         data: {
@@ -271,10 +276,13 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
               }
             : undefined,
         },
+        include: {
+          profile: true
+        }
       })
       const listings = await resolveListings(bid)
       if (listings.length) {
-        await createBidTransactions(bid, listings)
+        await createInvoiceBasedOnResolvedListings(bid, listings)
       } 
       res.json(bid)
     }
@@ -392,158 +400,19 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
               })),
             }
           : undefined,
+      },
+      include: {
+        profile: true
       }
     })
     const listings = await resolveListings(bid)
     if (listings.length) {
-      await createBidTransactions(bid, listings)
+      await createInvoiceBasedOnResolvedListings(bid, listings)
     }
     if (bid) {
       res.json(bid)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id' })
-    }
-  } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
-  }
-})
-
-/**
- * @openapi
- * /{marketplaceName}/{brandName}/bid/{id}/accept:
- *   put:
- *     tags:
- *       - Bid
- *     summary: Accept a bid and update or create a listing.
- *     description: Accepts a bid by its ID, either updating an existing listing or creating a new one based on the bid details. If a listing is provided, it will be updated, otherwise, a new listing will be created.
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the bid to accept.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               listingId:
- *                 type: string
- *                 description: The ID of the listing to be updated. If not provided, a new listing will be created.
- *               profileId:
- *                 type: string
- *                 description: The ID of the profile accepting the bid.
- *             required:
- *               - profileId
- *     responses:
- *       '200':
- *         description: Successfully accepted the bid and created or updated the listing.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Bid'
- *       '400':
- *         description: Bad request, typically due to invalid bid ID or request data.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- *       '500':
- *         description: Internal Server Error. An error occurred while processing the request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- */
-bidRouter.put(`/:marketplaceName/:brandName/bid/:id/accept`, async (req, res) => {
-  const { id } = req.params
-  const { listingId,  profileId } = req.body
-  
-  try {
-    const bid = await prisma.bid.findUnique({
-      where: { id },
-    })
-    if (bid) {
-      if (listingId) {
-        const currentListing = await prisma.listing.findUnique({
-          where: { id: listingId },
-        })
-        if ((bid.quantity as number) >= (currentListing?.quantity as number)) {
-          const updatedListing = await prisma.listing.update({
-            where: { id: listingId },
-            data: {
-              price: bid.price,
-              quantity: bid.quantity,
-              status: 'ACTIVE',
-              profile: { connect: { id: profileId } },
-              product: { connect: { id: bid.productId as string } }
-            }
-          })
-          await createBidTransactions(bid, [updatedListing])
-        } else {
-          const newListing = await prisma.listing.create({
-            data: {
-              price: bid.price,
-              quantity: bid.quantity,
-              status: 'ACTIVE',
-              multiTransactionsEnabled: false,
-              profile: { connect: { id: profileId } },
-              product: { connect: { id: bid.productId as string } }
-            },
-          })
-          await createBidTransactions(bid, [newListing])
-          await prisma.listing.update({
-            where: { id: listingId },
-            data: {
-              quantity: (currentListing?.quantity as number) - (bid.quantity as number),
-              status: 'ACTIVE',
-              profile: { connect: { id: profileId } },
-              product: { connect: { id: bid.productId as string } }
-            }
-          })
-        }
-      } else {
-        const newListing = await prisma.listing.create({
-          data: {
-            price: bid.price,
-            quantity: bid.quantity,
-            status: 'ACTIVE',
-            multiTransactionsEnabled: false,
-            profile: { connect: { id: profileId } },
-            product: { connect: { id: bid.productId as string } }
-          },
-        })
-        await createBidTransactions(bid, [newListing])
-      }
-    }
-    if (bid) {
-      res.json(bid)
-    } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Bid by id'  })
+      throw new Error('Cannot update Bid by id')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -634,7 +503,7 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
     if (bid) {
       res.json(bid)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+      throw new Error('No bid ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -723,7 +592,7 @@ bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     if (bid) {
       res.json(bid)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No bid ID found' })
+      throw new Error('No bid ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

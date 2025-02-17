@@ -261,7 +261,7 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
     if (shippingCategory) {
       res.json(shippingCategory)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })
+      throw new Error('Cannot update shipping category by id')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -347,7 +347,7 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req
     if (shippingCategory) {
       res.json(shippingCategory)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: Cannot update Shipping Category by id' })
+      throw new Error('Cannot update shipping category by id')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -426,7 +426,7 @@ shippingCategoryRouter.delete(`/:marketplaceName/shipping-category/:id`, async (
     if (shippingCategory) {
       res.json(shippingCategory)
     } else {
-      res.status(400).json({ errorMessage: 'Something went wrong: No Shipping Category ID found' })
+      throw new Error('No shipping category ID found')
     }
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
