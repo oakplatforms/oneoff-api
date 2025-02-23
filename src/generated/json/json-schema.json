@@ -284,6 +284,13 @@
             "null"
           ]
         },
+        "hasMultiSellerEnabled": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "theme": {
           "anyOf": [
             {
@@ -1162,6 +1169,27 @@
           "type": "boolean",
           "default": false
         },
+        "condition": {
+          "type": "string",
+          "default": "MINT",
+          "enum": [
+            "MINT",
+            "LIKE_NEW",
+            "EXCELLENT",
+            "VERY_GOOD",
+            "GOOD",
+            "FAIR",
+            "POOR",
+            "DAMAGED"
+          ]
+        },
+        "isPrimary": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "profile": {
           "anyOf": [
             {
@@ -1385,22 +1413,52 @@
           ]
         },
         "createdBy": {
-          "$ref": "#/definitions/Account"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "createdById": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "purchasedBy": {
-          "$ref": "#/definitions/Account"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "purchasedById": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "soldBy": {
-          "$ref": "#/definitions/Account"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "soldById": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "transactions": {
           "type": "array",

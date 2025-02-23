@@ -91,6 +91,17 @@ enum DeliveryMethodType {
   IN_PERSON
 }
 
+enum Condition {
+  MINT
+  LIKE_NEW
+  EXCELLENT
+  VERY_GOOD
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+}
+
 model User {
   id            String   @id @default(cuid()) 
   createdAt     DateTime @default(now())
@@ -165,6 +176,7 @@ model Marketplace {
   // custom
   name             String  @unique
   displayName      String?
+  hasMultiSellerEnabled Boolean? @default(false)
 
   // relations
   theme            Theme?
@@ -448,11 +460,13 @@ model Listing {
   quantity         Int
   status           Status
   multiTransactionsEnabled Boolean @default(false) 
+  condition        Condition @default(MINT)
+  isPrimary        Boolean? @default(false)
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
   profileId        String?
-  product          Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productId        String?
   orderListings    OrderListing[]
   listingShippingCategories ListingShippingCategory[]
@@ -471,9 +485,9 @@ model Bid {
   multiTransactionsEnabled Boolean? @default(false) 
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
   profileId        String?
-  product          Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productId        String?
   orderBids        OrderBid[]
   bidShippingCategories BidShippingCategory[]
@@ -506,12 +520,12 @@ model Order {
   total            Decimal? @db.Decimal(10, 2)
 
   // account
-  createdBy        Account @relation(name: "CreatedBy", fields: [createdById], references: [id])
-  createdById      String
-  purchasedBy      Account @relation(name: "PurchasedBy", fields: [purchasedById], references: [id])
-  purchasedById    String
-  soldBy           Account @relation(name: "SoldBy", fields: [soldById], references: [id])
-  soldById         String
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  purchasedBy      Account? @relation(name: "PurchasedBy", fields: [purchasedById], references: [id], onDelete: SetNull)
+  purchasedById    String?
+  soldBy           Account? @relation(name: "SoldBy", fields: [soldById], references: [id], onDelete: SetNull)
+  soldById         String?
   
   // relations
   transactions     Transaction[]

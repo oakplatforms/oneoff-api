@@ -151,6 +151,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
+									"        pm.collectionVariables.set(\"account1Id\", jsonData.account.id)",
 									"    pm.collectionVariables.set(\"profile1Id\", jsonData.account.profile.id)",
 									"    pm.expect(jsonData.authId).to.eq('213ewq213213')",
 									"    pm.expect(jsonData.account.firstName).to.eq('Skylar')",
@@ -158,7 +159,8 @@
 									"})",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -208,6 +210,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"account2Id\", jsonData.account.id)",
 									"    pm.collectionVariables.set(\"profile2Id\", jsonData.account.profile.id)",
 									"    pm.expect(jsonData.authId).to.eq('23112eqwesqe')",
 									"    pm.expect(jsonData.account.firstName).to.eq('Tahir')",
@@ -215,7 +218,8 @@
 									"})",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1844,7 +1848,7 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(404)",
+									"    pm.response.to.have.status(400)",
 									"    const jsonData = pm.response.json()",
 									"    pm.expect(jsonData.errorMessage).to.eq('Tag value Black2 is not supported for Color tag')",
 									"})"
@@ -2622,9 +2626,11 @@
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
 									"    pm.collectionVariables.set(\"listing1Id\", jsonData.id)",
+									"    pm.collectionVariables.set(\"listing1\", jsonData)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2670,7 +2676,8 @@
 									"    pm.collectionVariables.set(\"listing2Id\", jsonData.id)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2679,7 +2686,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
+							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2840,51 +2847,6 @@
 					"response": []
 				},
 				{
-					"name": "purchase listing",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
-									"})"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"profileId\": \"{{profile2Id}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listing/{{listing2Id}}/purchase",
-							"host": [
-								"{{HOST_NAME}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"{{marketplace1Name}}",
-								"{{brand1Name}}",
-								"listing",
-								"{{listing2Id}}",
-								"purchase"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "get listings",
 					"event": [
 						{
@@ -3011,7 +2973,8 @@
 									"    pm.collectionVariables.set(\"bid1Id\", jsonData.id)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -3020,7 +2983,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 14,\n    \"quantity\": 19,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 16,\n    \"quantity\": 19,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"productId\": \"{{product1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3135,96 +3098,6 @@
 					"response": []
 				},
 				{
-					"name": "accept bid 1 with no listing",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
-									"})"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"profileId\": \"{{profile2Id}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/bid/{{bid1Id}}/accept",
-							"host": [
-								"{{HOST_NAME}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"{{marketplace1Name}}",
-								"{{brand1Name}}",
-								"bid",
-								"{{bid1Id}}",
-								"accept"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "accept bid 2 with listing id",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200)",
-									"})"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"profileId\": \"{{profile1Id}}\",\n    \"listingId\": \"{{listing2Id}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/bid/{{bid2Id}}/accept",
-							"host": [
-								"{{HOST_NAME}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"{{marketplace1Name}}",
-								"{{brand1Name}}",
-								"bid",
-								"{{bid2Id}}",
-								"accept"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "get bids",
 					"event": [
 						{
@@ -3275,6 +3148,103 @@
 									"key": "include",
 									"value": "profile.account"
 								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get listings",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listings",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"{{brand1Name}}",
+								"listings"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "invoice",
+			"item": [
+				{
+					"name": "buy now",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200)",
+									"    const jsonData = pm.response.json()",
+									"    pm.collectionVariables.set(\"bid1Id\", jsonData.id)",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderSummary\": [{\n        \"listingIds\": [\"{{listing1Id}}\",\"{{listing1Id}}\",\"{{listing1Id}}\",\"{{listing1Id}}\"],\n        \"createdById\": \"{{account2Id}}\",\n        \"purchasedById\": \"{{account2Id}}\",\n        \"soldById\": \"{{account1Id}}\"\n    }]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/buy-now",
+							"host": [
+								"{{HOST_NAME}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"{{marketplace1Name}}",
+								"buy-now"
 							]
 						}
 					},
@@ -3534,6 +3504,18 @@
 		},
 		{
 			"key": "brand1Id",
+			"value": ""
+		},
+		{
+			"key": "account1Id",
+			"value": ""
+		},
+		{
+			"key": "account2Id",
+			"value": ""
+		},
+		{
+			"key": "listing1",
 			"value": ""
 		}
 	]
