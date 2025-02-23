@@ -169,7 +169,6 @@ transactionRouter.get('/:marketplaceName/transaction/:id', async (req, res) => {
       throw new Error('No transaction ID found')
     }
   } catch (error) {
-    console.log('error')
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }

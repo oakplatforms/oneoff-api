@@ -19,9 +19,9 @@ export const generatePrismaError = (err: Prisma.PrismaClientKnownRequestError) =
       return { statusCode: 400, errorMessage: `Invalid ID: ${err.meta?.target}`}
     case 'P2003':
         // handling invalid data errors
-        return { statusCode: 400, errorMessage: `Invalid input data: ${err.meta?.target}`}
+        return { statusCode: 400, errorMessage: `Prisma data relationship error`}
     default:
         // handling all other errors
-        return { statusCode: 400, errorMessage: `Something went wrong: ${err.message}`}
+        return { statusCode: 400, errorMessage: `${err.message}`}
   }
 }

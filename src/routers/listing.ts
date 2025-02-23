@@ -3,7 +3,6 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
-import { createInvoiceBasedOnResolvedBids } from '../services/invoice'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -345,6 +344,16 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
     } else if (price <= 0) {
       throw new Error('A listing cannot have a zero or negative price')
     } else {
+      const bids = await resolveBids({
+        price,
+        productId,
+        profileId,
+      })
+      
+      if (bids.length) {
+        throw new Error('A higher bid already exists for this product. To proceed, please increase your price or accept an existing bid.')
+      }
+
       const listing = await prisma.listing.create({
         data: {
           price,
@@ -372,11 +381,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
           profile: true
         }
       })
-      const bids = await resolveBids(listing)
 
-      if (bids.length) {
-        await createInvoiceBasedOnResolvedBids(listing, bids)
-      }
       res.json(listing)
     }
   } catch (error) {
@@ -523,9 +528,33 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  */
 listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) => {
   const { id } = req.params
-  const { listingShippingCategories, listingCustomShippingOptions } = req.body
+  const {
+    price,
+    profileId,
+    productId,
+    listingShippingCategories,
+    listingCustomShippingOptions
+  } = req.body
 
   try {
+    const existingListing = await prisma.listing.findUnique({
+      where: { id },
+    })
+
+    if (!existingListing) {
+      throw new Error('Listing does not exist')
+    }
+
+    const bids = await resolveBids({
+      price,
+      productId,
+      profileId,
+    })
+      
+    if (bids.length) {
+      throw new Error('A higher bid already exists for this product. To proceed, please increase your price or accept an existing bid.')
+    }
+
     const listing = await prisma.listing.update({
       where: { id },
       data: {
@@ -555,11 +584,6 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
         profile: true
       }
     })
-
-    const bids = await resolveBids(listing)
-    if (bids.length) {
-      await createInvoiceBasedOnResolvedBids(listing, bids)
-    }
     if (listing) {
       res.json(listing)
     } else {
