@@ -1,4 +1,4 @@
-import { getPrismaClient } from "../utils/prismaHelpers"
+import { getPrismaClient } from '../utils/prismaHelpers'
 import { OrderDetails } from '../services/invoice'
 
 const prisma = getPrismaClient()
@@ -26,7 +26,7 @@ export const validateOrderSummary = async (orderSummary: OrderDetails[], type: '
       if (!orderDetails?.listingIds?.length) {
         throw new Error('Order must include at least one listing id')
       }
-  
+
       const listingsInOrder = await prisma.listing.findMany({
         where: { id: { in: orderDetails.listingIds } },
       })

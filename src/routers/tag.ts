@@ -1,4 +1,3 @@
-
 import { PrismaClient, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -58,7 +57,7 @@ tagRouter.get('/:marketplaceName/tags', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-  
+
     res.json(tags)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -150,7 +149,7 @@ tagRouter.get('/:marketplaceName/tags', async (req, res) => {
 tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
   const { marketplaceName } = req.params
   const { name, displayName, supportedTagValues } = req.body
-  
+
   try {
     const tag = await prisma.tag.create({
       data: {

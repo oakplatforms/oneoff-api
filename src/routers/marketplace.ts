@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -27,7 +26,7 @@ export const marketplaceRouter = express.Router()
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Marketplace'  
+ *               $ref: '#/components/schemas/Marketplace'
  *       '400':
  *         description: Bad request, typically due to invalid parameters.
  *         content:
@@ -51,7 +50,7 @@ export const marketplaceRouter = express.Router()
  */
 
 marketplaceRouter.get('/marketplaces', async (req, res) => {
-  const { include } = req.query 
+  const { include } = req.query
   try {
     const marketplaces = await prisma.marketplace.findMany({
       include: generateIncludes(include)
@@ -96,7 +95,7 @@ marketplaceRouter.get('/marketplaces', async (req, res) => {
  *                       type: string
  *                       description: The name of the brand.
  *                       example: "BrandName"
- *                     otherProperty: 
+ *                     otherProperty:
  *                       type: string
  *                       description: Additional brand properties.
  *                       example: "OtherPropertyValue"

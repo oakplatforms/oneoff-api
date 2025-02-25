@@ -1,4 +1,3 @@
-
 import { PrismaClient, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -12,7 +11,7 @@ export const brandRouter = express.Router()
  * /{marketplaceName}/brands:
  *   get:
  *     summary: Retrieve a list of brands
- *     tags: 
+ *     tags:
  *       - Brand
  *     responses:
  *       '200':
@@ -20,7 +19,7 @@ export const brandRouter = express.Router()
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Brand'                      
+ *               $ref: '#/components/schemas/Brand'
  */
 brandRouter.get('/:marketplaceName/brands', async (req, res) => {
   const { marketplaceName } = req.params
@@ -45,7 +44,7 @@ brandRouter.get('/:marketplaceName/brands', async (req, res) => {
  * /{marketplaceName}/brand:
  *   post:
  *     summary: Create a brand
- *     tags: 
+ *     tags:
  *       - Brand
  *     responses:
  *       '200':
@@ -53,7 +52,7 @@ brandRouter.get('/:marketplaceName/brands', async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Brand'                      
+ *               $ref: '#/components/schemas/Brand'
  */
 brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
   const { marketplaceName } = req.params

@@ -81,10 +81,10 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
           productId && profileId
             ? { productId: productId as string, profileId: profileId as string }
             : productId
-            ? { productId: productId as string }
-            : profileId
-            ? { profileId: profileId as string }
-            : {}
+              ? { productId: productId as string }
+              : profileId
+                ? { profileId: profileId as string }
+                : {}
         ]
       },
       include: generateIncludes(include)
@@ -257,7 +257,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
         productId,
         profileId,
       })
-      
+
       if (listings.length) {
         throw new Error('A cheaper listing already exists for this product. To proceed, decrease your price or buy an existing listing.')
       }
@@ -272,23 +272,23 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
           product: { connect: { id: productId } },
           bidShippingCategories: bidShippingCategories?.create?.length
             ? {
-                create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
-                  shippingCategoryId: bidShippingCategory.shippingCategoryId,
-                })),
-              }
+              create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+                shippingCategoryId: bidShippingCategory.shippingCategoryId,
+              })),
+            }
             : undefined,
           bidCustomShippingOptions: bidCustomShippingOptions?.create?.length
             ? {
-                create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
-                  shippingOptionId: bidCustomShippingOption.shippingOptionId,
-                })),
-              }
+              create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+                shippingOptionId: bidCustomShippingOption.shippingOptionId,
+              })),
+            }
             : undefined,
         },
         include: {
           profile: true
         }
-      }) 
+      })
       res.json(bid)
     }
   } catch (error) {
@@ -400,7 +400,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
       productId,
       profileId,
     })
-      
+
     if (listings.length) {
       throw new Error('A cheaper listing already exists for this product. To proceed, decrease your price or buy an existing listing.')
     }
@@ -411,23 +411,23 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
         ...req.body,
         bidShippingCategories: bidShippingCategories
           ? {
-              create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
-                shippingCategoryId: bidShippingCategory.shippingCategoryId,
-              })),
-              deleteMany: bidShippingCategories.delete?.map((bidShippingCategoryId: string) => ({
-                id: bidShippingCategoryId
-              })),
-            }
+            create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+              shippingCategoryId: bidShippingCategory.shippingCategoryId,
+            })),
+            deleteMany: bidShippingCategories.delete?.map((bidShippingCategoryId: string) => ({
+              id: bidShippingCategoryId
+            })),
+          }
           : undefined,
         bidCustomShippingOptions: bidCustomShippingOptions
           ? {
-              create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
-                shippingOptionId: bidCustomShippingOption.shippingOptionId,
-              })),
-              deleteMany: bidCustomShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
-                id: bidCustomShippingOptionId
-              })),
-            }
+            create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+              shippingOptionId: bidCustomShippingOption.shippingOptionId,
+            })),
+            deleteMany: bidCustomShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
+              id: bidCustomShippingOptionId
+            })),
+          }
           : undefined,
       },
       include: {
@@ -613,7 +613,7 @@ bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     const bid = await prisma.bid.delete({
       where: { id },
     })
-    
+
     if (bid) {
       res.json(bid)
     } else {

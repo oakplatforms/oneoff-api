@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -221,11 +220,11 @@ productTagRouter.put('/:marketplaceName/product-tag', async (req, res) => {
           tagValue
         }
       })
-  
+
       if (productTag.count === 0) {
         throw new Error('Product tag association not found')
       }
-  
+
       res.json(productTag)
     }
   } catch (error) {

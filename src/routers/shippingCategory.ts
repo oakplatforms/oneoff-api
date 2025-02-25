@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -147,10 +146,10 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
         marketplace: { connect: { name: marketplaceName } },
         shippingOptions: shippingOptions?.create?.length
           ? {
-              create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
-                ...shippingOption
-              })),
-            }
+            create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
+              ...shippingOption
+            })),
+          }
           : undefined,
       },
     })
@@ -248,13 +247,13 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
         ...req.body,
         shippingOptions: shippingOptions
           ? {
-              create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
-                ...shippingOption
-              })),
-              deleteMany: shippingOptions.delete?.map((shippingOptionId: string) => ({
-                id: shippingOptionId
-              })),
-            }
+            create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
+              ...shippingOption
+            })),
+            deleteMany: shippingOptions.delete?.map((shippingOptionId: string) => ({
+              id: shippingOptionId
+            })),
+          }
           : undefined,
       }
     })

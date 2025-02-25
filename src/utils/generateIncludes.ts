@@ -19,7 +19,7 @@ export const generateIncludes = (include?: ParsedQs | ParsedQs[] | string | stri
           items[key as keyof typeof items] = true as never
         }
       })
-    } 
+    }
     if (typeof include === 'string' && include.includes('.')) {
       const parent = include.split('.')[0]
       const child = include.split('.')[1]

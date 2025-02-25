@@ -25,14 +25,14 @@ const jsDocOptions = {
     components: {
       schemas: sortedDto.definitions,
       securitySchemes: {
-          bearerAuth: {
-              type: 'http',
-              scheme: 'bearer',
-          }
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+        }
       }
     },
   },
-  apis: ['./src/routers/*.ts'], // files containing annotations as above
+  apis: ['./src/routers/*.ts'], //files containing annotations as above
 }
 
 const swaggerUIOptions = {

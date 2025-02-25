@@ -162,7 +162,7 @@ transactionRouter.get('/:marketplaceName/transaction/:id', async (req, res) => {
       where: { id },
       include: generateIncludes(include)
     })
-  
+
     if (transaction) {
       res.json(transaction)
     } else {

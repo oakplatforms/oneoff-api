@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -71,7 +70,7 @@ export const supportedTagValueRouter = express.Router()
  */
 supportedTagValueRouter.post(`/:marketplaceName/supported-tag-value`, async (req, res) => {
   const { name, displayName, tagId } = req.body
-  
+
   try {
     const supportedTagValue = await prisma.supportedTagValues.create({
       data: {

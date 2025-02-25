@@ -33,7 +33,7 @@ describe('Marketplace and Brand Routes', () => {
     await prisma.marketplace.deleteMany()
     await prisma.brand.deleteMany()
     await request(app).post('/marketplace').send(mockMarketplaceBrandOne)
-    
+
     const brandResponse = await request(app)
       .post(`/test-marketplace-brand-1/brand`)
       .send(mockBrandOne)
