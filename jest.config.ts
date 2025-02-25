@@ -7,4 +7,4 @@ module.exports = {
       isolatedModules: true,
     },
   },
-};
+}

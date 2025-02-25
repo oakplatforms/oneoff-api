@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -12,7 +11,7 @@ export const brandCategoryRouter = express.Router()
  * /{marketplaceName}/{brandName}/brand-category:
  *   post:
  *     summary: Create a brand-category association
- *     tags: 
+ *     tags:
  *       - Brand Category
  *     description: Associates a brand with a category in the specified marketplace.
  *     parameters:
@@ -248,7 +247,7 @@ brandCategoryRouter.get('/:marketplaceName/:brandName/brand-category/:id', async
  */
 brandCategoryRouter.delete('/:marketplaceName/:brandName/brand-category/:id', async (req, res) => {
   const { brandName, id } = req.params
-  
+
   try {
     const brandCategory = await prisma.brandCategory.delete({
       where: {

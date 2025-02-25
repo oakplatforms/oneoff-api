@@ -83,10 +83,10 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
           productId && profileId
             ? { productId: productId as string, profileId: profileId as string }
             : productId
-            ? { productId: productId as string }
-            : profileId
-            ? { profileId: profileId as string }
-            : {}
+              ? { productId: productId as string }
+              : profileId
+                ? { profileId: profileId as string }
+                : {}
         ]
       },
       include: generateIncludes(include)
@@ -177,7 +177,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
         ],
         include: generateIncludes(include)
       })
-  
+
       res.json(listing)
     } catch (error) {
       const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -338,7 +338,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
         ],
       },
     })
-    
+
     if (userListing) {
       throw new Error('User already has a listing for this product')
     } else if (price <= 0) {
@@ -349,7 +349,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
         productId,
         profileId,
       })
-      
+
       if (bids.length) {
         throw new Error('A higher bid already exists for this product. To proceed, please increase your price or accept an existing bid.')
       }
@@ -364,17 +364,17 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
           product: { connect: { id: productId } },
           listingShippingCategories: listingShippingCategories?.create?.length
             ? {
-                create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
-                  shippingCategoryId: listingShippingCategory.shippingCategoryId,
-                })),
-              }
+              create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
+                shippingCategoryId: listingShippingCategory.shippingCategoryId,
+              })),
+            }
             : undefined,
           listingCustomShippingOptions: listingCustomShippingOptions?.create?.length
             ? {
-                create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
-                  shippingOptionId: listingCustomShippingOption.shippingOptionId,
-                })),
-              }
+              create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
+                shippingOptionId: listingCustomShippingOption.shippingOptionId,
+              })),
+            }
             : undefined,
         },
         include: {
@@ -550,7 +550,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
       productId,
       profileId,
     })
-      
+
     if (bids.length) {
       throw new Error('A higher bid already exists for this product. To proceed, please increase your price or accept an existing bid.')
     }
@@ -561,23 +561,23 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
         ...req.body,
         listingShippingCategories: listingShippingCategories
           ? {
-              create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
-                shippingCategoryId: listingShippingCategory.shippingCategoryId,
-              })),
-              deleteMany: listingShippingCategories.delete?.map((listingShippingCategoryId: string) => ({
-                id: listingShippingCategoryId
-              })),
-            }
+            create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
+              shippingCategoryId: listingShippingCategory.shippingCategoryId,
+            })),
+            deleteMany: listingShippingCategories.delete?.map((listingShippingCategoryId: string) => ({
+              id: listingShippingCategoryId
+            })),
+          }
           : undefined,
         listingCustomShippingOptions: listingCustomShippingOptions
           ? {
-              create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
-                shippingOptionId: listingCustomShippingOption.shippingOptionId,
-              })),
-              deleteMany: listingCustomShippingOptions.delete?.map((listingCustomShippingOptionId: string) => ({
-                id: listingCustomShippingOptionId
-              })),
-            }
+            create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
+              shippingOptionId: listingCustomShippingOption.shippingOptionId,
+            })),
+            deleteMany: listingCustomShippingOptions.delete?.map((listingCustomShippingOptionId: string) => ({
+              id: listingCustomShippingOptionId
+            })),
+          }
           : undefined,
       },
       include: {
@@ -664,7 +664,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) =
       where: { id },
       include: generateIncludes(include)
     })
-  
+
     if (listing) {
       res.json(listing)
     } else {
@@ -743,7 +743,7 @@ listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res
     const listing = await prisma.listing.delete({
       where: { id },
     })
-    
+
     if (listing) {
       res.json(listing)
     } else {

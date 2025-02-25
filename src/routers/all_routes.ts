@@ -36,5 +36,3 @@ router.use(invoiceRouter)
 
 export default router
 
-
-

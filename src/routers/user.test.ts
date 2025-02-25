@@ -32,7 +32,7 @@ describe('User Routes', () => {
 
   test('GET /users should return a list of users', async () => {
     const response = await request(app).get('/users')
-    
+
     expect(response.status).toBe(200)
     expect(response.body).toBeInstanceOf(Array)
     expect(response.body).toEqual(expect.arrayContaining([expect.objectContaining({ authId: mockUser.authId })]))
@@ -40,14 +40,14 @@ describe('User Routes', () => {
 
   test('GET /user/:authId should return a user by authId', async () => {
     const response = await request(app).get(`/user/${mockUser.authId}`)
-    
+
     expect(response.status).toBe(200)
     expect(response.body).toMatchObject({ authId: mockUser.authId })
   })
 
   test('DELETE /user/:id should delete a user', async () => {
     const response = await request(app).delete(`/user/${createdUserId}`)
-    
+
     expect(response.status).toBe(200)
     expect(response.body.id).toBe(createdUserId)
   })

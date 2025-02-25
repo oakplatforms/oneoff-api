@@ -106,8 +106,8 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
     const productTagFilters = Array.isArray(productTag)
       ? productTag.filter(tag => typeof tag === 'string')
       : typeof productTag === 'string'
-      ? [productTag]
-      : []
+        ? [productTag]
+        : []
 
     const parsedFilters = productTagFilters.map(tagFilter => {
       const [tagName, tagValue] = (tagFilter as string)?.split?.(':')
@@ -119,24 +119,24 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
       AND: [
         ...(parsedFilters.length > 0
           ? [
-              {
-                productTags: {
-                  some: {
-                    OR: parsedFilters
-                  }
+            {
+              productTags: {
+                some: {
+                  OR: parsedFilters
                 }
               }
-            ]
+            }
+          ]
           : []),
         ...(search
           ? [
-              {
-                OR: [
-                  { displayName: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } },
-                  { name: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } }
-                ]
-              }
-            ]
+            {
+              OR: [
+                { displayName: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } },
+                { name: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } }
+              ]
+            }
+          ]
           : [])
       ]
     }
@@ -315,7 +315,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
   } = req.body
 
   if (productTags?.create?.length) {
-     productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
+    productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
       const selectedTag = await prisma.tag.findUnique({
         where: {
           id: productTag.tagId,
@@ -327,7 +327,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
 
       if (selectedTag?.supportedTagValues?.length) {
         const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
-        
+
         if (!supportedTagValue) {
           throw new Error(`Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
         }
@@ -349,15 +349,15 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
           create: {
             ...card,
             brandCategory: { connect: { id: brandCategoryId }
-          }},
+            }},
         },
         productTags: productTags?.create?.length
           ? {
-              create: productTags.create.map((productTag: { tagId: string; tagValue: string }) => ({
-                tag: { connect: { id: productTag.tagId } },
-                tagValue: productTag.tagValue,
-              })),
-            }
+            create: productTags.create.map((productTag: { tagId: string; tagValue: string }) => ({
+              tag: { connect: { id: productTag.tagId } },
+              tagValue: productTag.tagValue,
+            })),
+          }
           : undefined,
         brandCategory: { connect: { id: brandCategoryId } }
       },
@@ -394,7 +394,7 @@ productRouter.post(`/:marketplaceName/:brandName/product`, async (req, res) => {
  *         in: path
  *         description: The ID of the product to update.
  *         required: true
- *         schema: 
+ *         schema:
  *           type: string
  *     requestBody:
  *       required: true
@@ -530,24 +530,24 @@ productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) =
 
   if (productTags?.create?.length) {
     productTags.create.forEach(async (productTag: { tagId: string; tagValue: string }) => {
-     const selectedTag = await prisma.tag.findUnique({
-       where: {
-         id: productTag.tagId,
-       },
-       include: {
-         supportedTagValues: true
-       }
-     })
+      const selectedTag = await prisma.tag.findUnique({
+        where: {
+          id: productTag.tagId,
+        },
+        include: {
+          supportedTagValues: true
+        }
+      })
 
-     if (selectedTag?.supportedTagValues?.length) {
-       const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
-       
-       if (!supportedTagValue) {
-        throw new Error(`Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
-       }
-     }
-   })
- }
+      if (selectedTag?.supportedTagValues?.length) {
+        const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === productTag.tagValue)
+
+        if (!supportedTagValue) {
+          throw new Error(`Tag value ${productTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
+        }
+      }
+    })
+  }
 
   try {
     const product = await prisma.product.update({
@@ -562,14 +562,14 @@ productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) =
         } : undefined,
         productTags: productTags
           ? {
-              create: productTags.create?.map((productTag: { tagId: string; tagValue: string }) => ({
-                tagId: productTag.tagId,
-                tagValue: productTag.tagValue,
-              })),
-              deleteMany: productTags.delete?.map((productTagId: string) => ({
-                id: productTagId,
-              })),
-            }
+            create: productTags.create?.map((productTag: { tagId: string; tagValue: string }) => ({
+              tagId: productTag.tagId,
+              tagValue: productTag.tagValue,
+            })),
+            deleteMany: productTags.delete?.map((productTagId: string) => ({
+              id: productTagId,
+            })),
+          }
           : undefined,
         brandCategoryId: req.body.brandCategoryId,
       }
@@ -657,7 +657,7 @@ productRouter.get('/:marketplaceName/:brandName/product/:id', async (req, res) =
       },
       include: generateIncludes(include)
     })
-  
+
     if (product) {
       res.json(product)
     } else {

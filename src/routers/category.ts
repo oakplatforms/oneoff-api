@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -68,7 +67,7 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-  
+
     res.json(categories)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

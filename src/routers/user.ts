@@ -135,9 +135,9 @@ userRouter.post(`/user`, async (req, res) => {
             ...accountProps,
             profile: profileProps && {
               create: profileProps
-          }
+            }
+          },
         },
-      },
       },
     })
     res.json(user)
@@ -231,10 +231,10 @@ userRouter.put(`/user/:id`, async (req, res) => {
             ...accountProps,
             profile: profileProps && {
               update: profileProps
-          }
+            }
+          },
         },
-      },
-    }})
+      }})
     res.json(user)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -302,7 +302,7 @@ userRouter.get('/user/:authId', async (req, res) => {
       },
       include: generateIncludes(include)
     })
-   
+
     if (users?.[0]) {
       res.json(users?.[0])
     } else {
@@ -313,7 +313,6 @@ userRouter.get('/user/:authId', async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
-
 
 userRouter.delete(`/user/:id`, async (req, res) => {
   const { id } = req.params

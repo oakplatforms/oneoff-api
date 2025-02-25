@@ -12,7 +12,7 @@ export type OrderDetails = {
 
 export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: OrderDetails[]) => {
   return prisma.$transaction(async (prisma) => {
-    // Create empty invoice
+    //Create empty invoice
     const invoice = await prisma.invoice.create({
       data: {},
     })
@@ -33,16 +33,16 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
         const selectedBid = bidsInOrder.find((bidInOrder) => bidInOrder.id === uniqueBidId)
         return { ...selectedBid, quantityInOrder }
       })
-      
+
       const subTotal = bidsInOrderWithQuantity?.reduce((total, bid) => {
         if (bid?.price && bid.quantityInOrder) {
           return total + (Number(bid.price) * bid.quantityInOrder)
         } else {
-          throw new Error(`Order failed: Issue with calculating subtotal`);
+          throw new Error(`Order failed: Issue with calculating subtotal`)
         }
       }, 0) || 0
 
-       await prisma.order.create({
+      await prisma.order.create({
         data: {
           subTotal,
           total: subTotal,
@@ -53,10 +53,10 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
           soldById: orderDetails.soldById as string,
           orderBids: uniqueBidIds?.length
             ? {
-                create: uniqueBidIds.map(({ id }) => ({
-                  bidId: id as string,
-                })),
-              }
+              create: uniqueBidIds.map(({ id }) => ({
+                bidId: id as string,
+              })),
+            }
             : undefined,
           transactions: {
             create: [{
@@ -68,13 +68,13 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
       })
 
       for (const { id, multiTransactionsEnabled, quantity: bidQuantity, quantityInOrder } of bidsInOrderWithQuantity) {
-        const remainingQuantity = bidQuantity && (bidQuantity - quantityInOrder);
+        const remainingQuantity = bidQuantity && (bidQuantity - quantityInOrder)
         if (remainingQuantity !== undefined) {
           if (remainingQuantity < 0) {
-            throw new Error(`Order failed: Insufficient quantity for bid ${id}.`);
+            throw new Error(`Order failed: Insufficient quantity for bid ${id}.`)
           }
           if (!multiTransactionsEnabled && bidQuantity !== quantityInOrder) {
-            throw new Error('Order failed: You must purchase all items for single seller bids.');
+            throw new Error('Order failed: You must purchase all items for single seller bids.')
           }
           await prisma.bid.update({
             where: { id },
@@ -87,7 +87,7 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
       }
     }
 
-    // Delete invoice if it is still empty
+    //Delete invoice if it is still empty
     await prisma.invoice.deleteMany({
       where: {
         id: invoice.id,
@@ -101,7 +101,7 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
 
 export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: OrderDetails[]) => {
   return prisma.$transaction(async (prisma) => {
-    // Create empty invoice
+    //Create empty invoice
     const invoice = await prisma.invoice.create({
       data: {},
     })
@@ -122,12 +122,12 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
         const selectedListing = listingsInOrder.find((listingInOrder) => listingInOrder.id === uniqueListingId)
         return { ...selectedListing, quantityInOrder }
       })
-      
+
       const subTotal = listingsInOrderWithQuantity?.reduce((total, listing) => {
         if (listing?.price && listing.quantityInOrder) {
           return total + (Number(listing.price) * listing.quantityInOrder)
         } else {
-          throw new Error(`Order failed: Issue with calculating subtotal`);
+          throw new Error(`Order failed: Issue with calculating subtotal`)
         }
       }, 0) || 0
 
@@ -142,25 +142,25 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
           soldById: orderDetails.soldById as string,
           orderListings: uniqueListingIds?.length
             ? {
-                create: uniqueListingIds.map(({ id }) => ({
-                  listingId: id as string,
-                })),
-              }
+              create: uniqueListingIds.map(({ id }) => ({
+                listingId: id as string,
+              })),
+            }
             : undefined,
           transactions: {
             create: [{ amount: subTotal, status: 'PENDING' }],
           },
         },
-      });
+      })
 
       for (const { id, multiTransactionsEnabled, quantity: listingQuantity, quantityInOrder } of listingsInOrderWithQuantity) {
-        const remainingQuantity = listingQuantity && (listingQuantity - quantityInOrder);
+        const remainingQuantity = listingQuantity && (listingQuantity - quantityInOrder)
         if (remainingQuantity !== undefined) {
           if (remainingQuantity < 0) {
-            throw new Error(`Order failed: Insufficient quantity for listing ${id}.`);
+            throw new Error(`Order failed: Insufficient quantity for listing ${id}.`)
           }
           if (!multiTransactionsEnabled && listingQuantity !== quantityInOrder) {
-            throw new Error('Order failed: You must purchase all items for single seller listings.');
+            throw new Error('Order failed: You must purchase all items for single seller listings.')
           }
           await prisma.listing.update({
             where: { id },
@@ -173,7 +173,7 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
       }
     }
 
-    // Delete invoice if it is still empty
+    //Delete invoice if it is still empty
     await prisma.invoice.deleteMany({
       where: {
         id: invoice.id,

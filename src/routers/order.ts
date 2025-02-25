@@ -1,4 +1,3 @@
-
 import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -89,12 +88,12 @@ orderRouter.get('/:marketplaceName/orders', async (req, res) => {
           purchasedById && soldById
             ? { purchasedById: purchasedById as string, soldById: soldById as string, }
             : createdById
-            ? { createdById: createdById as string }
-            : purchasedById
-            ? { purchasedById: purchasedById as string }
-            : soldById
-            ? { soldById: soldById as string }
-            : {}
+              ? { createdById: createdById as string }
+              : purchasedById
+                ? { purchasedById: purchasedById as string }
+                : soldById
+                  ? { soldById: soldById as string }
+                  : {}
         ]
       },
       include: generateIncludes(include)
@@ -169,7 +168,7 @@ orderRouter.get('/:marketplaceName/order/:id', async (req, res) => {
       where: { id },
       include: generateIncludes(include)
     })
-  
+
     if (order) {
       res.json(order)
     } else {

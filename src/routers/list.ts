@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -115,9 +114,9 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
       return {
         ...product,
         brandCategory: { connect: { id: brandCategoryId }
-      }}
+        }}
     })
-    
+
     const list = await prisma.list.create({
       data: {
         name,
@@ -217,7 +216,7 @@ listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
       where: { id },
       include: generateIncludes(include)
     })
-  
+
     if (list) {
       res.json(list)
     } else {
