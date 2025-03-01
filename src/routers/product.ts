@@ -110,7 +110,7 @@ productRouter.get('/:marketplaceName/:brandName/products', async (req, res) => {
         : []
 
     const parsedFilters = productTagFilters.map(tagFilter => {
-      const [tagName, tagValue] = (tagFilter as string)?.split?.(':')
+      const [tagName, tagValue] = (tagFilter as string)?.split?.(':') ?? ['', '']
       return { tag: { name: tagName }, tagValue }
     })
 
@@ -565,6 +565,10 @@ productRouter.put(`/:marketplaceName/:brandName/product/:id`, async (req, res) =
             create: productTags.create?.map((productTag: { tagId: string; tagValue: string }) => ({
               tagId: productTag.tagId,
               tagValue: productTag.tagValue,
+            })),
+            updateMany: productTags.update?.map((productTag: { id: string; tagValue: string }) => ({
+              where: { id: productTag.id },
+              data: { tagValue: productTag.tagValue },
             })),
             deleteMany: productTags.delete?.map((productTagId: string) => ({
               id: productTagId,
