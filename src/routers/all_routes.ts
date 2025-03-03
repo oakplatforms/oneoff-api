@@ -8,8 +8,8 @@ import { tagRouter } from './tag'
 import { supportedTagValueRouter } from './supportedTagValue'
 import { brandCategoryRouter } from './brandCategory'
 import { listRouter } from './list'
-import { productRouter } from './product'
-import { productTagRouter } from './productTag'
+import { entityRouter } from './entity'
+import { entityTagRouter } from './entityTag'
 import { bidRouter } from './bid'
 import { listingRouter } from './listing'
 import { shippingCategoryRouter } from './shippingCategory'
@@ -25,8 +25,8 @@ router.use(tagRouter)
 router.use(supportedTagValueRouter)
 router.use(brandCategoryRouter)
 router.use(listRouter)
-router.use(productRouter)
-router.use(productTagRouter)
+router.use(entityRouter)
+router.use(entityTagRouter)
 router.use(bidRouter)
 router.use(listingRouter)
 router.use(shippingCategoryRouter)

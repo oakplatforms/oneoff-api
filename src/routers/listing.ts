@@ -14,7 +14,7 @@ export const listingRouter = express.Router()
  *     tags:
  *       - Listing
  *     summary: Retrieve a list of listings.
- *     description: Fetches a list of listings for a specific marketplace and brand. Optional query parameters can be used to filter listings by `productId` or `profileId`, and to include related data.
+ *     description: Fetches a list of listings for a specific marketplace and brand. Optional query parameters can be used to filter listings by `entityId` or `profileId`, and to include related data.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -29,10 +29,10 @@ export const listingRouter = express.Router()
  *           type: string
  *         description: The name of the brand to retrieve listings from.
  *       - in: query
- *         name: productId
+ *         name: entityId
  *         schema:
  *           type: string
- *         description: Filter listings by product ID.
+ *         description: Filter listings by entity ID.
  *       - in: query
  *         name: profileId
  *         schema:
@@ -42,7 +42,7 @@ export const listingRouter = express.Router()
  *         name: include
  *         schema:
  *           type: string
- *         description: Comma-separated list of related entities to include in the listing data (e.g., 'product,profile').
+ *         description: Comma-separated list of related entities to include in the listing data (e.g., 'entity,profile').
  *     responses:
  *       '200':
  *         description: Successfully retrieved the list of listings.
@@ -74,16 +74,16 @@ export const listingRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
-  const { include, productId, profileId, status } = req.query
+  const { include, entityId, profileId, status } = req.query
   try {
     const listings = await prisma.listing.findMany({
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          productId && profileId
-            ? { productId: productId as string, profileId: profileId as string }
-            : productId
-              ? { productId: productId as string }
+          entityId && profileId
+            ? { entityId: entityId as string, profileId: profileId as string }
+            : entityId
+              ? { entityId: entityId as string }
               : profileId
                 ? { profileId: profileId as string }
                 : {}
@@ -105,7 +105,7 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
  *     tags:
  *       - Listing
  *     summary: Retrieve the lowest ask listing.
- *     description: Fetches the listing with the lowest price for a specific product in a given marketplace and brand. The listing returned is the one with the lowest price, and if multiple listings have the same price, the oldest listing is returned.
+ *     description: Fetches the listing with the lowest price for a specific entity in a given marketplace and brand. The listing returned is the one with the lowest price, and if multiple listings have the same price, the oldest listing is returned.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -120,15 +120,15 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
  *           type: string
  *         description: The name of the brand to retrieve the lowest ask from.
  *       - in: query
- *         name: productId
+ *         name: entityId
  *         schema:
  *           type: string
- *         description: Filter listings by product ID.
+ *         description: Filter listings by entity ID.
  *       - in: query
  *         name: include
  *         schema:
  *           type: string
- *         description: Comma-separated list of related entities to include in the listing data (e.g., 'product,profile').
+ *         description: Comma-separated list of related entities to include in the listing data (e.g., 'entity,profile').
  *     responses:
  *       '200':
  *         description: Successfully retrieved the lowest ask listing.
@@ -158,17 +158,17 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req, res) => {
-  const { include, productId } = req.query
+  const { include, entityId } = req.query
 
-  if (!productId) {
-    throw new Error('Product ID is required to retrieve lowest ask listing')
+  if (!entityId) {
+    throw new Error('entity ID is required to retrieve lowest ask listing')
   } else {
     try {
       const listing = await prisma.listing.findFirst({
         where: {
           AND: [
             { status: 'ACTIVE' },
-            { productId: productId as string },
+            { entityId: entityId as string },
           ],
         },
         orderBy: [
@@ -193,7 +193,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *     tags:
  *       - Listing
  *     summary: Create a new listing.
- *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, `productId`, and optionally `listingShippingCategories`. If the user already has a listing for this product, an error will be returned.
+ *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, `entityId`, and optionally `listingShippingCategories`. If the user already has a listing for this entity, an error will be returned.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -229,9 +229,9 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *               profileId:
  *                 type: string
  *                 description: The profile ID associated with the listing.
- *               productId:
+ *               entityId:
  *                 type: string
- *                 description: The product ID associated with the listing.
+ *                 description: The entity ID associated with the listing.
  *               listingShippingCategories:
  *                 type: object
  *                 description: Shipping categories to associate with the listing.
@@ -250,7 +250,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *               - quantity
  *               - status
  *               - profileId
- *               - productId
+ *               - entityId
  *     responses:
  *       '200':
  *         description: Successfully created a new listing.
@@ -277,9 +277,9 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *                 profileId:
  *                   type: string
  *                   description: The profile ID associated with the listing.
- *                 productId:
+ *                 entityId:
  *                   type: string
- *                   description: The product ID associated with the listing.
+ *                   description: The entity ID associated with the listing.
  *                 listingShippingCategories:
  *                   type: array
  *                   description: List of shipping categories associated with the listing.
@@ -290,7 +290,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *                         type: string
  *                         description: ID of the shipping category.
  *       '400':
- *         description: Bad request, typically due to invalid request data or if the user already has a listing for the product.
+ *         description: Bad request, typically due to invalid request data or if the user already has a listing for the entity.
  *         content:
  *           application/json:
  *             schema:
@@ -317,7 +317,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
     status,
     multiTransactionsEnabled,
     profileId,
-    productId,
+    entityId,
     listingShippingCategories,
     listingCustomShippingOptions
   } = req.body
@@ -333,25 +333,25 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
       where: {
         AND: [
           { profileId: profileId },
-          { productId: productId },
+          { entityId: entityId },
           { status: 'ACTIVE' }
         ],
       },
     })
 
     if (userListing) {
-      throw new Error('User already has a listing for this product')
+      throw new Error('User already has a listing for this entity')
     } else if (price <= 0) {
       throw new Error('A listing cannot have a zero or negative price')
     } else {
       const bids = await resolveBids({
         price,
-        productId,
+        entityId,
         profileId,
       })
 
       if (bids.length) {
-        throw new Error('A higher bid already exists for this product. To proceed, please increase your price or accept an existing bid.')
+        throw new Error('A higher bid already exists for this entity. To proceed, please increase your price or accept an existing bid.')
       }
 
       const listing = await prisma.listing.create({
@@ -361,7 +361,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
           status,
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
-          product: { connect: { id: productId } },
+          entity: { connect: { id: entityId } },
           listingShippingCategories: listingShippingCategories?.create?.length
             ? {
               create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
@@ -439,9 +439,9 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  *               profileId:
  *                 type: string
  *                 description: The profile ID associated with the listing.
- *               productId:
+ *               entityId:
  *                 type: string
- *                 description: The product ID associated with the listing.
+ *                 description: The entity ID associated with the listing.
  *               listingShippingCategories:
  *                 type: object
  *                 description: Manage shipping categories associated with the listing.
@@ -490,9 +490,9 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  *                 profileId:
  *                   type: string
  *                   description: The profile ID associated with the listing.
- *                 productId:
+ *                 entityId:
  *                   type: string
- *                   description: The product ID associated with the listing.
+ *                   description: The entity ID associated with the listing.
  *                 listingShippingCategories:
  *                   type: array
  *                   description: The updated list of shipping categories associated with the listing.
@@ -531,7 +531,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
   const {
     price,
     profileId,
-    productId,
+    entityId,
     listingShippingCategories,
     listingCustomShippingOptions
   } = req.body
@@ -547,12 +547,12 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
 
     const bids = await resolveBids({
       price,
-      productId,
+      entityId,
       profileId,
     })
 
     if (bids.length) {
-      throw new Error('A higher bid already exists for this product. To proceed, please increase your price or accept an existing bid.')
+      throw new Error('A higher bid already exists for this entity. To proceed, please increase your price or accept an existing bid.')
     }
 
     const listing = await prisma.listing.update({
@@ -626,7 +626,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
  *         name: include
  *         schema:
  *           type: string
- *         description: Comma-separated list of related entities to include in the listing data (e.g., 'product,profile').
+ *         description: Comma-separated list of related entities to include in the listing data (e.g., 'entity,profile').
  *     responses:
  *       '200':
  *         description: Successfully retrieved the listing.

@@ -1,4 +1,3 @@
-import request from 'supertest'
 import express from 'express'
 import { marketplaceRouter } from '../routers/marketplace'
 import { brandRouter } from '../routers/brand'
@@ -14,7 +13,7 @@ app.use(brandRouter)
 describe('Resolver Service', () => {
   let profileId: string
   let sellerProfileId: string
-  let productId: string
+  let entityId: string
   let brandName: string
   let categoryName: string
   let marketplaceName: string
@@ -23,7 +22,7 @@ describe('Resolver Service', () => {
     await prisma.listing.deleteMany()
     await prisma.bid.deleteMany()
     await prisma.profile.deleteMany()
-    await prisma.product.deleteMany()
+    await prisma.entity.deleteMany()
     await prisma.brandCategory.deleteMany()
     await prisma.brand.deleteMany()
     await prisma.category.deleteMany()
@@ -89,23 +88,23 @@ describe('Resolver Service', () => {
       data: { brandName, categoryName },
     })
 
-    const product = await prisma.product.create({
+    const entity = await prisma.entity.create({
       data: {
-        name: 'Test Product',
-        displayName: 'Test Product Display',
+        name: 'Test Entity',
+        displayName: 'Test Entity Display',
         description: 'Test Description',
         brandCategoryId: brandCategory.id,
       },
     })
 
-    productId = product.id
+    entityId = entity.id
   })
 
   afterAll(async () => {
     await prisma.listing.deleteMany()
     await prisma.bid.deleteMany()
     await prisma.profile.deleteMany()
-    await prisma.product.deleteMany()
+    await prisma.entity.deleteMany()
     await prisma.brandCategory.deleteMany()
     await prisma.brand.deleteMany()
     await prisma.category.deleteMany()
@@ -116,14 +115,14 @@ describe('Resolver Service', () => {
 
   test('resolveListings should return active listings matching bid criteria', async () => {
     const mockBid = {
-      productId,
+      entityId,
       price: '100',
       profileId,
     }
 
     await prisma.listing.create({
       data: {
-        productId,
+        entityId,
         price: '90',
         status: 'ACTIVE',
         quantity: 5,
@@ -134,19 +133,19 @@ describe('Resolver Service', () => {
     const listings = await resolveListings(mockBid)
     expect(listings).toBeInstanceOf(Array)
     expect(listings.length).toBeGreaterThan(0)
-    expect(listings[0]).toMatchObject({ productId })
+    expect(listings[0]).toMatchObject({ entityId })
   })
 
   test('resolveBids should return active bids matching listing criteria', async () => {
     const mockListing = {
-      productId,
+      entityId,
       price: '80',
       profileId: sellerProfileId,
     }
 
     await prisma.bid.create({
       data: {
-        productId,
+        entityId,
         price: '85',
         status: 'ACTIVE',
         quantity: 3,
@@ -157,6 +156,6 @@ describe('Resolver Service', () => {
     const bids = await resolveBids(mockListing)
     expect(bids).toBeInstanceOf(Array)
     expect(bids.length).toBeGreaterThan(0)
-    expect(bids[0]).toMatchObject({ productId })
+    expect(bids[0]).toMatchObject({ entityId })
   })
 })

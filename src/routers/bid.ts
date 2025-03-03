@@ -13,8 +13,8 @@ export const bidRouter = express.Router()
  *   get:
  *     tags:
  *       - Bid
- *     summary: Retrieve bids by product or profile.
- *     description: Fetches bids for a specific product or profile. You can filter by `productId`, `profileId`, or both. Optionally, include related entities using the `include` query parameter.
+ *     summary: Retrieve bids by entity or profile.
+ *     description: Fetches bids for a specific entity or profile. You can filter by `entityId`, `profileId`, or both. Optionally, include related entities using the `include` query parameter.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -29,10 +29,10 @@ export const bidRouter = express.Router()
  *           type: string
  *         description: The name of the brand for which to retrieve the bids.
  *       - in: query
- *         name: productId
+ *         name: entityId
  *         schema:
  *           type: string
- *         description: The product ID to filter bids by.
+ *         description: The entity ID to filter bids by.
  *       - in: query
  *         name: profileId
  *         schema:
@@ -72,16 +72,16 @@ export const bidRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
-  const { include, productId, profileId, status } = req.query
+  const { include, entityId, profileId, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          productId && profileId
-            ? { productId: productId as string, profileId: profileId as string }
-            : productId
-              ? { productId: productId as string }
+          entityId && profileId
+            ? { entityId: entityId as string, profileId: profileId as string }
+            : entityId
+              ? { entityId: entityId as string }
               : profileId
                 ? { profileId: profileId as string }
                 : {}
@@ -103,7 +103,7 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *     tags:
  *       - Bid
  *     summary: Create a new bid.
- *     description: Adds a new bid to the database. If a bid for the specified product and profile already exists, it will return an error. Otherwise, the bid is created, and any relevant listings are resolved to create bid transactions.
+ *     description: Adds a new bid to the database. If a bid for the specified entity and profile already exists, it will return an error. Otherwise, the bid is created, and any relevant listings are resolved to create bid transactions.
  *     parameters:
  *       - in: path
  *         name: marketplaceName
@@ -139,9 +139,9 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *               profileId:
  *                 type: string
  *                 description: The ID of the profile associated with the bid.
- *               productId:
+ *               entityId:
  *                 type: string
- *                 description: The ID of the product associated with the bid.
+ *                 description: The ID of the entity associated with the bid.
  *               shippingCategories:
  *                 type: object
  *                 description: Manage shipping categories associated with the bid.
@@ -160,7 +160,7 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *               - quantity
  *               - status
  *               - profileId
- *               - productId
+ *               - entityId
  *     responses:
  *       '200':
  *         description: Successfully created a new bid.
@@ -187,9 +187,9 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *                 profileId:
  *                   type: string
  *                   description: The ID of the profile associated with the bid.
- *                 productId:
+ *                 entityId:
  *                   type: string
- *                   description: The ID of the product associated with the bid.
+ *                   description: The ID of the entity associated with the bid.
  *                 shippingCategories:
  *                   type: array
  *                   description: The shipping categories associated with the bid.
@@ -200,7 +200,7 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *                         type: string
  *                         description: The ID of the shipping category.
  *       '400':
- *         description: Bad request, typically if the user already has a bid for the product or if invalid data is provided.
+ *         description: Bad request, typically if the user already has a bid for the entity or if invalid data is provided.
  *         content:
  *           application/json:
  *             schema:
@@ -227,7 +227,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
     status,
     multiTransactionsEnabled,
     profileId,
-    productId,
+    entityId,
     bidShippingCategories,
     bidCustomShippingOptions
   } = req.body
@@ -242,24 +242,24 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
       where: {
         AND: [
           { profileId: profileId },
-          { productId: productId },
+          { entityId: entityId },
           { status: 'ACTIVE' }
         ],
       },
     })
     if (userBid) {
-      throw new Error('User already has a bid for this product')
+      throw new Error('User already has a bid for this entity')
     } else if (price <= 0) {
       throw new Error('A bid cannot have a zero or negative price')
     } else {
       const listings = await resolveListings({
         price,
-        productId,
+        entityId,
         profileId,
       })
 
       if (listings.length) {
-        throw new Error('A cheaper listing already exists for this product. To proceed, decrease your price or buy an existing listing.')
+        throw new Error('A cheaper listing already exists for this entity. To proceed, decrease your price or buy an existing listing.')
       }
 
       const bid = await prisma.bid.create({
@@ -269,7 +269,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
           status,
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
-          product: { connect: { id: productId } },
+          entity: { connect: { id: entityId } },
           bidShippingCategories: bidShippingCategories?.create?.length
             ? {
               create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
@@ -346,9 +346,9 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  *               profileId:
  *                 type: string
  *                 description: The ID of the profile associated with the bid.
- *               productId:
+ *               entityId:
  *                 type: string
- *                 description: The ID of the product associated with the bid.
+ *                 description: The ID of the entity associated with the bid.
  *     responses:
  *       '200':
  *         description: Successfully updated the bid.
@@ -381,7 +381,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
   const { id } = req.params
   const {
     price,
-    productId,
+    entityId,
     profileId,
     bidShippingCategories,
     bidCustomShippingOptions
@@ -397,12 +397,12 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
 
     const listings = await resolveListings({
       price,
-      productId,
+      entityId,
       profileId,
     })
 
     if (listings.length) {
-      throw new Error('A cheaper listing already exists for this product. To proceed, decrease your price or buy an existing listing.')
+      throw new Error('A cheaper listing already exists for this entity. To proceed, decrease your price or buy an existing listing.')
     }
 
     const bid = await prisma.bid.update({
@@ -476,7 +476,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
  *         name: include
  *         schema:
  *           type: string
- *         description: Related entities to include in the response (e.g., profile, product).
+ *         description: Related entities to include in the response (e.g., profile, entity).
  *     responses:
  *       '200':
  *         description: Successfully retrieved the bid.
