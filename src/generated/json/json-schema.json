@@ -191,6 +191,18 @@
           "items": {
             "$ref": "#/definitions/Order"
           }
+        },
+        "accountShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AccountShippingCategory"
+          }
+        },
+        "accountCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AccountCustomShippingOption"
+          }
         }
       }
     },
@@ -545,10 +557,10 @@
             "$ref": "#/definitions/ShippingOption"
           }
         },
-        "listingShippingCategories": {
+        "accountShippingCategories": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ListingShippingCategory"
+            "$ref": "#/definitions/AccountShippingCategory"
           }
         },
         "bidShippingCategories": {
@@ -625,10 +637,10 @@
             "null"
           ]
         },
-        "listingCustomShippingOptions": {
+        "accountCustomShippingOptions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ListingCustomShippingOption"
+            "$ref": "#/definitions/AccountCustomShippingOption"
           }
         },
         "bidCustomShippingOptions": {
@@ -1233,18 +1245,6 @@
           "items": {
             "$ref": "#/definitions/OrderListing"
           }
-        },
-        "listingShippingCategories": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ListingShippingCategory"
-          }
-        },
-        "listingCustomShippingOptions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ListingCustomShippingOption"
-          }
         }
       }
     },
@@ -1282,6 +1282,19 @@
             "null"
           ],
           "default": false
+        },
+        "condition": {
+          "type": "string",
+          "default": "MINT",
+          "enum": [
+            "MINT",
+            "NEAR_MINT",
+            "VERY_GOOD",
+            "GOOD",
+            "FAIR",
+            "POOR",
+            "DAMAGED"
+          ]
         },
         "profile": {
           "anyOf": [
@@ -1671,7 +1684,7 @@
         }
       }
     },
-    "ListingShippingCategory": {
+    "AccountShippingCategory": {
       "type": "object",
       "properties": {
         "id": {
@@ -1685,10 +1698,10 @@
           "type": "string",
           "format": "date-time"
         },
-        "listing": {
-          "$ref": "#/definitions/Listing"
+        "account": {
+          "$ref": "#/definitions/Account"
         },
-        "listingId": {
+        "accountId": {
           "type": "string"
         },
         "shippingCategory": {
@@ -1699,7 +1712,7 @@
         }
       }
     },
-    "ListingCustomShippingOption": {
+    "AccountCustomShippingOption": {
       "type": "object",
       "properties": {
         "id": {
@@ -1713,10 +1726,10 @@
           "type": "string",
           "format": "date-time"
         },
-        "listing": {
-          "$ref": "#/definitions/Listing"
+        "account": {
+          "$ref": "#/definitions/Account"
         },
-        "listingId": {
+        "accountId": {
           "type": "string"
         },
         "shippingOption": {
@@ -1921,11 +1934,11 @@
     "transaction": {
       "$ref": "#/definitions/Transaction"
     },
-    "listingShippingCategory": {
-      "$ref": "#/definitions/ListingShippingCategory"
+    "accountShippingCategory": {
+      "$ref": "#/definitions/AccountShippingCategory"
     },
-    "listingCustomShippingOption": {
-      "$ref": "#/definitions/ListingCustomShippingOption"
+    "accountCustomShippingOption": {
+      "$ref": "#/definitions/AccountCustomShippingOption"
     },
     "bidShippingCategory": {
       "$ref": "#/definitions/BidShippingCategory"
