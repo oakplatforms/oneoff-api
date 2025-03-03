@@ -14,6 +14,12 @@ datasource db {
   url = env("DATABASE_URL")
 }
 
+enum EntityType {
+  PRODUCT
+  SERVICE
+  CONTENT
+}
+
 enum ProductType {
   CARD
 }
@@ -26,7 +32,10 @@ enum ListType {
 }
 
 enum AccountType {
-  STANDARD
+  ADMIN
+  MARKET_MANAGER
+  BRAND_MANAGER
+  CUSTOMER
   SELLER
 }
 
@@ -93,8 +102,7 @@ enum DeliveryMethodType {
 
 enum Condition {
   MINT
-  LIKE_NEW
-  EXCELLENT
+  NEAR_MINT
   VERY_GOOD
   GOOD
   FAIR
@@ -110,7 +118,8 @@ model User {
 
   // custom
   authId     String
-  
+  isAdmin    Boolean? @default(false)
+
   // relations
   account       Account?
 }
@@ -122,7 +131,7 @@ model Account {
   status        Status @default(ACTIVE)
 
   // custom
-  type          AccountType @default(STANDARD)
+  type          AccountType @default(CUSTOMER)
   isPremium     Boolean? @default(false)
   phone         String?
   email         String?
@@ -288,7 +297,7 @@ model Tag {
   // relations
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
-  productTags      ProductTag[]
+  entityTags       EntityTag[]
   supportedTagValues SupportedTagValues[]
 }
 
@@ -306,7 +315,7 @@ model SupportedTagValues {
   tagId            String
 }
 
-model ProductTag {
+model EntityTag {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -318,8 +327,8 @@ model ProductTag {
   // relations
   tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId            String
-  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId        String
+  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId         String
 }
 
 model BrandCategory {
@@ -333,8 +342,7 @@ model BrandCategory {
   category         Category @relation(fields: [categoryName], references: [name], onDelete: Cascade)
   categoryName     String
   lists            List[]
-  products         Product[]
-  cards            Card[]
+  entities         Entity[]
 
   @@id([brandName, categoryName])
 }
@@ -353,12 +361,12 @@ model List {
   // relations
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
   brandCategoryId  String
-  products         Product[]
+  entities         Entity[]
   profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId        String
 }
 
-model Product {
+model Entity {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -367,37 +375,36 @@ model Product {
   name             String
   displayName      String?
   description      String?
-  type             ProductType @default(CARD)
+  type             EntityType @default(PRODUCT)
   image            String?
-  price            Decimal? @db.Decimal(10, 2)
-  releaseDate      DateTime?
-  weight           Float?
 
   // relations
+  product          Product?
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
   brandCategoryId  String
   list             List? @relation(fields: [listId], references: [id], onDelete: Cascade)
   listId           String?
-  productTags      ProductTag[]
-  card             Card?
+  entityTags       EntityTag[]
   reviews          Review[]
   bids             Bid[]
   listings         Listing[]
 }
 
-model Card {
+model Product {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   // custom
+  type             ProductType @default(CARD)
+  releaseDate      DateTime?
+  weight           Float?
+  sku              String?
   number           String?
 
   // relations
-  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
-  brandCategoryId  String
-  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId        String  @unique
+  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId         String  @unique
 }
 
 model Review {
@@ -412,8 +419,8 @@ model Review {
   // relations
   profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId        String
-  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId        String
+  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId         String
 }
 
 model Wallet {
@@ -466,8 +473,8 @@ model Listing {
   // relations
   profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
   profileId        String?
-  product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  productId        String?
+  entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  entityId         String?
   orderListings    OrderListing[]
   listingShippingCategories ListingShippingCategory[]
   listingCustomShippingOptions ListingCustomShippingOption[]
@@ -487,8 +494,8 @@ model Bid {
   // relations
   profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
   profileId        String?
-  product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  productId        String?
+  entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  entityId         String?
   orderBids        OrderBid[]
   bidShippingCategories BidShippingCategory[]
   bidCustomShippingOptions BidCustomShippingOption[]

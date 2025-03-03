@@ -123,13 +123,14 @@ userRouter.get('/users', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 userRouter.post(`/user`, async (req, res) => {
-  const { authId, account } = req.body
+  const { authId, isAdmin, account } = req.body
   const { profile: profileProps, ...accountProps } = account || {}
 
   try {
     const user = await prisma.user.create({
       data: {
         authId,
+        isAdmin,
         account: {
           create: {
             ...accountProps,

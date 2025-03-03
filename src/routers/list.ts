@@ -6,113 +6,13 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
 
-/**
- * @openapi
- * /{marketplaceName}/{brandName}/list:
- *   post:
- *     tags:
- *       - List
- *     summary: Create a new list within a brand's marketplace.
- *     description: Creates a new list with specified details, including associated products and brand category.
- *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the list is to be created.
- *         required: true
- *         schema:
- *           type: string
- *       - name: brandName
- *         in: path
- *         description: The name of the brand for which the list is being created.
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       description: Details of the list to be created.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 description: The name of the list.
- *               type:
- *                 type: string
- *                 description: The type of the list.
- *               displayName:
- *                 type: string
- *                 description: The display name for the list.
- *               description:
- *                 type: string
- *                 description: A description of the list.
- *               products:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     name:
- *                       type: string
- *                       description: The name of the product.
- *                     type:
- *                       type: string
- *                       description: The type of the product.
- *                     displayName:
- *                       type: string
- *                       description: The display name of the product.
- *                     description:
- *                       type: string
- *                       description: A description of the product.
- *                     price:
- *                       type: number
- *                       format: float
- *                       description: The price of the product.
- *                     image:
- *                       type: string
- *                       description: URL of the product image.
- *                     releaseDate:
- *                       type: string
- *                       format: date
- *                       description: The release date of the product.
- *               brandCategoryId:
- *                 type: string
- *                 description: The ID of the brand category associated with the list.
- *     responses:
- *       '200':
- *         description: Successfully created the list.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/List'
- *       '400':
- *         description: Bad request, typically due to invalid parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- *       '500':
- *         description: Internal server error, often due to database issues or unexpected errors.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- */
 listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
-  const { name, type, displayName, description, products, profileId, brandCategoryId } = req.body
+  const { name, type, displayName, description, entities, profileId, brandCategoryId } = req.body
 
   try {
-    const productData = products?.map((product: Prisma.ProductCreateInput) => {
+    const entitiesData = entities?.map((entity: Prisma.EntityCreateInput) => {
       return {
-        ...product,
+        ...entity,
         brandCategory: { connect: { id: brandCategoryId }
         }}
     })
@@ -123,8 +23,8 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
         displayName,
         description,
         type,
-        products: {
-          create: productData,
+        entities: {
+          create: entitiesData,
         },
         profile: { connect: { id: profileId } },
         brandCategory: { connect: { id: brandCategoryId } },

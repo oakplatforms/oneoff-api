@@ -27,6 +27,13 @@
         "authId": {
           "type": "string"
         },
+        "isAdmin": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "account": {
           "anyOf": [
             {
@@ -64,9 +71,12 @@
         },
         "type": {
           "type": "string",
-          "default": "STANDARD",
+          "default": "CUSTOMER",
           "enum": [
-            "STANDARD",
+            "ADMIN",
+            "MARKET_MANAGER",
+            "BRAND_MANAGER",
+            "CUSTOMER",
             "SELLER"
           ]
         },
@@ -658,10 +668,10 @@
         "marketplaceName": {
           "type": "string"
         },
-        "productTags": {
+        "entityTags": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ProductTag"
+            "$ref": "#/definitions/EntityTag"
           }
         },
         "supportedTagValues": {
@@ -703,7 +713,7 @@
         }
       }
     },
-    "ProductTag": {
+    "EntityTag": {
       "type": "object",
       "properties": {
         "id": {
@@ -738,10 +748,10 @@
         "tagId": {
           "type": "string"
         },
-        "product": {
-          "$ref": "#/definitions/Product"
+        "entity": {
+          "$ref": "#/definitions/Entity"
         },
-        "productId": {
+        "entityId": {
           "type": "string"
         }
       }
@@ -778,16 +788,10 @@
             "$ref": "#/definitions/List"
           }
         },
-        "products": {
+        "entities": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Product"
-          }
-        },
-        "cards": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Card"
+            "$ref": "#/definitions/Entity"
           }
         }
       }
@@ -839,10 +843,10 @@
         "brandCategoryId": {
           "type": "string"
         },
-        "products": {
+        "entities": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Product"
+            "$ref": "#/definitions/Entity"
           }
         },
         "profile": {
@@ -853,7 +857,7 @@
         }
       }
     },
-    "Product": {
+    "Entity": {
       "type": "object",
       "properties": {
         "id": {
@@ -884,9 +888,11 @@
         },
         "type": {
           "type": "string",
-          "default": "CARD",
+          "default": "PRODUCT",
           "enum": [
-            "CARD"
+            "PRODUCT",
+            "SERVICE",
+            "CONTENT"
           ]
         },
         "image": {
@@ -895,23 +901,14 @@
             "null"
           ]
         },
-        "price": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "releaseDate": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time"
-        },
-        "weight": {
-          "type": [
-            "number",
-            "null"
+        "product": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Product"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "brandCategory": {
@@ -936,21 +933,11 @@
             "null"
           ]
         },
-        "productTags": {
+        "entityTags": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ProductTag"
+            "$ref": "#/definitions/EntityTag"
           }
-        },
-        "card": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Card"
-            },
-            {
-              "type": "null"
-            }
-          ]
         },
         "reviews": {
           "type": "array",
@@ -972,7 +959,7 @@
         }
       }
     },
-    "Card": {
+    "Product": {
       "type": "object",
       "properties": {
         "id": {
@@ -986,22 +973,42 @@
           "type": "string",
           "format": "date-time"
         },
+        "type": {
+          "type": "string",
+          "default": "CARD",
+          "enum": [
+            "CARD"
+          ]
+        },
+        "releaseDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "weight": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sku": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "number": {
           "type": [
             "string",
             "null"
           ]
         },
-        "brandCategory": {
-          "$ref": "#/definitions/BrandCategory"
+        "entity": {
+          "$ref": "#/definitions/Entity"
         },
-        "brandCategoryId": {
-          "type": "string"
-        },
-        "product": {
-          "$ref": "#/definitions/Product"
-        },
-        "productId": {
+        "entityId": {
           "type": "string"
         }
       }
@@ -1032,10 +1039,10 @@
         "profileId": {
           "type": "string"
         },
-        "product": {
-          "$ref": "#/definitions/Product"
+        "entity": {
+          "$ref": "#/definitions/Entity"
         },
-        "productId": {
+        "entityId": {
           "type": "string"
         }
       }
@@ -1174,8 +1181,7 @@
           "default": "MINT",
           "enum": [
             "MINT",
-            "LIKE_NEW",
-            "EXCELLENT",
+            "NEAR_MINT",
             "VERY_GOOD",
             "GOOD",
             "FAIR",
@@ -1206,17 +1212,17 @@
             "null"
           ]
         },
-        "product": {
+        "entity": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Product"
+              "$ref": "#/definitions/Entity"
             },
             {
               "type": "null"
             }
           ]
         },
-        "productId": {
+        "entityId": {
           "type": [
             "string",
             "null"
@@ -1293,17 +1299,17 @@
             "null"
           ]
         },
-        "product": {
+        "entity": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Product"
+              "$ref": "#/definitions/Entity"
             },
             {
               "type": "null"
             }
           ]
         },
-        "productId": {
+        "entityId": {
           "type": [
             "string",
             "null"
@@ -1870,8 +1876,8 @@
     "supportedTagValues": {
       "$ref": "#/definitions/SupportedTagValues"
     },
-    "productTag": {
-      "$ref": "#/definitions/ProductTag"
+    "entityTag": {
+      "$ref": "#/definitions/EntityTag"
     },
     "brandCategory": {
       "$ref": "#/definitions/BrandCategory"
@@ -1879,11 +1885,11 @@
     "list": {
       "$ref": "#/definitions/List"
     },
+    "entity": {
+      "$ref": "#/definitions/Entity"
+    },
     "product": {
       "$ref": "#/definitions/Product"
-    },
-    "card": {
-      "$ref": "#/definitions/Card"
     },
     "review": {
       "$ref": "#/definitions/Review"
