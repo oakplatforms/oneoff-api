@@ -154,6 +154,8 @@ model Account {
   createdOrders Order[] @relation(name: "CreatedBy")
   purchasedOrders Order[] @relation(name: "PurchasedBy")
   soldOrders     Order[] @relation(name: "SoldBy")
+  accountShippingCategories AccountShippingCategory[]
+  accountCustomShippingOptions AccountCustomShippingOption[]
 }
 
 model Profile {
@@ -260,7 +262,7 @@ model ShippingCategory {
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
   shippingOptions  ShippingOption[]
-  listingShippingCategories ListingShippingCategory[]
+  accountShippingCategories AccountShippingCategory[]
   bidShippingCategories BidShippingCategory[]
 }
 
@@ -281,7 +283,7 @@ model ShippingOption {
   // relations
   shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId  String?
-  listingCustomShippingOptions ListingCustomShippingOption[]
+  accountCustomShippingOptions AccountCustomShippingOption[]
   bidCustomShippingOptions BidCustomShippingOption[]
 }
 
@@ -476,8 +478,6 @@ model Listing {
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderListings    OrderListing[]
-  listingShippingCategories ListingShippingCategory[]
-  listingCustomShippingOptions ListingCustomShippingOption[]
 }
 
 model Bid {
@@ -490,6 +490,7 @@ model Bid {
   quantity         Int
   status           Status
   multiTransactionsEnabled Boolean? @default(false) 
+  condition        Condition @default(MINT)
 
   // relations
   profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
@@ -595,32 +596,32 @@ model Transaction {
   payoutId         String?
 }
 
-model ListingShippingCategory {
+model AccountShippingCategory {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   // relations
-  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId        String
+  account          Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId        String
   shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId String
 
-  @@id([listingId, shippingCategoryId])
+  @@id([accountId, shippingCategoryId])
 }
 
-model ListingCustomShippingOption {
+model AccountCustomShippingOption {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   // relations
-  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId        String
+  account          Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId        String
   shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
   shippingOptionId String
 
-  @@id([listingId, shippingOptionId])
+  @@id([accountId, shippingOptionId])
 }
 
 model BidShippingCategory {

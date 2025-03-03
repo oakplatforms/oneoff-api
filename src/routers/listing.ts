@@ -318,8 +318,6 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
     multiTransactionsEnabled,
     profileId,
     entityId,
-    listingShippingCategories,
-    listingCustomShippingOptions
   } = req.body
 
   try {
@@ -362,20 +360,6 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
           multiTransactionsEnabled,
           profile: { connect: { id: profileId } },
           entity: { connect: { id: entityId } },
-          listingShippingCategories: listingShippingCategories?.create?.length
-            ? {
-              create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
-                shippingCategoryId: listingShippingCategory.shippingCategoryId,
-              })),
-            }
-            : undefined,
-          listingCustomShippingOptions: listingCustomShippingOptions?.create?.length
-            ? {
-              create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
-                shippingOptionId: listingCustomShippingOption.shippingOptionId,
-              })),
-            }
-            : undefined,
         },
         include: {
           profile: true
@@ -532,8 +516,6 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
     price,
     profileId,
     entityId,
-    listingShippingCategories,
-    listingCustomShippingOptions
   } = req.body
 
   try {
@@ -559,26 +541,6 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
       where: { id },
       data: {
         ...req.body,
-        listingShippingCategories: listingShippingCategories
-          ? {
-            create: listingShippingCategories.create?.map((listingShippingCategory: { shippingCategoryId: string }) => ({
-              shippingCategoryId: listingShippingCategory.shippingCategoryId,
-            })),
-            deleteMany: listingShippingCategories.delete?.map((listingShippingCategoryId: string) => ({
-              id: listingShippingCategoryId
-            })),
-          }
-          : undefined,
-        listingCustomShippingOptions: listingCustomShippingOptions
-          ? {
-            create: listingCustomShippingOptions.create?.map((listingCustomShippingOption: { shippingOptionId: string }) => ({
-              shippingOptionId: listingCustomShippingOption.shippingOptionId,
-            })),
-            deleteMany: listingCustomShippingOptions.delete?.map((listingCustomShippingOptionId: string) => ({
-              id: listingCustomShippingOptionId
-            })),
-          }
-          : undefined,
       },
       include: {
         profile: true
@@ -735,11 +697,6 @@ listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res
   const { id } = req.params
 
   try {
-    await prisma.listingShippingCategory.deleteMany({
-      where: {
-        listingId: id,
-      },
-    })
     const listing = await prisma.listing.delete({
       where: { id },
     })
