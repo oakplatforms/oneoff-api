@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -148,22 +148,33 @@ tagRouter.get('/:marketplaceName/tags', async (req, res) => {
  */
 tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
   const { marketplaceName } = req.params
-  const { name, displayName, supportedTagValues } = req.body
+  const { name, displayName, supportedTagValues, createdById } = req.body
 
   try {
     const tag = await prisma.tag.create({
       data: {
         name,
         displayName,
-        supportedTagValues: {
-          create: supportedTagValues,
-        },
-        marketplace: { connect: { name: marketplaceName } }
+        supportedTagValues: supportedTagValues
+          ? {
+            create: supportedTagValues.create?.map(
+              ({ name, displayName }: { name: string; displayName: string }) => ({
+                name,
+                displayName,
+              })
+            ),
+          }
+          : undefined,
+        marketplace: { connect: { name: marketplaceName } },
+        createdBy: { connect: { id: createdById } },
       },
     })
+
     res.json(tag)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    const { statusCode, errorMessage } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
     res.status(statusCode).send({ errorMessage })
   }
 })
@@ -257,22 +268,44 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
  */
 tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
   const { marketplaceName, id } = req.params
+  const { supportedTagValues, lastModifiedById, ...rest } = req.body
 
   try {
     const tag = await prisma.tag.update({
       where: { id },
       data: {
-        ...req.body,
-        supportedTagValues: {
-          create: req.body.supportedTagValues,
-        },
-        marketplace: { connect: { name: marketplaceName } }
-      }
+        ...rest,
+        lastModifiedBy: { connect: { id: lastModifiedById } },
+        supportedTagValues: supportedTagValues
+          ? {
+            create: supportedTagValues.create?.map(
+              ({ name, displayName }: { name: string; displayName: string }) => ({
+                name,
+                displayName,
+              })
+            ),
+            updateMany: supportedTagValues.update?.map(
+              ({ id, name, displayName }: { id: string; name: string; displayName: string }) => ({
+                where: { id },
+                data: { name, displayName },
+              })
+            ),
+            deleteMany: supportedTagValues.delete?.map(
+              (tagValueId: string) => ({
+                id: tagValueId,
+              })
+            ),
+          }
+          : undefined,
+        marketplace: { connect: { name: marketplaceName } },
+      },
     })
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    const { statusCode, errorMessage } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
     res.status(statusCode).send({ errorMessage })
   }
 })

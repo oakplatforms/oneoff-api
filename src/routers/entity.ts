@@ -77,7 +77,8 @@ entityRouter.post(`/:marketplaceName/:brandName/entity`, async (req, res) => {
     product,
     brandCategoryId,
     image,
-    entityTags
+    entityTags,
+    createdById
   } = req.body
 
   if (entityTags?.create?.length) {
@@ -120,7 +121,8 @@ entityRouter.post(`/:marketplaceName/:brandName/entity`, async (req, res) => {
             })),
           }
           : undefined,
-        brandCategory: { connect: { id: brandCategoryId } }
+        brandCategory: { connect: { id: brandCategoryId } },
+        createdBy: { connect: { id: createdById } },
       },
     })
     res.json(entity)

@@ -133,13 +133,14 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
  */
 categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
   const { marketplaceName } = req.params
-  const { name, displayName } = req.body
+  const { name, displayName, createdById } = req.body
 
   try {
     const category = await prisma.category.create({
       data: {
         name,
         displayName,
+        createdBy: { connect: { id: createdById } },
         marketplace: { connect: { name: marketplaceName } }
       },
     })

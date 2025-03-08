@@ -129,7 +129,7 @@ marketplaceRouter.get('/marketplaces', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 marketplaceRouter.post(`/marketplace`, async (req, res) => {
-  const { name, displayName, brands } = req.body
+  const { name, displayName, brands, createdById } = req.body
 
   const brandData = brands?.map((brand: Prisma.BrandCreateInput) => {
     return { ...brand, marketplaceName: name }
@@ -140,6 +140,7 @@ marketplaceRouter.post(`/marketplace`, async (req, res) => {
       data: {
         name,
         displayName,
+        createdBy: { connect: { id: createdById } },
         brands: {
           create: brandData,
         },

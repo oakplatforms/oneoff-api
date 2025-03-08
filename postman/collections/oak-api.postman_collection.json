@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "cce28670-ce5c-4f0f-a8bd-093e7abb1910",
-		"name": "tcgx-api",
+		"name": "oak-api",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "497093"
 	},
@@ -152,7 +152,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"        pm.collectionVariables.set(\"account1Id\", jsonData.account.id)",
+									"    pm.collectionVariables.set(\"account1Id\", jsonData.account.id)",
 									"    pm.collectionVariables.set(\"profile1Id\", jsonData.account.profile.id)",
 									"    pm.expect(jsonData.authId).to.eq('213ewq213213')",
 									"    pm.expect(jsonData.account.firstName).to.eq('Skylar')",
@@ -331,7 +331,8 @@
 									"    pm.expect(jsonData.displayName).to.eq('Tcgx Marketplace')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -340,7 +341,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"tcgx-marketplace\", \n    \"displayName\": \"Tcgx Marketplace\"\n}",
+							"raw": "{\n    \"name\": \"tcgx-marketplace\", \n    \"displayName\": \"Tcgx Marketplace\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -435,7 +436,8 @@
 									"    pm.expect(jsonData.displayName).to.eq('One Piece')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -444,7 +446,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"one-piece\", \n    \"displayName\": \"One Piece\"\n}",
+							"raw": "{\n    \"name\": \"one-piece\", \n    \"displayName\": \"One Piece\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -481,7 +483,8 @@
 									"    pm.expect(jsonData.displayName).to.eq('Pokemon')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -490,7 +493,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"pokemon\", \n    \"displayName\": \"Pokemon\"\n}",
+							"raw": "{\n    \"name\": \"pokemon\", \n    \"displayName\": \"Pokemon\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -585,7 +588,8 @@
 									"    pm.expect(jsonData.name).to.eq('tcg')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -594,7 +598,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"tcg\"\n}",
+							"raw": "{\n    \"name\": \"tcg\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -738,7 +742,8 @@
 									"    pm.expect(jsonData.name).to.eq('color')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -747,7 +752,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"color\",\n    \"displayName\": \"Color\",\n    \"supportedTagValues\": [\n        {\n            \"name\": \"black\",\n            \"displayName\": \"Black\"\n        },\n        {\n            \"name\": \"purple\",\n            \"displayName\": \"Purple\"\n        },\n        {\n            \"name\": \"blue\",\n            \"displayName\": \"Blue\"\n        },\n        {\n            \"name\": \"yellow\",\n            \"displayName\": \"Yello\"\n        },\n        {\n            \"name\": \"green\",\n            \"displayName\": \"Green\"\n        }\n    ]\n}",
+							"raw": "{\n    \"name\": \"color\",\n    \"displayName\": \"Color\",\n    \"createdById\": \"{{account1Id}}\",\n    \"supportedTagValues\": {\n        \"create\": [\n            {\n                \"name\": \"black\",\n                \"displayName\": \"Black\"\n            },\n            {\n                \"name\": \"purple\",\n                \"displayName\": \"Purple\"\n            },\n            {\n                \"name\": \"blue\",\n                \"displayName\": \"Blue\"\n            },\n            {\n                \"name\": \"yellow\",\n                \"displayName\": \"Yello\"\n            },\n            {\n                \"name\": \"green\",\n                \"displayName\": \"Green\"\n            }\n        ]\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -783,7 +788,8 @@
 									"    pm.expect(jsonData.name).to.eq('color')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -792,7 +798,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"{{tag1Name}}\",\n    \"supportedTagValues\": [\n        {\n            \"name\": \"white\",\n            \"displayName\": \"White\"\n        }\n    ]\n}",
+							"raw": "{\n    \"name\": \"{{tag1Name}}\",\n    \"lastModifiedById\": \"{{account1Id}}\",\n    \"supportedTagValues\": {\n        \"create\": [\n            {\n                \"name\": \"white\",\n                \"displayName\": \"White\"\n            }\n        ]\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -830,7 +836,8 @@
 									"    pm.expect(jsonData.name).to.eq('power')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -839,7 +846,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"power\",\n    \"displayName\": \"Power\"\n}",
+							"raw": "{\n    \"name\": \"power\",\n    \"displayName\": \"Power\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -876,7 +883,8 @@
 									"    pm.expect(jsonData.name).to.eq('cost')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -885,7 +893,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"cost\",\n    \"displayName\": \"Cost\"\n}",
+							"raw": "{\n    \"name\": \"cost\",\n    \"displayName\": \"Cost\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -922,7 +930,8 @@
 									"    pm.expect(jsonData.name).to.eq('rarity')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -931,7 +940,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"rarity\",\n    \"displayName\": \"Rarity\",\n    \"supportedTagValues\": [\n        {\n            \"name\": \"sec\",\n            \"displayName\": \"SEC\"\n        },\n        {\n            \"name\": \"super-rare\",\n            \"displayName\": \"Super Rare\"\n        },\n        {\n            \"name\": \"rare\",\n            \"displayName\": \"Rare\"\n        },\n        {\n            \"name\": \"commom\",\n            \"displayName\": \"Common\"\n        },\n        {\n            \"name\": \"uncommon\",\n            \"displayName\": \"Uncommon\"\n        }\n    ]\n}",
+							"raw": "{\n    \"name\": \"rarity\",\n    \"displayName\": \"Rarity\",\n    \"createdById\": \"{{account1Id}}\",\n    \"supportedTagValues\": {\n        \"create\": [\n            {\n                \"name\": \"sec\",\n                \"displayName\": \"SEC\"\n            },\n            {\n                \"name\": \"super-rare\",\n                \"displayName\": \"Super Rare\"\n            },\n            {\n                \"name\": \"rare\",\n                \"displayName\": \"Rare\"\n            },\n            {\n                \"name\": \"commom\",\n                \"displayName\": \"Common\"\n            },\n            {\n                \"name\": \"uncommon\",\n                \"displayName\": \"Uncommon\"\n            }\n        ]\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -968,7 +977,8 @@
 									"    pm.expect(jsonData.name).to.eq('life')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -977,7 +987,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"life\",\n    \"displayName\": \"Life\"\n}",
+							"raw": "{\n    \"name\": \"life\",\n    \"displayName\": \"Life\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1014,7 +1024,8 @@
 									"    pm.expect(jsonData.name).to.eq('attribute')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1023,7 +1034,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"attribute\",\n    \"displayName\": \"Attribute\",\n    \"supportedTagValues\": [\n        {\n            \"name\": \"strike\",\n            \"displayName\": \"Strike\"\n        },\n        {\n            \"name\": \"special\",\n            \"displayName\": \"Special\"\n        },\n        {\n            \"name\": \"wisdom\",\n            \"displayName\": \"Wisdom\"\n        },\n        {\n            \"name\": \"earth\",\n            \"displayName\": \"Earth\"\n        }\n    ]\n}",
+							"raw": "{\n    \"name\": \"attribute\",\n    \"displayName\": \"Attribute\",\n    \"createdById\": \"{{account1Id}}\",\n    \"supportedTagValues\": {\n        \"create\": [\n            {\n                \"name\": \"strike\",\n                \"displayName\": \"Strike\"\n            },\n            {\n                \"name\": \"special\",\n                \"displayName\": \"Special\"\n            },\n            {\n                \"name\": \"wisdom\",\n                \"displayName\": \"Wisdom\"\n            },\n            {\n                \"name\": \"earth\",\n                \"displayName\": \"Earth\"\n            }\n        ]\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1060,7 +1071,8 @@
 									"    pm.expect(jsonData.name).to.eq('artist')",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1069,7 +1081,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"artist\",\n    \"displayName\": \"Artist\",\n    \"supportedTagValues\": [\n        {\n            \"name\": \"monica-catalano\",\n            \"displayName\": \"Monica Catalano\"\n        },\n        {\n            \"name\": \"nijihayashi\",\n            \"displayName\": \"Nijihayashi\"\n        },\n        {\n            \"name\": \"hatori-kyoka\",\n            \"displayName\": \"Hatori Kyoka\"\n        },\n        {\n            \"name\": \"nekobayashi\",\n            \"displayName\": \"Nekobayashi\"\n        },\n        {\n            \"name\": \"carlos-cruchaga\",\n            \"displayName\": \"Carlos Cruchaga\"\n        }\n    ]\n}",
+							"raw": "{\n    \"name\": \"artist\",\n    \"displayName\": \"Artist\",\n    \"createdById\": \"{{account1Id}}\",\n    \"supportedTagValues\": {\n        \"create\": [\n            {\n                \"name\": \"monica-catalano\",\n                \"displayName\": \"Monica Catalano\"\n            },\n            {\n                \"name\": \"nijihayashi\",\n                \"displayName\": \"Nijihayashi\"\n            },\n            {\n                \"name\": \"hatori-kyoka\",\n                \"displayName\": \"Hatori Kyoka\"\n            },\n            {\n                \"name\": \"nekobayashi\",\n                \"displayName\": \"Nekobayashi\"\n            },\n            {\n                \"name\": \"carlos-cruchaga\",\n                \"displayName\": \"Carlos Cruchaga\"\n            }\n        ]\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1163,7 +1175,8 @@
 									"    pm.collectionVariables.set(\"supportedTagValue1Id\", jsonData.id)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -1172,7 +1185,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"green\",\n    \"displayName\": \"Green\",\n    \"tagId\": \"{{tag1Id}}\"\n}",
+							"raw": "{\n    \"name\": \"green\",\n    \"displayName\": \"Green\",\n    \"tagId\": \"{{tag1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1268,7 +1281,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"One Piece Set 1\", \n    \"name\": \"one-piece-set-1\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"One Piece Set 1\", \n    \"name\": \"one-piece-set-1\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1316,7 +1329,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Romance Dawn\", \n    \"name\": \"romance-dawn\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"Romance Dawn\", \n    \"name\": \"romance-dawn\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1364,7 +1377,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Pillars of Strength\", \n    \"name\": \"pillars-of-strength\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"Pillars of Strength\", \n    \"name\": \"pillars-of-strength\",\n    \"type\": \"SET\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"profileId\": \"{{profile1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1466,7 +1479,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"343242343\",\n        \"type\": \"CARD\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"createdById\": \"{{account1Id}}\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"343242343\",\n        \"type\": \"CARD\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1512,7 +1525,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"PRODUCT\",\n    \"description\": \"hello world\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
+							"raw": "{\n    \"displayName\": \"Charlotte Linlin\", \n    \"name\": \"charlotte-linlin-tcg\",\n    \"type\": \"PRODUCT\",\n    \"description\": \"hello world\",\n    \"lastModifiedById\": \"{{account2Id}}\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1562,7 +1575,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Sanji\", \n    \"name\": \"sanji-tcg\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"343253243\",\n        \"number\": \"099\",\n        \"type\": \"CARD\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Sanji\", \n    \"name\": \"sanji-tcg\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://example.com/card-image1.jpg\",\n    \"createdById\": \"{{account1Id}}\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"343253243\",\n        \"number\": \"099\",\n        \"type\": \"CARD\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1608,7 +1621,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Nami\", \n    \"name\": \"nami-tcg\",\n    \"type\": \"PRODUCT\",\n    \"image\": \"https://i.imgur.com/d8AcaUE.jpeg\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"listId\": \"{{list3Id}}\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"532242343\",\n        \"number\": \"040\",\n        \"type\": \"CARD\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Nami\", \n    \"name\": \"nami-tcg\",\n    \"type\": \"PRODUCT\",\n    \"image\": \"https://i.imgur.com/d8AcaUE.jpeg\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"createdById\": \"{{account1Id}}\",\n    \"listId\": \"{{list3Id}}\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"532242343\",\n        \"number\": \"040\",\n        \"type\": \"CARD\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1654,7 +1667,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Roronoa Zoro\", \n    \"name\": \"roronoa-zoro-tcg\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"listId\": \"{{list2Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"432253343\",\n        \"number\": \"101\",\n        \"type\": \"CARD\"\n    }\n}",
+							"raw": "{\n    \"displayName\": \"Roronoa Zoro\", \n    \"name\": \"roronoa-zoro-tcg\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"productImage\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"listId\": \"{{list2Id}}\",\n    \"createdById\": \"{{account1Id}}\",\n    \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"432253343\",\n        \"number\": \"101\",\n        \"type\": \"CARD\"\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1700,7 +1713,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"Test Product\", \n    \"name\": \"test-product\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"432253343\",\n        \"number\": \"101\",\n        \"type\": \"CARD\"\n    },\n    \"productTags\": [\n        {\n            \"tagId\": \"{{tag1Id}}\",\n            \"tagValue\": \"Black\"\n        },\n        {\n            \"tagId\": \"{{tag2Id}}\",\n            \"tagValue\": \"23812\"\n        }\n    ]\n}",
+							"raw": "{\n    \"displayName\": \"Test Product\", \n    \"name\": \"test-product\",\n    \"type\": \"PRODUCT\",\n    \"brandCategoryId\": \"{{brandCategory1Id}}\",\n    \"image\": \"https://i.imgur.com/2p9nxD9.jpeg\",\n    \"createdById\": \"{{account1Id}}\",\n    \"product\": {\n        \"releaseDate\": \"2024-09-01T00:00:00.000Z\",\n        \"sku\": \"432253343\",\n        \"number\": \"101\",\n        \"type\": \"CARD\"\n    },\n    \"productTags\": [\n        {\n            \"tagId\": \"{{tag1Id}}\",\n            \"tagValue\": \"Black\"\n        },\n        {\n            \"tagId\": \"{{tag2Id}}\",\n            \"tagValue\": \"23812\"\n        }\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1769,7 +1782,7 @@
 					"response": []
 				},
 				{
-					"name": "get products include set and card",
+					"name": "get entities include set and card",
 					"event": [
 						{
 							"listen": "test",
@@ -1778,7 +1791,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.length).to.eq(2)",
+									"    pm.expect(jsonData.length).to.eq(5)",
 									"})",
 									""
 								],
@@ -1904,7 +1917,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"entityId\": \"{{entity1Id}}\",\n    \"tagValue\": \"White\"\n}",
+							"raw": "{\n    \"tagId\": \"{{tag1Id}}\",\n    \"entityId\": \"{{entity1Id}}\",\n    \"tagValue\": \"Black\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2366,7 +2379,7 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200)",
 									"    const jsonData = pm.response.json()",
-									"    pm.expect(jsonData.length).to.eq(2)",
+									"    pm.expect(jsonData.length).to.eq(5)",
 									"})",
 									""
 								],
@@ -2443,7 +2456,8 @@
 									"    pm.collectionVariables.set(\"shippingCategory1Id\", jsonData.id)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2452,7 +2466,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"envelope\",\n    \"displayName\": \"Envelope\",\n    \"maxQuantity\": 3,\n    \"maxWeight\": 1.25,\n    \"price\": 0.89\n}",
+							"raw": "{\n    \"name\": \"envelope\",\n    \"displayName\": \"Envelope\",\n    \"maxQuantity\": 3,\n    \"maxWeight\": 1.25,\n    \"price\": 0.89,\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2487,7 +2501,8 @@
 									"    pm.collectionVariables.set(\"shippingCategory2Id\", jsonData.id)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2496,7 +2511,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"tracking-envelope\",\n    \"displayName\": \"Tracking Envelope\",\n    \"maxQuantity\": 9,\n    \"maxWeight\": 3.75,\n    \"price\": 5.50\n}",
+							"raw": "{\n    \"name\": \"tracking-envelope\",\n    \"displayName\": \"Tracking Envelope\",\n    \"maxQuantity\": 9,\n    \"maxWeight\": 3.75,\n    \"price\": 5.50,\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2595,7 +2610,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 13,\n    \"quantity\": 10,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 13,\n    \"quantity\": 10,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2642,7 +2657,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
+							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity1Id}}\",\n    \"createdById\": \"{{account2Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2688,7 +2703,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"entityId\": \"{{entity1Id}}\",\n    \"profileId\": \"{{profile2Id}}\"\n}",
+							"raw": "{\n    \"price\": 15,\n    \"quantity\": 11,\n    \"status\": \"ACTIVE\",\n    \"entityId\": \"{{entity1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2734,7 +2749,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity2Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2780,7 +2795,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 7,\n    \"quantity\": 2,\n    \"status\": \"INACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity2Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2815,7 +2830,8 @@
 									"    pm.response.to.have.status(200)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -2835,7 +2851,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listings?profileId={{profile1Id}}&include=profile.account",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/listings?createdById={{account1Id}}&include=createdBy",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -2848,12 +2864,12 @@
 							],
 							"query": [
 								{
-									"key": "profileId",
-									"value": "{{profile1Id}}"
+									"key": "createdById",
+									"value": "{{account1Id}}"
 								},
 								{
 									"key": "include",
-									"value": "profile.account"
+									"value": "createdBy"
 								}
 							]
 						}
@@ -2942,7 +2958,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 12,\n    \"quantity\": 19,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity1Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 12,\n    \"quantity\": 19,\n    \"status\": \"ACTIVE\",\n    \"multiTransactionsEnabled\": true,\n    \"entityId\": \"{{entity1Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2988,7 +3004,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"entityId\": \"{{entity2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"entityId\": \"{{entity2Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3034,7 +3050,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"price\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"entityId\": \"{{entity2Id}}\",\n    \"profileId\": \"{{profile1Id}}\"\n}",
+							"raw": "{\n    \"price\": 17.10,\n    \"quantity\": 5,\n    \"status\": \"ACTIVE\",\n    \"entityId\": \"{{entity2Id}}\",\n    \"createdById\": \"{{account1Id}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3068,7 +3084,8 @@
 									"    pm.response.to.have.status(200)",
 									"})"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -3088,7 +3105,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/bids?profileId={{profile1Id}}&include=profile.account",
+							"raw": "{{HOST_NAME}}/api/v1/{{marketplace1Name}}/{{brand1Name}}/bids?createdById={{account1Id}}&include=createdBy",
 							"host": [
 								"{{HOST_NAME}}"
 							],
@@ -3101,12 +3118,12 @@
 							],
 							"query": [
 								{
-									"key": "profileId",
-									"value": "{{profile1Id}}"
+									"key": "createdById",
+									"value": "{{account1Id}}"
 								},
 								{
 									"key": "include",
-									"value": "profile.account"
+									"value": "createdBy"
 								}
 							]
 						}

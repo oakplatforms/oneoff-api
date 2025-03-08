@@ -72,18 +72,18 @@ export const bidRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
-  const { include, entityId, profileId, status } = req.query
+  const { include, entityId, createdById, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          entityId && profileId
-            ? { entityId: entityId as string, profileId: profileId as string }
+          entityId && createdById
+            ? { entityId: entityId as string, createdById: createdById as string }
             : entityId
               ? { entityId: entityId as string }
-              : profileId
-                ? { profileId: profileId as string }
+              : createdById
+                ? { createdById: createdById as string }
                 : {}
         ]
       },
@@ -226,22 +226,22 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
     quantity,
     status,
     multiTransactionsEnabled,
-    profileId,
+    createdById,
     entityId,
     bidShippingCategories,
     bidCustomShippingOptions
   } = req.body
   try {
-    const profile = await prisma.profile.findUnique({
-      where: { id: profileId },
+    const account = await prisma.account.findUnique({
+      where: { id: createdById },
     })
-    if (!profile) {
-      throw new Error('Profile does not exist')
+    if (!account) {
+      throw new Error('Account does not exist')
     }
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
-          { profileId: profileId },
+          { createdById: createdById },
           { entityId: entityId },
           { status: 'ACTIVE' }
         ],
@@ -255,7 +255,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
       const listings = await resolveListings({
         price,
         entityId,
-        profileId,
+        createdById,
       })
 
       if (listings.length) {
@@ -268,7 +268,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
           quantity,
           status,
           multiTransactionsEnabled,
-          profile: { connect: { id: profileId } },
+          createdBy: { connect: { id: createdById } },
           entity: { connect: { id: entityId } },
           bidShippingCategories: bidShippingCategories?.create?.length
             ? {
@@ -286,7 +286,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
             : undefined,
         },
         include: {
-          profile: true
+          createdBy: true
         }
       })
       res.json(bid)
@@ -382,7 +382,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
   const {
     price,
     entityId,
-    profileId,
+    createdById,
     bidShippingCategories,
     bidCustomShippingOptions
   } = req.body
@@ -398,7 +398,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
     const listings = await resolveListings({
       price,
       entityId,
-      profileId,
+      createdById,
     })
 
     if (listings.length) {
@@ -431,7 +431,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
           : undefined,
       },
       include: {
-        profile: true
+        createdBy: true
       }
     })
     if (bid) {

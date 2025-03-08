@@ -61,7 +61,8 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
           transactions: {
             create: [{
               amount: subTotal,
-              status: 'PENDING'
+              status: 'PENDING',
+              createdById: orderDetails.createdById as string,
             }],
           },
         },
@@ -148,7 +149,11 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
             }
             : undefined,
           transactions: {
-            create: [{ amount: subTotal, status: 'PENDING' }],
+            create: [{
+              amount: subTotal,
+              status: 'PENDING',
+              createdById: orderDetails.createdById as string
+            }],
           },
         },
       })
