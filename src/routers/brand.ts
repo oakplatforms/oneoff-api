@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -56,19 +56,60 @@ brandRouter.get('/:marketplaceName/brands', async (req, res) => {
  */
 brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
   const { marketplaceName } = req.params
-  const { name, displayName } = req.body
+  const { name, displayName, createdById, brandCategories } = req.body
 
   try {
     const brand = await prisma.brand.create({
       data: {
         name,
         displayName,
+        brandCategories: brandCategories?.create?.length
+          ? {
+            create: brandCategories.create.map(({ categoryName }: { categoryName: string }) => ({
+              categoryName
+            })),
+          }
+          : undefined,
+        createdBy: { connect: { id: createdById } },
         marketplace: { connect: { name: marketplaceName } }
       },
     })
     res.json(brand)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+brandRouter.put('/:marketplaceName/brand/:id', async (req, res) => {
+  const { marketplaceName, id } = req.params
+  const { brandCategories, lastModifiedById, ...rest } = req.body
+
+  try {
+    const brand = await prisma.brand.update({
+      where: { id },
+      data: {
+        ...rest,
+        lastModifiedBy: { connect: { id: lastModifiedById } },
+        brandCategories: brandCategories
+          ? {
+            create: brandCategories.create?.map(({ categoryName }: { categoryName: string }) => ({
+              categoryName,
+            })),
+            deleteMany: brandCategories.delete?.map((categoryId: string) => ({
+              id: categoryId,
+            })),
+          }
+          : undefined,
+        marketplace: { connect: { name: marketplaceName } },
+      },
+    })
+
+    res.json(brand)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
     res.status(statusCode).send({ errorMessage })
   }
 })

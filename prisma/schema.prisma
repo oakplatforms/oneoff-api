@@ -33,10 +33,19 @@ enum ListType {
 
 enum AccountType {
   ADMIN
-  MARKET_MANAGER
-  BRAND_MANAGER
+  REGISTERED
   CUSTOMER
   SELLER
+}
+
+enum AdminType {
+  MARKET_MANAGER
+  BRAND_MANAGER
+}
+
+enum SellerType {
+  INDIVIDUAL
+  BUSINESS
 }
 
 enum Status {
@@ -49,6 +58,7 @@ enum ProcessStatus {
   COMPLETED
   PENDING
   CANCELED
+  FAILED
 }
 
 enum TransactionType {
@@ -65,7 +75,7 @@ enum TransactionStatus {
   REQUIRES_ACTION
 }
 
-enum PaymentProcessorType {
+enum PaymentAccountType {
   STRIPE
 }
 
@@ -131,31 +141,98 @@ model Account {
   status        Status @default(ACTIVE)
 
   // custom
-  type          AccountType @default(CUSTOMER)
-  isPremium     Boolean? @default(false)
-  phone         String?
+  type          AccountType @default(REGISTERED)
   email         String?
+
+  // relations
+  seller        Seller?
+  customer      Customer?
+  profile       Profile?
+  wallet        Wallet?
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String  @unique
+  accountShippingCategories AccountShippingCategory[]
+  accountCustomShippingOptions AccountCustomShippingOption[]
+
+  // created by, last modified by, purchased by, sold by relations
+  createdMarketplaces Marketplace[] @relation(name: "CreatedBy")
+  lastModifiedMarketplaces Marketplace[] @relation(name: "LastModifiedBy")
+  createdBrands  Brand[] @relation(name: "CreatedBy")
+  lastModifiedBrands Brand[] @relation(name: "LastModifiedBy")
+  createdThemes Theme[] @relation(name: "CreatedBy")
+  lastModifiedThemes Theme[] @relation(name: "LastModifiedBy")
+  createdCategories Category[] @relation(name: "CreatedBy")
+  lastModifiedCategories Category[] @relation(name: "LastModifiedBy")
+  createdTags   Tag[] @relation(name: "CreatedBy")
+  lastModifiedTags Tag[] @relation(name: "LastModifiedBy")
+  createdSupportedTagValues SupportedTagValues[] @relation(name: "CreatedBy")
+  lastModifiedSupportedTagValues SupportedTagValues[] @relation(name: "LastModifiedBy")
+  createdEntities Entity[] @relation(name: "CreatedBy")
+  lastModifiedEntities Entity[] @relation(name: "LastModifiedBy")
+  createdShippingCategories ShippingCategory[] @relation(name: "CreatedBy")
+  lastModifiedShippingCategories ShippingCategory[] @relation(name: "LastModifiedBy")
+  createdShippingOptions ShippingOption[] @relation(name: "CreatedBy")
+  lastModifiedShippingOptions ShippingOption[] @relation(name: "LastModifiedBy")
+  createdLists List[] @relation(name: "CreatedBy")
+  createdReviews Review[] @relation(name: "CreatedBy")
+  createdBids Bid[] @relation(name: "CreatedBy")
+  createdListings Listing[] @relation(name: "CreatedBy")
+  createdPayouts Payout[] @relation(name: "CreatedBy")
+  createdTransactions Transaction[] @relation(name: "CreatedBy")
+  createdShipments     Shipment[] @relation(name: "CreatedBy")
+  createdOrders Order[] @relation(name: "CreatedBy")
+  purchasedOrders Order[] @relation(name: "PurchasedBy")
+  soldOrders     Order[] @relation(name: "SoldBy")
+}
+
+model Customer {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  status        Status @default(ACTIVE)
+
+  paymentAccountId  String? @unique
+  paymentAccountType PaymentAccountType @default(STRIPE)
+  paymentAccountStatus ProcessStatus?
+
   firstName     String?
   lastName      String?
+  phone         String?
   address       String?
   city          String?
   state         String?
   zipCode       String?
 
-  // processor
-  paymentCustomerId  String?
-  paymentProcessorType PaymentProcessorType @default(STRIPE)
+  // relations
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId     String  @unique
+}
+
+model Seller {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  status        Status @default(ACTIVE)
+
+  paymentAccountId  String? @unique
+  paymentAccountType PaymentAccountType @default(STRIPE)
+  paymentAccountStatus ProcessStatus?
+  isPaymentAccountVerified Boolean? @default(false)
+  sellerType SellerType?
+
+  firstName     String?
+  lastName      String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  businessName  String?
+  website       String?
 
   // relations
-  profile       Profile?
-  wallet        Wallet?
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        String  @unique
-  createdOrders Order[] @relation(name: "CreatedBy")
-  purchasedOrders Order[] @relation(name: "PurchasedBy")
-  soldOrders     Order[] @relation(name: "SoldBy")
-  accountShippingCategories AccountShippingCategory[]
-  accountCustomShippingOptions AccountCustomShippingOption[]
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId     String  @unique
 }
 
 model Profile {
@@ -166,17 +243,12 @@ model Profile {
   // custom
   username      String? @unique
   isPrivate     Boolean? @default(false)
-  fullName      String?
   image         String?
   qrCode        String?
 
   // relations
   account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
-  lists         List[]
-  reviews       Review[]
-  bids          Bid[]
-  listings      Listing[]
 }
 
 model Marketplace {
@@ -190,6 +262,10 @@ model Marketplace {
   hasMultiSellerEnabled Boolean? @default(false)
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   theme            Theme?
   brands           Brand[]
   categories       Category[]
@@ -207,6 +283,10 @@ model Brand {
   displayName      String?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
   theme            Theme?
@@ -224,6 +304,10 @@ model Theme {
   secondaryColor   String?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   marketplace      Marketplace @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
   marketplaceId    String  @unique
   brand            Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
@@ -236,10 +320,15 @@ model Category {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  name             String  @unique
+  name             String  @unique 
   displayName      String?
+  description      String?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
   brandCategories  BrandCategory[]
@@ -259,6 +348,10 @@ model ShippingCategory {
   deliveryMethodType DeliveryMethodType? @default(ECONOMY)
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
   shippingOptions  ShippingOption[]
@@ -281,6 +374,10 @@ model ShippingOption {
   isRequired       Boolean?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId  String?
   accountCustomShippingOptions AccountCustomShippingOption[]
@@ -297,6 +394,10 @@ model Tag {
   displayName      String?
   
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
   entityTags       EntityTag[]
@@ -313,6 +414,10 @@ model SupportedTagValues {
   displayName      String?
   
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId            String
 }
@@ -361,11 +466,11 @@ model List {
   type             ListType?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
   brandCategoryId  String
   entities         Entity[]
-  profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  profileId        String
 }
 
 model Entity {
@@ -381,6 +486,10 @@ model Entity {
   image            String?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
   product          Product?
   brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
   brandCategoryId  String
@@ -419,8 +528,8 @@ model Review {
   description      String
 
   // relations
-  profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  profileId        String
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId         String
 }
@@ -452,6 +561,8 @@ model Payout {
   total            Decimal? @db.Decimal(10, 2)
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   transactions     Transaction[]
   wallet           Wallet @relation(fields: [walletId], references: [id])
   walletId         String
@@ -473,8 +584,8 @@ model Listing {
   isPrimary        Boolean? @default(false)
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
-  profileId        String?
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderListings    OrderListing[]
@@ -493,8 +604,8 @@ model Bid {
   condition        Condition @default(MINT)
 
   // relations
-  profile          Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
-  profileId        String?
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderBids        OrderBid[]
@@ -586,10 +697,12 @@ model Transaction {
   currency         Currency @default(USD)
 
   paymentId        String?
-  paymentProcessorType PaymentProcessorType @default(STRIPE)
+  paymentAccountType PaymentAccountType @default(STRIPE)
   paymentMethodType PaymentMethodType @default(CARD)
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   order            Order? @relation(fields: [orderId], references: [id])
   orderId          String?
   payout           Payout? @relation(fields: [payoutId], references: [id])
@@ -664,6 +777,8 @@ model Shipment {
   trackingNumber   String?
 
   // relations
+  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
   order            Order @relation(fields: [transactionId], references: [id])
   transactionId    String  @unique
 }

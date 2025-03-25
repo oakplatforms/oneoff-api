@@ -69,14 +69,15 @@ export const supportedTagValueRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 supportedTagValueRouter.post(`/:marketplaceName/supported-tag-value`, async (req, res) => {
-  const { name, displayName, tagId } = req.body
+  const { name, displayName, tagId, createdById } = req.body
 
   try {
     const supportedTagValue = await prisma.supportedTagValues.create({
       data: {
         name,
+        createdBy: { connect: { id: createdById } },
+        tag: { connect: { id: tagId } },
         displayName,
-        tagId,
       },
     })
     res.json(supportedTagValue)

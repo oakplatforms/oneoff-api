@@ -71,32 +71,294 @@
         },
         "type": {
           "type": "string",
-          "default": "CUSTOMER",
+          "default": "REGISTERED",
           "enum": [
             "ADMIN",
-            "MARKET_MANAGER",
-            "BRAND_MANAGER",
+            "REGISTERED",
             "CUSTOMER",
             "SELLER"
-          ]
-        },
-        "isPremium": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false
-        },
-        "phone": {
-          "type": [
-            "string",
-            "null"
           ]
         },
         "email": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "seller": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Seller"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "customer": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Customer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wallet": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Wallet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "accountShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AccountShippingCategory"
+          }
+        },
+        "accountCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AccountCustomShippingOption"
+          }
+        },
+        "createdMarketplaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Marketplace"
+          }
+        },
+        "lastModifiedMarketplaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Marketplace"
+          }
+        },
+        "createdBrands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Brand"
+          }
+        },
+        "lastModifiedBrands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Brand"
+          }
+        },
+        "createdThemes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Theme"
+          }
+        },
+        "lastModifiedThemes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Theme"
+          }
+        },
+        "createdCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Category"
+          }
+        },
+        "lastModifiedCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Category"
+          }
+        },
+        "createdTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          }
+        },
+        "lastModifiedTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          }
+        },
+        "createdSupportedTagValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SupportedTagValues"
+          }
+        },
+        "lastModifiedSupportedTagValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SupportedTagValues"
+          }
+        },
+        "createdEntities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        },
+        "lastModifiedEntities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        },
+        "createdShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingCategory"
+          }
+        },
+        "lastModifiedShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingCategory"
+          }
+        },
+        "createdShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingOption"
+          }
+        },
+        "lastModifiedShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShippingOption"
+          }
+        },
+        "createdLists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/List"
+          }
+        },
+        "createdReviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Review"
+          }
+        },
+        "createdBids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Bid"
+          }
+        },
+        "createdListings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Listing"
+          }
+        },
+        "createdPayouts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Payout"
+          }
+        },
+        "createdTransactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
+        },
+        "createdShipments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Shipment"
+          }
+        },
+        "createdOrders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "purchasedOrders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "soldOrders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        }
+      }
+    },
+    "Customer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
+        },
+        "paymentAccountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paymentAccountType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
+        "paymentAccountStatus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED",
+            "FAILED"
           ]
         },
         "firstName": {
@@ -106,6 +368,12 @@
           ]
         },
         "lastName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phone": {
           "type": [
             "string",
             "null"
@@ -135,74 +403,138 @@
             "null"
           ]
         },
-        "paymentCustomerId": {
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
+        }
+      }
+    },
+    "Seller": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
+        },
+        "paymentAccountId": {
           "type": [
             "string",
             "null"
           ]
         },
-        "paymentProcessorType": {
+        "paymentAccountType": {
           "type": "string",
           "default": "STRIPE",
           "enum": [
             "STRIPE"
           ]
         },
-        "profile": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Profile"
-            },
-            {
-              "type": "null"
-            }
+        "paymentAccountStatus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED",
+            "FAILED"
           ]
         },
-        "wallet": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Wallet"
-            },
-            {
-              "type": "null"
-            }
+        "isPaymentAccountVerified": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "sellerType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "INDIVIDUAL",
+            "BUSINESS"
           ]
         },
-        "user": {
-          "$ref": "#/definitions/User"
+        "firstName": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
-        "userId": {
+        "lastName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "zipCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "businessName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "website": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
           "type": "string"
-        },
-        "createdOrders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
-        },
-        "purchasedOrders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
-        },
-        "soldOrders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
-        },
-        "accountShippingCategories": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/AccountShippingCategory"
-          }
-        },
-        "accountCustomShippingOptions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/AccountCustomShippingOption"
-          }
         }
       }
     },
@@ -233,12 +565,6 @@
           ],
           "default": false
         },
-        "fullName": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "image": {
           "type": [
             "string",
@@ -256,30 +582,6 @@
         },
         "accountId": {
           "type": "string"
-        },
-        "lists": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/List"
-          }
-        },
-        "reviews": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Review"
-          }
-        },
-        "bids": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Bid"
-          }
-        },
-        "listings": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Listing"
-          }
         }
       }
     },
@@ -312,6 +614,38 @@
             "null"
           ],
           "default": false
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "theme": {
           "anyOf": [
@@ -367,6 +701,38 @@
           "type": "string"
         },
         "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -428,6 +794,38 @@
             "null"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "marketplace": {
           "$ref": "#/definitions/Marketplace"
         },
@@ -460,6 +858,44 @@
           "type": "string"
         },
         "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -545,6 +981,38 @@
             "IN_PERSON"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "marketplace": {
           "$ref": "#/definitions/Marketplace"
         },
@@ -621,6 +1089,38 @@
             "null"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "shippingCategory": {
           "anyOf": [
             {
@@ -674,6 +1174,38 @@
             "null"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "marketplace": {
           "$ref": "#/definitions/Marketplace"
         },
@@ -712,6 +1244,38 @@
           "type": "string"
         },
         "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -849,6 +1413,22 @@
             "FAVORITE"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "brandCategory": {
           "$ref": "#/definitions/BrandCategory"
         },
@@ -860,12 +1440,6 @@
           "items": {
             "$ref": "#/definitions/Entity"
           }
-        },
-        "profile": {
-          "$ref": "#/definitions/Profile"
-        },
-        "profileId": {
-          "type": "string"
         }
       }
     },
@@ -908,6 +1482,38 @@
           ]
         },
         "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -1045,11 +1651,21 @@
         "description": {
           "type": "string"
         },
-        "profile": {
-          "$ref": "#/definitions/Profile"
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
-        "profileId": {
-          "type": "string"
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "entity": {
           "$ref": "#/definitions/Entity"
@@ -1109,7 +1725,8 @@
           "enum": [
             "COMPLETED",
             "PENDING",
-            "CANCELED"
+            "CANCELED",
+            "FAILED"
           ]
         },
         "subTotal": {
@@ -1133,6 +1750,22 @@
         "total": {
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -1208,17 +1841,17 @@
           ],
           "default": false
         },
-        "profile": {
+        "createdBy": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Profile"
+              "$ref": "#/definitions/Account"
             },
             {
               "type": "null"
             }
           ]
         },
-        "profileId": {
+        "createdById": {
           "type": [
             "string",
             "null"
@@ -1296,17 +1929,17 @@
             "DAMAGED"
           ]
         },
-        "profile": {
+        "createdBy": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Profile"
+              "$ref": "#/definitions/Account"
             },
             {
               "type": "null"
             }
           ]
         },
-        "profileId": {
+        "createdById": {
           "type": [
             "string",
             "null"
@@ -1404,7 +2037,8 @@
           "enum": [
             "COMPLETED",
             "PENDING",
-            "CANCELED"
+            "CANCELED",
+            "FAILED"
           ]
         },
         "subTotal": {
@@ -1634,7 +2268,7 @@
             "null"
           ]
         },
-        "paymentProcessorType": {
+        "paymentAccountType": {
           "type": "string",
           "default": "STRIPE",
           "enum": [
@@ -1648,6 +2282,22 @@
             "CARD",
             "BANK_ACCOUNT",
             "APPLE_PAY"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
           ]
         },
         "order": {
@@ -1845,6 +2495,22 @@
             "null"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "order": {
           "$ref": "#/definitions/Order"
         },
@@ -1861,6 +2527,12 @@
     },
     "account": {
       "$ref": "#/definitions/Account"
+    },
+    "customer": {
+      "$ref": "#/definitions/Customer"
+    },
+    "seller": {
+      "$ref": "#/definitions/Seller"
     },
     "profile": {
       "$ref": "#/definitions/Profile"

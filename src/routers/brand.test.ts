@@ -28,10 +28,10 @@ const mockBrandTwo = {
 
 let createdBrandId: string
 
-describe('Marketplace and Brand Routes', () => {
+describe('Brand Routes', () => {
   beforeAll(async () => {
-    await prisma.marketplace.deleteMany()
-    await prisma.brand.deleteMany()
+    prisma.brand.deleteMany()
+    prisma.marketplace.deleteMany()
     await request(app).post('/marketplace').send(mockMarketplaceBrandOne)
 
     const brandResponse = await request(app)
@@ -42,8 +42,8 @@ describe('Marketplace and Brand Routes', () => {
   })
 
   afterAll(async () => {
-    await prisma.brand.deleteMany()
-    await prisma.marketplace.deleteMany()
+    prisma.brand.deleteMany()
+    prisma.marketplace.deleteMany()
   })
 
   test('POST /:marketplaceName/brand should create a new brand', async () => {

@@ -7,7 +7,7 @@ const prisma = getPrismaClient()
 export const listRouter = express.Router()
 
 listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
-  const { name, type, displayName, description, entities, profileId, brandCategoryId } = req.body
+  const { name, type, displayName, description, entities, createdById, brandCategoryId } = req.body
 
   try {
     const entitiesData = entities?.map((entity: Prisma.EntityCreateInput) => {
@@ -26,7 +26,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
         entities: {
           create: entitiesData,
         },
-        profile: { connect: { id: profileId } },
+        createdBy: { connect: { id: createdById } },
         brandCategory: { connect: { id: brandCategoryId } },
       },
     })

@@ -136,13 +136,14 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, 
  */
 shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, res) => {
   const { marketplaceName } = req.params
-  const { name, displayName, shippingOptions } = req.body
+  const { name, displayName, shippingOptions, createdById } = req.body
 
   try {
     const shippingCategory = await prisma.shippingCategory.create({
       data: {
         name,
         displayName,
+        createdBy: { connect: { id: createdById } },
         marketplace: { connect: { name: marketplaceName } },
         shippingOptions: shippingOptions?.create?.length
           ? {
@@ -250,6 +251,12 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
             create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
               ...shippingOption
             })),
+            updateMany: shippingOptions.update?.map(
+              (shippingOption: Prisma.ShippingOptionUpdateInput) => ({
+                where: { id: shippingOption.id },
+                data: shippingOption,
+              })
+            ),
             deleteMany: shippingOptions.delete?.map((shippingOptionId: string) => ({
               id: shippingOptionId
             })),

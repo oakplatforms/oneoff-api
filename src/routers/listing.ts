@@ -74,18 +74,18 @@ export const listingRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
-  const { include, entityId, profileId, status } = req.query
+  const { include, entityId, createdById, status } = req.query
   try {
     const listings = await prisma.listing.findMany({
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          entityId && profileId
-            ? { entityId: entityId as string, profileId: profileId as string }
+          entityId && createdById
+            ? { entityId: entityId as string, createdById: createdById as string }
             : entityId
               ? { entityId: entityId as string }
-              : profileId
-                ? { profileId: profileId as string }
+              : createdById
+                ? { createdById: createdById as string }
                 : {}
         ]
       },
@@ -316,21 +316,21 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
     quantity,
     status,
     multiTransactionsEnabled,
-    profileId,
+    createdById,
     entityId,
   } = req.body
 
   try {
-    const profile = await prisma.profile.findUnique({
-      where: { id: profileId },
+    const account = await prisma.account.findUnique({
+      where: { id: createdById },
     })
-    if (!profile) {
-      throw new Error('Profile does not exist')
+    if (!account) {
+      throw new Error('Account does not exist')
     }
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
-          { profileId: profileId },
+          { createdById: createdById },
           { entityId: entityId },
           { status: 'ACTIVE' }
         ],
@@ -345,7 +345,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
       const bids = await resolveBids({
         price,
         entityId,
-        profileId,
+        createdById,
       })
 
       if (bids.length) {
@@ -358,11 +358,11 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
           quantity,
           status,
           multiTransactionsEnabled,
-          profile: { connect: { id: profileId } },
+          createdBy: { connect: { id: createdById } },
           entity: { connect: { id: entityId } },
         },
         include: {
-          profile: true
+          createdBy: true
         }
       })
 
@@ -514,7 +514,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
   const { id } = req.params
   const {
     price,
-    profileId,
+    createdById,
     entityId,
   } = req.body
 
@@ -530,7 +530,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
     const bids = await resolveBids({
       price,
       entityId,
-      profileId,
+      createdById,
     })
 
     if (bids.length) {
@@ -543,7 +543,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
         ...req.body,
       },
       include: {
-        profile: true
+        createdBy: true
       }
     })
     if (listing) {

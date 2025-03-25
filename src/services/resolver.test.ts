@@ -11,8 +11,8 @@ app.use(marketplaceRouter)
 app.use(brandRouter)
 
 describe('Resolver Service', () => {
-  let profileId: string
-  let sellerProfileId: string
+  let createdById: string
+  let sellerCreatedById: string
   let entityId: string
   let brandName: string
   let categoryName: string
@@ -46,7 +46,7 @@ describe('Resolver Service', () => {
       },
     })
 
-    profileId = profile.id
+    createdById = profile.id
 
     const sellerUser = await prisma.user.create({
       data: { authId: 'seller-auth' },
@@ -64,7 +64,7 @@ describe('Resolver Service', () => {
       },
     })
 
-    sellerProfileId = sellerProfile.id
+    sellerCreatedById = sellerProfile.id
 
     const marketplace = await prisma.marketplace.create({
       data: { name: 'test-marketplace' },
@@ -117,7 +117,7 @@ describe('Resolver Service', () => {
     const mockBid = {
       entityId,
       price: '100',
-      profileId,
+      createdById,
     }
 
     await prisma.listing.create({
@@ -126,7 +126,7 @@ describe('Resolver Service', () => {
         price: '90',
         status: 'ACTIVE',
         quantity: 5,
-        profileId: sellerProfileId,
+        createdById: sellerCreatedById,
       },
     })
 
@@ -140,7 +140,7 @@ describe('Resolver Service', () => {
     const mockListing = {
       entityId,
       price: '80',
-      profileId: sellerProfileId,
+      createdById: sellerCreatedById,
     }
 
     await prisma.bid.create({
@@ -149,7 +149,7 @@ describe('Resolver Service', () => {
         price: '85',
         status: 'ACTIVE',
         quantity: 3,
-        profileId,
+        createdById: sellerCreatedById
       },
     })
 

@@ -1,11 +1,11 @@
-import express, { Request, Response, NextFunction } from 'express'
+import express, { Request, Response } from 'express'
 import router from './routers/all_routes'
 import swaggerUi from 'swagger-ui-express'
 import swaggerJSDoc from 'swagger-jsdoc'
 import dto from './generated/json/json-schema.json'
 import { replaceDTORefs, alphaSortDTO } from './utils/dtoHelpers'
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Promise Rejection:', reason)
 })
 
@@ -32,7 +32,7 @@ const jsDocOptions = {
       }
     },
   },
-  apis: ['./src/routers/*.ts'], //files containing annotations as above
+  apis: ['./src/routers/*.ts'],
 }
 
 const swaggerUIOptions = {
@@ -46,7 +46,7 @@ app.use('/api/v1', router)
 app.get('/open-api', (req, res) => res.json(jsDocOptions.definition))
 app.use('/swagger-ui', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUIOptions))
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, req: Request, res: Response) => {
 
   if (!res.headersSent) {
     if (err.message) {
@@ -57,6 +57,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   }
 })
 
-const server = app.listen(3000, () =>
+app.listen(3000, () =>
   console.log(`Server ready at: http://localhost:3000`),
 )
