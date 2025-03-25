@@ -251,6 +251,12 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
             create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
               ...shippingOption
             })),
+            updateMany: shippingOptions.update?.map(
+              (shippingOption: Prisma.ShippingOptionUpdateInput) => ({
+                where: { id: shippingOption.id },
+                data: shippingOption,
+              })
+            ),
             deleteMany: shippingOptions.delete?.map((shippingOptionId: string) => ({
               id: shippingOptionId
             })),

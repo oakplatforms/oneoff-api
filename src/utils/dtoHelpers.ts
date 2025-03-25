@@ -1,6 +1,8 @@
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JSONSchema = Record<string, any>;
 
 export const replaceDTORefs = (obj: JSONSchema): JSONSchema => {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   function traverse(value: any): any {
     if (typeof value === 'string') {
       return value.replace(/#\/definitions\//g, '#/components/schemas/')
@@ -16,8 +18,9 @@ export const replaceDTORefs = (obj: JSONSchema): JSONSchema => {
 
   return traverse(obj)
 }
-
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const alphaSortDTO = (obj: Record<string, any>): Record<string, any> => {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedObj: Record<string, any> = {}
   const sortedKeys = Object.keys(obj).sort((a, b) => a.localeCompare(b))
 

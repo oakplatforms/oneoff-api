@@ -71,26 +71,12 @@
         },
         "type": {
           "type": "string",
-          "default": "CUSTOMER",
+          "default": "REGISTERED",
           "enum": [
             "ADMIN",
-            "MARKET_MANAGER",
-            "BRAND_MANAGER",
+            "REGISTERED",
             "CUSTOMER",
             "SELLER"
-          ]
-        },
-        "isPremium": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false
-        },
-        "phone": {
-          "type": [
-            "string",
-            "null"
           ]
         },
         "email": {
@@ -99,53 +85,24 @@
             "null"
           ]
         },
-        "firstName": {
-          "type": [
-            "string",
-            "null"
+        "seller": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Seller"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "lastName": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "address": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "city": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "state": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "zipCode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "paymentCustomerId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "paymentProcessorType": {
-          "type": "string",
-          "default": "STRIPE",
-          "enum": [
-            "STRIPE"
+        "customer": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Customer"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "profile": {
@@ -356,6 +313,231 @@
         }
       }
     },
+    "Customer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
+        },
+        "paymentAccountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paymentAccountType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
+        "paymentAccountStatus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED",
+            "FAILED"
+          ]
+        },
+        "firstName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "zipCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
+        }
+      }
+    },
+    "Seller": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
+        },
+        "paymentAccountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paymentAccountType": {
+          "type": "string",
+          "default": "STRIPE",
+          "enum": [
+            "STRIPE"
+          ]
+        },
+        "paymentAccountStatus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED",
+            "FAILED"
+          ]
+        },
+        "isPaymentAccountVerified": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "sellerType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "INDIVIDUAL",
+            "BUSINESS"
+          ]
+        },
+        "firstName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "zipCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "businessName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "website": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
+        }
+      }
+    },
     "Profile": {
       "type": "object",
       "properties": {
@@ -382,12 +564,6 @@
             "null"
           ],
           "default": false
-        },
-        "fullName": {
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "image": {
           "type": [
@@ -1549,7 +1725,8 @@
           "enum": [
             "COMPLETED",
             "PENDING",
-            "CANCELED"
+            "CANCELED",
+            "FAILED"
           ]
         },
         "subTotal": {
@@ -1860,7 +2037,8 @@
           "enum": [
             "COMPLETED",
             "PENDING",
-            "CANCELED"
+            "CANCELED",
+            "FAILED"
           ]
         },
         "subTotal": {
@@ -2090,7 +2268,7 @@
             "null"
           ]
         },
-        "paymentProcessorType": {
+        "paymentAccountType": {
           "type": "string",
           "default": "STRIPE",
           "enum": [
@@ -2349,6 +2527,12 @@
     },
     "account": {
       "$ref": "#/definitions/Account"
+    },
+    "customer": {
+      "$ref": "#/definitions/Customer"
+    },
+    "seller": {
+      "$ref": "#/definitions/Seller"
     },
     "profile": {
       "$ref": "#/definitions/Profile"
