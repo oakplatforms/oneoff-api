@@ -16,8 +16,14 @@ import { shippingCategoryRouter } from './shippingCategory'
 import { orderRouter } from './order'
 import { transactionRouter } from './transaction'
 import { invoiceRouter } from './invoice'
+import { accountRouter } from './account'
+import { sellerRouter } from './seller'
+import { customerRouter } from './customers'
 
 router.use(userRouter)
+router.use(accountRouter)
+router.use(customerRouter)
+router.use(sellerRouter)
 router.use(marketplaceRouter)
 router.use(brandRouter)
 router.use(categoryRouter)

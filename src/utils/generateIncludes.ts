@@ -1,37 +1,32 @@
 import { ParsedQs } from 'qs'
 
-export const generateIncludes = (include?: ParsedQs | ParsedQs[] | string | string[] | null ) => {
-  const items = {}
+export const generateIncludes = (
+  include?: ParsedQs | ParsedQs[] | string | string[] | null
+) => {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const items: Record<string, any> = {}
+
+  const addNestedInclude = (parent: string, child: string) => {
+    if (!items[parent]) {
+      items[parent] = { include: {} }
+    }
+    if (!items[parent].include) {
+      items[parent].include = {}
+    }
+    items[parent].include[child] = true
+  }
 
   if (include) {
-    if (Array.isArray(include)) {
-      include.forEach((key: ParsedQs | ParsedQs[] | string | string[] | null) => {
-        if (typeof key === 'string' && key.includes('.')) {
-          const parent = key.split('.')[0]
-          const child = key.split('.')[1]
-          const nestedInclude = {
-            include: {
-              [child]: true
-            }
-          }
-          items[parent as keyof typeof items] = nestedInclude as never
-        } else if (typeof key === 'string') {
-          items[key as keyof typeof items] = true as never
-        }
-      })
-    }
-    if (typeof include === 'string' && include.includes('.')) {
-      const parent = include.split('.')[0]
-      const child = include.split('.')[1]
-      const nestedInclude = {
-        include: {
-          [child]: true
-        }
+    const includes = Array.isArray(include) ? include : [include]
+
+    includes.forEach((key) => {
+      if (typeof key === 'string' && key.includes('.')) {
+        const [parent, child] = key.split('.')
+        addNestedInclude(parent, child)
+      } else if (typeof key === 'string') {
+        items[key] = true
       }
-      items[parent as keyof typeof items] = nestedInclude as never
-    } else if (typeof include === 'string') {
-      items[include as keyof typeof items] = true as never
-    }
+    })
   }
 
   return items

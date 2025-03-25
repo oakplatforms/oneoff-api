@@ -33,10 +33,19 @@ enum ListType {
 
 enum AccountType {
   ADMIN
-  MARKET_MANAGER
-  BRAND_MANAGER
+  REGISTERED
   CUSTOMER
   SELLER
+}
+
+enum AdminType {
+  MARKET_MANAGER
+  BRAND_MANAGER
+}
+
+enum SellerType {
+  INDIVIDUAL
+  BUSINESS
 }
 
 enum Status {
@@ -49,6 +58,7 @@ enum ProcessStatus {
   COMPLETED
   PENDING
   CANCELED
+  FAILED
 }
 
 enum TransactionType {
@@ -65,7 +75,7 @@ enum TransactionStatus {
   REQUIRES_ACTION
 }
 
-enum PaymentProcessorType {
+enum PaymentAccountType {
   STRIPE
 }
 
@@ -131,22 +141,12 @@ model Account {
   status        Status @default(ACTIVE)
 
   // custom
-  type          AccountType @default(CUSTOMER)
-  isPremium     Boolean? @default(false)
-  phone         String?
+  type          AccountType @default(REGISTERED)
   email         String?
-  firstName     String?
-  lastName      String?
-  address       String?
-  city          String?
-  state         String?
-  zipCode       String?
-
-  // processor
-  paymentCustomerId  String?
-  paymentProcessorType PaymentProcessorType @default(STRIPE)
 
   // relations
+  seller        Seller?
+  customer      Customer?
   profile       Profile?
   wallet        Wallet?
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -185,6 +185,56 @@ model Account {
   soldOrders     Order[] @relation(name: "SoldBy")
 }
 
+model Customer {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  status        Status @default(ACTIVE)
+
+  paymentAccountId  String? @unique
+  paymentAccountType PaymentAccountType @default(STRIPE)
+  paymentAccountStatus ProcessStatus?
+
+  firstName     String?
+  lastName      String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+
+  // relations
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId     String  @unique
+}
+
+model Seller {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  status        Status @default(ACTIVE)
+
+  paymentAccountId  String? @unique
+  paymentAccountType PaymentAccountType @default(STRIPE)
+  paymentAccountStatus ProcessStatus?
+  isPaymentAccountVerified Boolean? @default(false)
+  sellerType SellerType?
+
+  firstName     String?
+  lastName      String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  businessName  String?
+  website       String?
+
+  // relations
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId     String  @unique
+}
+
 model Profile {
   id            String   @id @default(cuid()) 
   createdAt     DateTime @default(now())
@@ -193,7 +243,6 @@ model Profile {
   // custom
   username      String? @unique
   isPrivate     Boolean? @default(false)
-  fullName      String?
   image         String?
   qrCode        String?
 
@@ -648,7 +697,7 @@ model Transaction {
   currency         Currency @default(USD)
 
   paymentId        String?
-  paymentProcessorType PaymentProcessorType @default(STRIPE)
+  paymentAccountType PaymentAccountType @default(STRIPE)
   paymentMethodType PaymentMethodType @default(CARD)
 
   // relations
