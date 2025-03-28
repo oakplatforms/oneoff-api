@@ -91,23 +91,34 @@ enum Currency {
   CAD
 }
 
-enum DeliveryType {
+enum ShippingCarrierType {
   USPS
   UPS
   FEDEX
-  IN_PERSON
+  DHL
 }
 
-enum DeliveryMethodType {
-  FIRST_CLASS_MAIL
-  NEXT_DAY_AIR
-  OVERNIGHT
-  PRIORITY
+enum ShippingPackageType {
+  ENVELOPE
+  BOX
+}
+
+enum ShippingServiceType {
   FLAT_RATE
-  EXPRESS
   ECONOMY
-  INTERNATIONAL
-  IN_PERSON
+  GROUND
+  FIRST_CLASS
+  PRIORITY
+  EXPRESS
+  OVERNIGHT
+}
+
+enum Size {
+  EXTRA_SMALL
+  SMALL
+  MEDIUM
+  LARGE
+  EXTRA_LARGE
 }
 
 enum Condition {
@@ -151,8 +162,6 @@ model Account {
   wallet        Wallet?
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String  @unique
-  accountShippingCategories AccountShippingCategory[]
-  accountCustomShippingOptions AccountCustomShippingOption[]
 
   // created by, last modified by, purchased by, sold by relations
   createdMarketplaces Marketplace[] @relation(name: "CreatedBy")
@@ -233,6 +242,9 @@ model Seller {
   // relations
   account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
+  sellerShippingCategories SellerShippingCategory[]
+  sellerCustomShippingOptions SellerCustomShippingOption[]
+  shippingCarrierTypes ShippingCarrierType[]
 }
 
 model Profile {
@@ -343,9 +355,9 @@ model ShippingCategory {
   name             String
   displayName      String?
   description      String?
-  level            Float?
-  deliveryType     DeliveryType? @default(USPS)
-  deliveryMethodType DeliveryMethodType? @default(ECONOMY)
+  size             Size? @default(SMALL)
+  shippingPackageType ShippingPackageType @default(ENVELOPE)
+  shippingServiceType ShippingServiceType @default(ECONOMY)
 
   // relations
   createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -355,7 +367,7 @@ model ShippingCategory {
   marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
   marketplaceName  String
   shippingOptions  ShippingOption[]
-  accountShippingCategories AccountShippingCategory[]
+  sellerShippingCategories SellerShippingCategory[]
   bidShippingCategories BidShippingCategory[]
 }
 
@@ -380,7 +392,7 @@ model ShippingOption {
   lastModifiedById String?
   shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId  String?
-  accountCustomShippingOptions AccountCustomShippingOption[]
+  sellerCustomShippingOptions SellerCustomShippingOption[]
   bidCustomShippingOptions BidCustomShippingOption[]
 }
 
@@ -709,32 +721,32 @@ model Transaction {
   payoutId         String?
 }
 
-model AccountShippingCategory {
+model SellerShippingCategory {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   // relations
-  account          Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId        String
+  seller           Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId         String
   shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
   shippingCategoryId String
 
-  @@id([accountId, shippingCategoryId])
+  @@id([sellerId, shippingCategoryId])
 }
 
-model AccountCustomShippingOption {
+model SellerCustomShippingOption {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   // relations
-  account          Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId        String
+  seller           Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId         String
   shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
   shippingOptionId String
 
-  @@id([accountId, shippingOptionId])
+  @@id([sellerId, shippingOptionId])
 }
 
 model BidShippingCategory {
@@ -772,8 +784,6 @@ model Shipment {
 
   // custom
   fee              Decimal? @db.Decimal(10, 2)
-  deliveryType     DeliveryType
-  deliveryMethodType DeliveryMethodType
   trackingNumber   String?
 
   // relations

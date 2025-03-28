@@ -207,6 +207,37 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   }
 })
 
+sellerRouter.put('/seller/shipping-preferences/:sellerId', async (req, res) => {
+  const { sellerId } = req.params
+  const {
+    sellerShippingCategories,
+    shippingCarrierTypes
+  } = req.body
+
+  try {
+    const updatedSeller = await prisma.seller.update({
+      where: { id: sellerId },
+      data: {
+        shippingCarrierTypes,
+        sellerShippingCategories: sellerShippingCategories
+          ? {
+            create: sellerShippingCategories.create?.map((sellerShippingCategory: { shippingCategoryId: string }) => ({
+              shippingCategoryId: sellerShippingCategory.shippingCategoryId,
+            })),
+            deleteMany: sellerShippingCategories.delete?.map((sellerShippingCategoryId: string) => ({
+              id: sellerShippingCategoryId
+            })),
+          }
+          : undefined,
+      },
+    })
+    res.json(updatedSeller)
+  } catch (error) {
+    console.error('Error fetching external accounts:', error)
+    return res.status(500).json({ error: 'Failed to retrieve external accounts' })
+  }
+})
+
 sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
   const { sellerId } = req.params
 

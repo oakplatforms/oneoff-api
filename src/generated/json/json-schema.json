@@ -131,18 +131,6 @@
         "userId": {
           "type": "string"
         },
-        "accountShippingCategories": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/AccountShippingCategory"
-          }
-        },
-        "accountCustomShippingOptions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/AccountCustomShippingOption"
-          }
-        },
         "createdMarketplaces": {
           "type": "array",
           "items": {
@@ -535,6 +523,27 @@
         },
         "accountId": {
           "type": "string"
+        },
+        "sellerShippingCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SellerShippingCategory"
+          }
+        },
+        "sellerCustomShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SellerCustomShippingOption"
+          }
+        },
+        "shippingCarrierTypes": {
+          "type": "array",
+          "enum": [
+            "USPS",
+            "UPS",
+            "FEDEX",
+            "DHL"
+          ]
         }
       }
     },
@@ -944,41 +953,39 @@
             "null"
           ]
         },
-        "level": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "deliveryType": {
+        "size": {
           "type": [
             "string",
             "null"
           ],
-          "default": "USPS",
+          "default": "SMALL",
           "enum": [
-            "USPS",
-            "UPS",
-            "FEDEX",
-            "IN_PERSON"
+            "EXTRA_SMALL",
+            "SMALL",
+            "MEDIUM",
+            "LARGE",
+            "EXTRA_LARGE"
           ]
         },
-        "deliveryMethodType": {
-          "type": [
-            "string",
-            "null"
-          ],
+        "shippingPackageType": {
+          "type": "string",
+          "default": "ENVELOPE",
+          "enum": [
+            "ENVELOPE",
+            "BOX"
+          ]
+        },
+        "shippingServiceType": {
+          "type": "string",
           "default": "ECONOMY",
           "enum": [
-            "FIRST_CLASS_MAIL",
-            "NEXT_DAY_AIR",
-            "OVERNIGHT",
-            "PRIORITY",
             "FLAT_RATE",
-            "EXPRESS",
             "ECONOMY",
-            "INTERNATIONAL",
-            "IN_PERSON"
+            "GROUND",
+            "FIRST_CLASS",
+            "PRIORITY",
+            "EXPRESS",
+            "OVERNIGHT"
           ]
         },
         "createdBy": {
@@ -1025,10 +1032,10 @@
             "$ref": "#/definitions/ShippingOption"
           }
         },
-        "accountShippingCategories": {
+        "sellerShippingCategories": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/AccountShippingCategory"
+            "$ref": "#/definitions/SellerShippingCategory"
           }
         },
         "bidShippingCategories": {
@@ -1137,10 +1144,10 @@
             "null"
           ]
         },
-        "accountCustomShippingOptions": {
+        "sellerCustomShippingOptions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/AccountCustomShippingOption"
+            "$ref": "#/definitions/SellerCustomShippingOption"
           }
         },
         "bidCustomShippingOptions": {
@@ -2334,7 +2341,7 @@
         }
       }
     },
-    "AccountShippingCategory": {
+    "SellerShippingCategory": {
       "type": "object",
       "properties": {
         "id": {
@@ -2348,10 +2355,10 @@
           "type": "string",
           "format": "date-time"
         },
-        "account": {
-          "$ref": "#/definitions/Account"
+        "seller": {
+          "$ref": "#/definitions/Seller"
         },
-        "accountId": {
+        "sellerId": {
           "type": "string"
         },
         "shippingCategory": {
@@ -2362,7 +2369,7 @@
         }
       }
     },
-    "AccountCustomShippingOption": {
+    "SellerCustomShippingOption": {
       "type": "object",
       "properties": {
         "id": {
@@ -2376,10 +2383,10 @@
           "type": "string",
           "format": "date-time"
         },
-        "account": {
-          "$ref": "#/definitions/Account"
+        "seller": {
+          "$ref": "#/definitions/Seller"
         },
-        "accountId": {
+        "sellerId": {
           "type": "string"
         },
         "shippingOption": {
@@ -2464,29 +2471,6 @@
           "type": [
             "number",
             "null"
-          ]
-        },
-        "deliveryType": {
-          "type": "string",
-          "enum": [
-            "USPS",
-            "UPS",
-            "FEDEX",
-            "IN_PERSON"
-          ]
-        },
-        "deliveryMethodType": {
-          "type": "string",
-          "enum": [
-            "FIRST_CLASS_MAIL",
-            "NEXT_DAY_AIR",
-            "OVERNIGHT",
-            "PRIORITY",
-            "FLAT_RATE",
-            "EXPRESS",
-            "ECONOMY",
-            "INTERNATIONAL",
-            "IN_PERSON"
           ]
         },
         "trackingNumber": {
@@ -2606,11 +2590,11 @@
     "transaction": {
       "$ref": "#/definitions/Transaction"
     },
-    "accountShippingCategory": {
-      "$ref": "#/definitions/AccountShippingCategory"
+    "sellerShippingCategory": {
+      "$ref": "#/definitions/SellerShippingCategory"
     },
-    "accountCustomShippingOption": {
-      "$ref": "#/definitions/AccountCustomShippingOption"
+    "sellerCustomShippingOption": {
+      "$ref": "#/definitions/SellerCustomShippingOption"
     },
     "bidShippingCategory": {
       "$ref": "#/definitions/BidShippingCategory"
