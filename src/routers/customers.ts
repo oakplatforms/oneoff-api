@@ -13,17 +13,23 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
 
   try {
     const result = await prisma.$transaction(async (prisma) => {
-      const updatedAccount = await prisma.account.update({
+      const existingAccount = await prisma.account.findUnique({
         where: { id: accountId },
-        data: { type: 'CUSTOMER' },
       })
 
-      if (!updatedAccount) {
+      if (!existingAccount) {
         throw new Error('Account not found.')
       }
 
+      if (existingAccount.type !== 'SELLER') {
+        await prisma.account.update({
+          where: { id: accountId },
+          data: { type: 'CUSTOMER' },
+        })
+      }
+
       const stripeCustomer = await stripe.customers.create({
-        email: updatedAccount.email || undefined,
+        email: existingAccount.email || undefined,
         name: `${firstName} ${lastName}`.trim() || undefined,
         phone: phone || undefined,
         address: {
