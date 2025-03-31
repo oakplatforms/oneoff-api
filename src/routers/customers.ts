@@ -7,6 +7,76 @@ import Stripe from 'stripe'
 const prisma = getPrismaClient()
 export const customerRouter = express.Router()
 
+/**
+ * @openapi
+ * /customer/{accountId}:
+ *   post:
+ *     tags:
+ *       - Customer
+ *     summary: Create a new customer profile
+ *     description: Sets up a new customer for a given account. If the account exists and is not already a CUSTOMER type, it will be updated. A Stripe customer will also be created.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the account to associate with the new customer.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - phone
+ *               - address
+ *               - city
+ *               - state
+ *               - zipCode
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               zipCode:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Successfully created the customer account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Customer'
+ *       '400':
+ *         description: Account not found or bad request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       '500':
+ *         description: Internal server error during customer creation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 customerRouter.post('/customer/:accountId', async (req, res) => {
   const { accountId } = req.params
   const { firstName, lastName, phone, address, city, state, zipCode } = req.body
@@ -66,6 +136,70 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /customer/{accountId}:
+ *   put:
+ *     tags:
+ *       - Customer
+ *     summary: Update an existing customer profile
+ *     description: Updates a customer's local and Stripe information. Requires a valid customer associated with the provided account ID.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the account associated with the customer to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               zipCode:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the customer account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Customer'
+ *       '400':
+ *         description: Missing Stripe customer ID or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       '500':
+ *         description: Internal server error during update.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 customerRouter.put('/customer/:accountId', async (req, res) => {
   const { accountId } = req.params
   const {
@@ -127,6 +261,57 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /customer/payment-methods/{customerId}:
+ *   get:
+ *     tags:
+ *       - Customer
+ *     summary: Retrieve Stripe payment methods for a customer
+ *     description: Returns a list of saved card payment methods for a given Stripe customer ID.
+ *     parameters:
+ *       - in: path
+ *         name: customerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe customer ID whose payment methods you want to retrieve.
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the customer's payment methods.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 object:
+ *                   type: string
+ *                   example: list
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PaymentMethod'
+ *       '400':
+ *         description: Missing or invalid customerId.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Missing required parameter: customerId"
+ *       '500':
+ *         description: Server error while retrieving payment methods.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to retrieve payment methods
+ */
 customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => {
   const { customerId } = req.params
 
@@ -147,6 +332,65 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
   }
 })
 
+/**
+ * @openapi
+ * /customer/add-payment-method/{customerId}:
+ *   post:
+ *     tags:
+ *       - Customer
+ *     summary: Add a payment method to a customer
+ *     description: Attaches a Stripe payment method to the specified customer and sets it as the default payment method.
+ *     parameters:
+ *       - in: path
+ *         name: customerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe customer ID to which the payment method should be attached.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentMethodId
+ *             properties:
+ *               paymentMethodId:
+ *                 type: string
+ *                 example: pm_1JX8Yb2eZvKYlo2CJfXZ1234
+ *     responses:
+ *       '200':
+ *         description: Payment method successfully added and set as default.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Payment method was successfully added
+ *       '400':
+ *         description: Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Missing required parameters."
+ *       '500':
+ *         description: Error occurred while adding the payment method.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: There was an error while adding your payment method
+ */
 customerRouter.post('/customer/add-payment-method/:customerId', async (req, res) => {
   const { customerId } = req.params
   const { paymentMethodId } = req.body
@@ -169,6 +413,53 @@ customerRouter.post('/customer/add-payment-method/:customerId', async (req, res)
   }
 })
 
+/**
+ * @openapi
+ * /customer/payment-method/{paymentMethodId}:
+ *   delete:
+ *     tags:
+ *       - Customer
+ *     summary: Remove a customer's payment method
+ *     description: Detaches a Stripe payment method from a customer.
+ *     parameters:
+ *       - in: path
+ *         name: paymentMethodId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe payment method ID to be removed.
+ *     responses:
+ *       '200':
+ *         description: Payment method successfully removed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Payment method was successfully removed
+ *       '400':
+ *         description: Missing required parameter.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Missing required parameter: paymentMethodId"
+ *       '500':
+ *         description: Error occurred while removing the payment method.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: There was an error while removing your payment method
+ */
 customerRouter.delete('/customer/payment-method/:paymentMethodId', async (req, res) => {
   const { paymentMethodId } = req.params
 
