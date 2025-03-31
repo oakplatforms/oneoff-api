@@ -3,10 +3,168 @@ import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
+import { generateIncludes } from '../utils/generateIncludes'
 const prisma = getPrismaClient()
-
 export const sellerRouter = express.Router()
 
+/**
+ * @openapi
+ * /seller/{id}:
+ *   get:
+ *     tags:
+ *       - Seller
+ *     summary: Get seller by ID
+ *     description: Retrieves a seller by their unique ID. You can optionally include related entities using the `include` query parameter.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the seller to retrieve.
+ *       - in: query
+ *         name: include
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include (e.g., `account,shippingOptions`).
+ *     responses:
+ *       '200':
+ *         description: Seller retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Seller'
+ *       '404':
+ *         description: No seller found with the given ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: No seller ID found
+ *       '500':
+ *         description: Internal server error while retrieving seller.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+sellerRouter.get('/seller/:id', async (req, res) => {
+  const { id } = req.params
+  const { include } = req.query
+
+  try {
+    const seller = await prisma.seller.findUnique({
+      where: { id },
+      include: generateIncludes(include)
+    })
+
+    if (seller) {
+      res.json(seller)
+    } else {
+      throw new Error('No seller ID found')
+    }
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
+ * /seller/{accountId}:
+ *   post:
+ *     tags:
+ *       - Seller
+ *     summary: Create a new seller account
+ *     description: Converts an existing account to a seller and creates a Stripe account with the provided information.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the account to convert into a seller.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sellerType:
+ *                 type: string
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               zipCode:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               ssn:
+ *                 type: string
+ *                 description: Full SSN (optional, for enhanced verification)
+ *               ssnLastFour:
+ *                 type: string
+ *               businessName:
+ *                 type: string
+ *               website:
+ *                 type: string
+ *               mcc:
+ *                 type: string
+ *                 description: Merchant category code
+ *               taxId:
+ *                 type: string
+ *               dateOfBirth:
+ *                 type: object
+ *                 properties:
+ *                   day:
+ *                     type: integer
+ *                   month:
+ *                     type: integer
+ *                   year:
+ *                     type: integer
+ *               agreedToTerms:
+ *                 type: boolean
+ *     responses:
+ *       '200':
+ *         description: Seller account created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Seller'
+ *       '400':
+ *         description: Invalid request or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       '500':
+ *         description: Internal server error while creating the seller.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 sellerRouter.post('/seller/:accountId', async (req, res) => {
   const { accountId } = req.params
   const {
@@ -121,6 +279,74 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /seller/{accountId}:
+ *   put:
+ *     tags:
+ *       - Seller
+ *     summary: Update seller account details
+ *     description: Updates seller information and syncs changes to the associated Stripe account.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the account to update seller information for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sellerType:
+ *                 type: string
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               zipCode:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               businessName:
+ *                 type: string
+ *               website:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Seller account updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Seller'
+ *       '400':
+ *         description: Invalid request or parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       '500':
+ *         description: Internal server error while updating the seller.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 sellerRouter.put('/seller/:accountId', async (req, res) => {
   const { accountId } = req.params
   const {
@@ -207,8 +433,67 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   }
 })
 
-sellerRouter.put('/seller/shipping-preferences/:sellerId', async (req, res) => {
-  const { sellerId } = req.params
+/**
+ * @openapi
+ * /seller/shipping-preferences/{id}:
+ *   put:
+ *     tags:
+ *       - Seller
+ *     summary: Update seller shipping preferences
+ *     description: Updates a seller's shipping carrier types and associated shipping categories.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the seller whose shipping preferences are being updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               shippingCarrierTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of selected shipping carrier types (e.g., USPS, UPS).
+ *               sellerShippingCategories:
+ *                 type: object
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         shippingCategoryId:
+ *                           type: string
+ *                   delete:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 description: Categories to create or delete in the seller’s shipping preferences.
+ *     responses:
+ *       '200':
+ *         description: Shipping preferences successfully updated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Seller'
+ *       '500':
+ *         description: Server error while updating shipping preferences.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
+sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
+  const { id } = req.params
   const {
     sellerShippingCategories,
     shippingCarrierTypes
@@ -216,7 +501,7 @@ sellerRouter.put('/seller/shipping-preferences/:sellerId', async (req, res) => {
 
   try {
     const updatedSeller = await prisma.seller.update({
-      where: { id: sellerId },
+      where: { id },
       data: {
         shippingCarrierTypes,
         sellerShippingCategories: sellerShippingCategories
@@ -238,6 +523,56 @@ sellerRouter.put('/seller/shipping-preferences/:sellerId', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /seller/payment-methods/{sellerId}:
+ *   get:
+ *     tags:
+ *       - Seller
+ *     summary: Retrieve seller external payment methods
+ *     description: Fetches the list of external accounts (e.g., bank accounts, cards) associated with the seller's Stripe account.
+ *     parameters:
+ *       - in: path
+ *         name: sellerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe seller account ID used to fetch external payment methods.
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved seller payment methods.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 object:
+ *                   type: string
+ *                   example: list
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: External account object returned by Stripe.
+ *       '400':
+ *         description: Missing required sellerId parameter.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       '500':
+ *         description: Server error while retrieving payment methods.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
   const { sellerId } = req.params
 
@@ -257,6 +592,65 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /seller/add-payment-method/{sellerId}:
+ *   post:
+ *     tags:
+ *       - Seller
+ *     summary: Add external payment method to seller account
+ *     description: Attaches a new external account (e.g., bank account or debit card) to the seller's Stripe account using a token.
+ *     parameters:
+ *       - in: path
+ *         name: sellerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe account ID for the seller.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tokenId
+ *             properties:
+ *               tokenId:
+ *                 type: string
+ *                 description: A Stripe token representing the external payment method.
+ *     responses:
+ *       '200':
+ *         description: Successfully added external account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: External account was successfully added
+ *       '400':
+ *         description: Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Missing required parameters.
+ *       '500':
+ *         description: Server error while adding payment method.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: There was an error while confirming setup intent
+ */
 sellerRouter.post('/seller/add-payment-method/:sellerId', async (req, res) => {
   const { sellerId } = req.params
   const { tokenId } = req.body
@@ -278,6 +672,95 @@ sellerRouter.post('/seller/add-payment-method/:sellerId', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /seller/upload-verification/{accountId}:
+ *   post:
+ *     tags:
+ *       - Seller
+ *     summary: Upload identity verification documents
+ *     description: Uploads front and back identity documents to Stripe for KYC verification, and marks the seller as verified in the local database.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The account ID of the seller.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - front
+ *               - back
+ *             properties:
+ *               front:
+ *                 type: object
+ *                 required:
+ *                   - base64
+ *                   - name
+ *                   - type
+ *                 properties:
+ *                   base64:
+ *                     type: string
+ *                     description: Base64-encoded image data for the front of the document.
+ *                   name:
+ *                     type: string
+ *                     description: The filename of the front image.
+ *                   type:
+ *                     type: string
+ *                     description: MIME type of the front image.
+ *               back:
+ *                 type: object
+ *                 required:
+ *                   - base64
+ *                   - name
+ *                   - type
+ *                 properties:
+ *                   base64:
+ *                     type: string
+ *                     description: Base64-encoded image data for the back of the document.
+ *                   name:
+ *                     type: string
+ *                     description: The filename of the back image.
+ *                   type:
+ *                     type: string
+ *                     description: MIME type of the back image.
+ *     responses:
+ *       '200':
+ *         description: Identity documents successfully uploaded and account updated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Identity verification files uploaded and Stripe account updated.
+ *       '400':
+ *         description: Missing front or back image data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Both front and back images are required.
+ *       '500':
+ *         description: Stripe upload or account update failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Stripe identity verification failed.
+ */
 sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => {
   const { accountId } = req.params
   const { front, back } = req.body
@@ -335,6 +818,51 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
   }
 })
 
+/**
+ * @openapi
+ * /seller/{sellerId}:
+ *   delete:
+ *     tags:
+ *       - Seller
+ *     summary: Delete a seller's Stripe account
+ *     description: Deletes the seller’s connected Stripe account using their sellerId.
+ *     parameters:
+ *       - in: path
+ *         name: sellerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe account ID of the seller to be deleted.
+ *     responses:
+ *       '200':
+ *         description: Seller account successfully deleted.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Seller account id was successfully deleted
+ *       '400':
+ *         description: Bad request or invalid seller ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during Stripe account deletion.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
 sellerRouter.delete('/seller/:sellerId', async (req, res) => {
   const { sellerId } = req.params
 

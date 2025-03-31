@@ -41,7 +41,6 @@ describe('Resolver Service', () => {
     const profile = await prisma.profile.create({
       data: {
         username: 'test-user',
-        fullName: 'Test User',
         accountId: account.id,
       },
     })
@@ -59,7 +58,6 @@ describe('Resolver Service', () => {
     const sellerProfile = await prisma.profile.create({
       data: {
         username: 'seller-user',
-        fullName: 'Seller User',
         accountId: sellerAccount.id,
       },
     })

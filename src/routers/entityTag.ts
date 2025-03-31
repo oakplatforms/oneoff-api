@@ -6,6 +6,70 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 const prisma = getPrismaClient()
 export const entityTagRouter = express.Router()
 
+/**
+ * @openapi
+ * /{marketplaceName}/entity-tag:
+ *   post:
+ *     tags:
+ *       - Entity Tag
+ *     summary: Create an entity tag
+ *     description: |
+ *       Attaches a tag with a specific value to an entity.
+ *       If the tag has supported values, it validates the provided value before creation.
+ *     parameters:
+ *       - in: path
+ *         name: marketplaceName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the marketplace.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityId
+ *               - tagId
+ *               - tagValue
+ *             properties:
+ *               entityId:
+ *                 type: string
+ *                 description: The ID of the entity to tag.
+ *               tagId:
+ *                 type: string
+ *                 description: The ID of the tag to associate with the entity.
+ *               tagValue:
+ *                 type: string
+ *                 description: The value assigned to the tag.
+ *     responses:
+ *       '200':
+ *         description: Successfully created the entity tag.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EntityTag'
+ *       '400':
+ *         description: Tag value not supported or bad request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Tag value "xyz" is not supported for "Grading" tag
+ *       '500':
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
 entityTagRouter.post('/:marketplaceName/entity-tag', async (req, res) => {
   const { entityId, tagId, tagValue } = req.body
 
@@ -51,6 +115,75 @@ entityTagRouter.post('/:marketplaceName/entity-tag', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /{marketplaceName}/entity-tag:
+ *   put:
+ *     tags:
+ *       - Entity Tag
+ *     summary: Update an existing entity tag value
+ *     description: |
+ *       Updates the value of an existing entity tag association. If the tag has supported values,
+ *       the new value is validated against the allowed options.
+ *     parameters:
+ *       - in: path
+ *         name: marketplaceName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the marketplace.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityId
+ *               - tagId
+ *               - tagValue
+ *             properties:
+ *               entityId:
+ *                 type: string
+ *                 description: The ID of the entity.
+ *               tagId:
+ *                 type: string
+ *                 description: The ID of the tag to update.
+ *               tagValue:
+ *                 type: string
+ *                 description: The new tag value to assign.
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the tag value.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: number
+ *                   description: Number of updated rows.
+ *                   example: 1
+ *       '400':
+ *         description: Tag value not supported or association not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Tag value "xyz" is not supported for tag "Condition"
+ *       '500':
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
 entityTagRouter.put('/:marketplaceName/entity-tag', async (req, res) => {
   const { entityId, tagId, tagValue } = req.body
 
@@ -107,6 +240,59 @@ entityTagRouter.put('/:marketplaceName/entity-tag', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /{marketplaceName}/entity-tag/{id}:
+ *   get:
+ *     tags:
+ *       - Entity Tag
+ *     summary: Retrieve an entity tag by ID
+ *     description: Fetches a single entity tag by its unique ID. You may include related data using the `include` query parameter.
+ *     parameters:
+ *       - in: path
+ *         name: marketplaceName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the marketplace.
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the entity tag to retrieve.
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related models to include in the response.
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the entity tag.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EntityTag'
+ *       '404':
+ *         description: Entity tag not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: No entity tag ID found
+ *       '500':
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
 entityTagRouter.get('/:marketplaceName/entity-tag/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
@@ -129,6 +315,54 @@ entityTagRouter.get('/:marketplaceName/entity-tag/:id', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /{marketplaceName}/entity-tag/{id}:
+ *   delete:
+ *     tags:
+ *       - Entity Tag
+ *     summary: Delete an entity tag by ID
+ *     description: Deletes an entity tag by its unique ID.
+ *     parameters:
+ *       - in: path
+ *         name: marketplaceName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the marketplace.
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the entity tag to delete.
+ *     responses:
+ *       '200':
+ *         description: Entity tag successfully deleted.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EntityTag'
+ *       '404':
+ *         description: Entity tag not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: No entity tag ID found
+ *       '500':
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
 entityTagRouter.delete('/:marketplaceName/entity-tag/:id', async (req, res) => {
   const { id } = req.params
 
