@@ -44,6 +44,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
         data: {
           accountId,
           paymentAccountId: stripeCustomer.id,
+          paymentAccountStatus: 'COMPLETED',
           firstName,
           lastName,
           phone,
