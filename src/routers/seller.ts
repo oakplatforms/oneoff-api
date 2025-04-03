@@ -275,7 +275,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
   } catch (error) {
     console.error('Error setting up seller account:', error)
     const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ error: 'There was an error while creating your seller account' })
+    return res.status(statusCode).json({ errorMessage: 'There was an error while creating your seller account' })
   }
 })
 
@@ -429,7 +429,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   } catch (error) {
     console.error('Error updating seller:', error)
     const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ error: 'There was an error while updating your seller account' })
+    return res.status(statusCode).json({ errorMessage: 'There was an error while updating your seller account' })
   }
 })
 
@@ -519,7 +519,7 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
     res.json(updatedSeller)
   } catch (error) {
     console.error('Error fetching external accounts:', error)
-    return res.status(500).json({ error: 'Failed to retrieve external accounts' })
+    return res.status(500).json({ errorMessage: 'Failed to retrieve external accounts' })
   }
 })
 
@@ -577,7 +577,7 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
   const { sellerId } = req.params
 
   if (!sellerId) {
-    return res.status(400).json({ error: 'Missing required parameter: sellerId' })
+    return res.status(400).json({ errorMessage: 'Missing required parameter: sellerId' })
   }
 
   try {
@@ -588,7 +588,7 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
     return res.status(200).json(externalAccounts)
   } catch (error) {
     console.error('Error fetching external accounts:', error)
-    return res.status(500).json({ error: 'Failed to retrieve external accounts' })
+    return res.status(500).json({ errorMessage: 'Failed to retrieve external accounts' })
   }
 })
 
@@ -656,7 +656,7 @@ sellerRouter.post('/seller/add-payment-method/:sellerId', async (req, res) => {
   const { tokenId } = req.body
 
   if (!sellerId || !tokenId) {
-    return res.status(400).json({ error: 'Missing required parameters.' })
+    return res.status(400).json({ errorMessage: 'Missing required parameters.' })
   }
 
   try {
@@ -668,7 +668,7 @@ sellerRouter.post('/seller/add-payment-method/:sellerId', async (req, res) => {
     return res.status(200).json({ success: 'External account was successfully added' })
   } catch (error) {
     const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ error: 'There was an error while confirming setup intent' })
+    return res.status(statusCode).json({ errorMessage: 'There was an error while confirming setup intent' })
   }
 })
 
@@ -768,7 +768,7 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
   const backBuffer = Buffer.from(back.base64, 'base64')
 
   if (!frontBuffer || !backBuffer) {
-    return res.status(400).json({ error: 'Both front and back images are required.' })
+    return res.status(400).json({ errorMessage: 'Both front and back images are required.' })
   }
 
   try {
@@ -809,12 +809,307 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
         }
       })
 
-      return { success: 'Identity verification files uploaded and Stripe account updated.'}
+      return { success: 'Identity verification files uploaded and account updated.'}
     }, { timeout: 60000 })
     res.json(result)
   } catch (error) {
-    console.error('Stripe file upload or update failed:', error)
-    return res.status(500).json({ error: 'Stripe identity verification failed.' })
+    console.error('File upload or update failed:', error)
+    return res.status(500).json({ errorMessage: 'Identity verification failed.' })
+  }
+})
+
+/**
+ * @openapi
+ * /seller/payout/{sellerId}:
+ *   post:
+ *     tags:
+ *       - Seller
+ *     summary: Create a new payout for a seller
+ *     description: Creates a Stripe payout for the seller’s connected account and logs it in the database, along with a linked transaction record.
+ *     parameters:
+ *       - in: path
+ *         name: sellerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe-connected seller account ID.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - createdById
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 format: float
+ *                 example: 25.00
+ *                 description: The amount (in USD) to pay out.
+ *               createdById:
+ *                 type: string
+ *                 example: acct_123abc
+ *                 description: The ID of the account that initiated the payout.
+ *     responses:
+ *       '200':
+ *         description: Payout created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Payout'
+ *       '400':
+ *         description: Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Missing required parameters.
+ *       '500':
+ *         description: Failed to create payout.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to create payout.
+ */
+sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
+  const { sellerId } = req.params
+  const { amount, createdById } = req.body
+
+  if (!amount || !createdById) {
+    return res.status(400).json({ errorMessage: 'Missing required parameters.' })
+  }
+
+  try {
+    const result = await prisma.$transaction(async (prisma) => {
+      const stripeAccount = await stripe.accounts.retrieve(sellerId, {
+        expand: ['external_accounts'],
+      }) as Stripe.Account & {
+        external_accounts: {
+          data: (Stripe.Card | Stripe.BankAccount)[]
+        }
+      }
+
+      const externalAccount = stripeAccount.external_accounts.data.find(
+        (acc) => acc.object === 'card' && acc.default_for_currency === true
+      )
+
+      if (!externalAccount || !('last4' in externalAccount)) {
+        throw new Error('Seller does not have a valid default external account set.')
+      }
+
+      const payout = await prisma.payout.create({
+        data: {
+          status: 'COMPLETED',
+          total: amount,
+          createdById,
+          last4: externalAccount.last4,
+          transactions: {
+            create: {
+              amount,
+              transactionType: 'PAYOUT',
+              currency: 'USD',
+              paymentAccountType: 'STRIPE',
+              paymentMethodType: 'CARD',
+              createdById,
+            },
+          },
+        },
+      })
+
+      await stripe.payouts.create(
+        {
+          amount: Math.round(parseFloat(amount) * 100),
+          currency: 'usd',
+          method: 'instant'
+        },
+        {
+          stripeAccount: sellerId,
+        }
+      )
+
+      return payout
+    }, { timeout: 60000 })
+
+    res.json(result)
+  } catch (error) {
+    console.error('Error creating payout:', error)
+    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    return res.status(statusCode).json({ errorMessage: 'Failed to create payout' })
+  }
+})
+
+/**
+ * @openapi
+ * /seller/payout-history/{accountId}:
+ *   get:
+ *     tags:
+ *       - Seller
+ *     summary: Get seller payout history
+ *     description: Returns all recorded payouts from the database for a given seller account.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The seller's account ID to fetch payout history for.
+ *     responses:
+ *       '200':
+ *         description: List of payouts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Payout'
+ *       '400':
+ *         description: Missing or invalid accountId
+ *       '500':
+ *         description: Server error while retrieving payout history
+ */
+sellerRouter.get('/seller/payout-history/:accountId', async (req, res) => {
+  const { accountId } = req.params
+
+  if (!accountId) {
+    return res.status(400).json({ errorMessage: 'Missing accountId parameter.' })
+  }
+
+  try {
+    const payouts = await prisma.payout.findMany({
+      where: {
+        createdById: accountId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        transactions: true,
+      },
+    })
+
+    return res.status(200).json(payouts)
+  } catch (error) {
+    console.error('Error fetching payout history:', error)
+    return res.status(500).json({ errorMessage: 'Failed to retrieve payout history' })
+  }
+})
+
+/**
+ * @openapi
+ * /seller/wallet-balance/{accountId}:
+ *   get:
+ *     tags:
+ *       - Seller
+ *     summary: Get seller wallet balance and available withdrawal amount
+ *     description: |
+ *       Returns the seller's wallet balance and available amount for withdrawal.
+ *       - `balance` = Total of all PENDING + COMPLETED orders for the seller minus all COMPLETED payouts.
+ *       - `availableToWithdraw` = Total of COMPLETED orders for the seller minus all COMPLETED payouts.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The seller's account ID.
+ *     responses:
+ *       200:
+ *         description: Wallet balance and withdrawal info retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 balance:
+ *                   type: number
+ *                   description: Total balance from orders minus completed payouts.
+ *                   example: 550.00
+ *                 availableToWithdraw:
+ *                   type: number
+ *                   description: Available funds for withdrawal (completed orders only minus completed payouts).
+ *                   example: 400.00
+ *       400:
+ *         description: Missing or invalid accountId parameter.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Missing accountId in path.
+ *       500:
+ *         description: Internal server error retrieving wallet balance.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: There was an error calculating wallet balance.
+ */
+sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
+  const { accountId } = req.params
+
+  if (!accountId) {
+    return res.status(400).json({ error: 'Missing accountId in path.' })
+  }
+
+  try {
+    const [ordersAll, ordersCompleted, payoutsCompleted] = await Promise.all([
+      prisma.order.aggregate({
+        where: {
+          soldById: accountId,
+          status: { in: ['PENDING', 'COMPLETED'] },
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+      prisma.order.aggregate({
+        where: {
+          soldById: accountId,
+          status: 'COMPLETED',
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+      prisma.payout.aggregate({
+        where: {
+          createdById: accountId,
+          status: 'COMPLETED',
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+    ])
+
+    const sumAllOrders = ordersAll._sum.total || 0
+    const sumCompletedOrders = ordersCompleted._sum.total || 0
+    const sumCompletedPayouts = payoutsCompleted._sum.total || 0
+
+    const balance = Math.max(0, Number(sumAllOrders) - Number(sumCompletedPayouts))
+    const availableToWithdraw = Math.max(0, Number(sumCompletedOrders) - Number(sumCompletedPayouts))
+
+    return res.json({
+      balance,
+      availableToWithdraw,
+    })
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
   }
 })
 
@@ -872,7 +1167,6 @@ sellerRouter.delete('/seller/:sellerId', async (req, res) => {
     return res.json({ success: 'Seller account id was successfully deleted' })
 
   } catch (error) {
-    console.error('Error setting up seller account:', error)
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }

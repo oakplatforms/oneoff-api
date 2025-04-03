@@ -62,17 +62,9 @@ enum ProcessStatus {
 }
 
 enum TransactionType {
-  ORDER
+  ORDER_PAYMENT
+  ORDER_REFUND
   PAYOUT
-}
-
-enum TransactionStatus {
-  COMPLETED
-  FAILED
-  PENDING
-  CANCELED
-  REFUNDED
-  REQUIRES_ACTION
 }
 
 enum PaymentAccountType {
@@ -159,7 +151,6 @@ model Account {
   seller        Seller?
   customer      Customer?
   profile       Profile?
-  wallet        Wallet?
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String  @unique
 
@@ -546,20 +537,6 @@ model Review {
   entityId         String
 }
 
-model Wallet {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // custom
-  balance          Decimal @db.Decimal(10, 2)
-
-  // relations
-  payouts          Payout[]
-  account          Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId        String  @unique
-}
-
 model Payout {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
@@ -567,19 +544,13 @@ model Payout {
 
   // custom
   status           ProcessStatus
-  subTotal         Decimal? @db.Decimal(10, 2)
-  taxRate          Decimal? @db.Decimal(10, 2)
-  tax              Decimal? @db.Decimal(10, 2)
   total            Decimal? @db.Decimal(10, 2)
+  last4            String? 
 
   // relations
   createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
   transactions     Transaction[]
-  wallet           Wallet @relation(fields: [walletId], references: [id])
-  walletId         String
-  invoice          Invoice @relation(fields: [invoiceId], references: [id])
-  invoiceId        String
 }
 
 model Listing {
@@ -635,7 +606,6 @@ model Invoice {
 
   // relations
   orders           Order[]
-  payouts          Payout[]
 }
 
 model Order {
@@ -703,8 +673,7 @@ model Transaction {
   // custom
   amount           Decimal @db.Decimal(10, 2)
   refundedAmount   Decimal? @db.Decimal(10, 2)
-  transactionType  TransactionType @default(ORDER)
-  status           TransactionStatus
+  transactionType  TransactionType @default(ORDER_PAYMENT)
   description      String?
   currency         Currency @default(USD)
 

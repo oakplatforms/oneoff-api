@@ -132,7 +132,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
   } catch (error) {
     console.error('Error setting up customer:', error)
     const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ error: 'There was an error while creating your customer account' })
+    return res.status(statusCode).json({ errorMessage: 'There was an error while creating your customer account' })
   }
 })
 
@@ -229,7 +229,7 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
       })
 
       if (!updatedCustomer.paymentAccountId) {
-        return res.status(400).json({ error: 'Stripe customer ID not found' })
+        return res.status(400).json({ errorMessage: 'Customer ID not found' })
       }
 
       const stripeUpdatedCustomerData: Stripe.CustomerUpdateParams = {
@@ -257,7 +257,7 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
   } catch (error) {
     console.error('Error updating customer:', error)
     const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ error: 'There was an error while updating your customer account' })
+    return res.status(statusCode).json({ errorMessage: 'There was an error while updating your customer account' })
   }
 })
 
@@ -316,7 +316,7 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
   const { customerId } = req.params
 
   if (!customerId) {
-    return res.status(400).json({ error: 'Missing required parameter: customerId' })
+    return res.status(400).json({ errorMessage: 'Missing required parameter: customerId' })
   }
 
   try {
@@ -328,7 +328,7 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
     return res.status(200).json(paymentMethods)
   } catch (error) {
     console.error('Error fetching payment methods:', error)
-    return res.status(500).json({ error: 'Failed to retrieve payment methods' })
+    return res.status(500).json({ errorMessage: 'Failed to retrieve payment methods' })
   }
 })
 
@@ -396,7 +396,7 @@ customerRouter.post('/customer/add-payment-method/:customerId', async (req, res)
   const { paymentMethodId } = req.body
 
   if (!customerId || !paymentMethodId) {
-    return res.status(400).json({ error: 'Missing required parameters.' })
+    return res.status(400).json({ errorMessage: 'Missing required parameters.' })
   }
 
   try {
@@ -409,7 +409,7 @@ customerRouter.post('/customer/add-payment-method/:customerId', async (req, res)
     return res.status(200).json({ success: 'Payment method was successfully added' })
   } catch (error) {
     console.error('Error adding payment method:', error)
-    return res.status(500).json({ error: 'There was an error while adding your payment method' })
+    return res.status(500).json({ errorMessage: 'There was an error while adding your payment method' })
   }
 })
 
@@ -464,7 +464,7 @@ customerRouter.delete('/customer/payment-method/:paymentMethodId', async (req, r
   const { paymentMethodId } = req.params
 
   if (!paymentMethodId) {
-    return res.status(400).json({ error: 'Missing required parameter: paymentMethodId' })
+    return res.status(400).json({ errorMessage: 'Missing required parameter: paymentMethodId' })
   }
 
   try {
@@ -473,7 +473,7 @@ customerRouter.delete('/customer/payment-method/:paymentMethodId', async (req, r
     return res.json({ success: 'Payment method was successfully removed' })
   } catch (error) {
     console.error('Error removing payment method:', error)
-    return res.status(500).json({ error: 'There was an error while removing your payment method' })
+    return res.status(500).json({ errorMessage: 'There was an error while removing your payment method' })
   }
 })
 

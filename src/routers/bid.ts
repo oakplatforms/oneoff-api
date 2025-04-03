@@ -9,7 +9,7 @@ export const bidRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bids:
+ * /{marketplaceName}/bids:
  *   get:
  *     tags:
  *       - Bid
@@ -22,12 +22,6 @@ export const bidRouter = express.Router()
  *         schema:
  *           type: string
  *         description: The name of the marketplace for which to retrieve the bids.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand for which to retrieve the bids.
  *       - in: query
  *         name: entityId
  *         schema:
@@ -71,7 +65,7 @@ export const bidRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
+bidRouter.get('/:marketplaceName/bids', async (req, res) => {
   const { include, entityId, createdById, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
@@ -98,7 +92,7 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bid:
+ * /{marketplaceName}/bid:
  *   post:
  *     tags:
  *       - Bid
@@ -111,12 +105,6 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace where the bid is being made.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand for which the bid is being made.
  *     requestBody:
  *       required: true
  *       content:
@@ -220,7 +208,7 @@ bidRouter.get('/:marketplaceName/:brandName/bids', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
+bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
   const {
     price,
     quantity,
@@ -299,7 +287,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bid/{id}:
+ * /{marketplaceName}/bid/{id}:
  *   put:
  *     tags:
  *       - Bid
@@ -312,12 +300,6 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace for which the bid is being updated.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand for which the bid is being updated.
  *       - in: path
  *         name: id
  *         required: true
@@ -377,7 +359,7 @@ bidRouter.post(`/:marketplaceName/:brandName/bid`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
+bidRouter.put(`/:marketplaceName/bid/:id`, async (req, res) => {
   const { id } = req.params
   const {
     price,
@@ -447,7 +429,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bid/{id}:
+ * /{marketplaceName}/bid/{id}:
  *   get:
  *     tags:
  *       - Bid
@@ -460,12 +442,6 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
  *       - in: path
  *         name: id
  *         required: true
@@ -515,7 +491,7 @@ bidRouter.put(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
+bidRouter.get('/:marketplaceName/bid/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -538,7 +514,7 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/bid/{id}:
+ * /{marketplaceName}/bid/{id}:
  *   delete:
  *     tags:
  *       - Bid
@@ -551,12 +527,6 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
  *       - in: path
  *         name: id
  *         required: true
@@ -601,7 +571,7 @@ bidRouter.get('/:marketplaceName/:brandName/bid/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.delete(`/:marketplaceName/:brandName/bid/:id`, async (req, res) => {
+bidRouter.delete(`/:marketplaceName/bid/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
