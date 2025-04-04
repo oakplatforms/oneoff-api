@@ -9,7 +9,7 @@ export const listingRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listings:
+ * /{marketplaceName}/listings:
  *   get:
  *     tags:
  *       - Listing
@@ -22,12 +22,6 @@ export const listingRouter = express.Router()
  *         schema:
  *           type: string
  *         description: The name of the marketplace to retrieve listings from.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand to retrieve listings from.
  *       - in: query
  *         name: entityId
  *         schema:
@@ -73,7 +67,7 @@ export const listingRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
+listingRouter.get('/:marketplaceName/listings', async (req, res) => {
   const { include, entityId, createdById, status } = req.query
   try {
     const listings = await prisma.listing.findMany({
@@ -100,7 +94,7 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing/lowest-ask:
+ * /{marketplaceName}/listing/lowest-ask:
  *   get:
  *     tags:
  *       - Listing
@@ -113,12 +107,6 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace to retrieve the lowest ask from.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand to retrieve the lowest ask from.
  *       - in: query
  *         name: entityId
  *         schema:
@@ -157,7 +145,7 @@ listingRouter.get('/:marketplaceName/:brandName/listings', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req, res) => {
+listingRouter.get('/:marketplaceName/listing/lowest-ask', async (req, res) => {
   const { include, entityId } = req.query
 
   if (!entityId) {
@@ -188,7 +176,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing:
+ * /{marketplaceName}/listing:
  *   post:
  *     tags:
  *       - Listing
@@ -201,12 +189,6 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *         schema:
  *           type: string
  *         description: The name of the marketplace for the listing.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand for the listing.
  *     requestBody:
  *       required: true
  *       content:
@@ -310,7 +292,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/lowest-ask', async (req,
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
+listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
   const {
     price,
     quantity,
@@ -376,7 +358,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing/{id}:
+ * /{marketplaceName}/listing/{id}:
  *   put:
  *     tags:
  *       - Listing
@@ -389,12 +371,6 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace for the listing.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand for the listing.
  *       - in: path
  *         name: id
  *         required: true
@@ -510,7 +486,7 @@ listingRouter.post(`/:marketplaceName/:brandName/listing`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) => {
+listingRouter.put(`/:marketplaceName/listing/:id`, async (req, res) => {
   const { id } = req.params
   const {
     price,
@@ -559,7 +535,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing/{id}:
+ * /{marketplaceName}/listing/{id}:
  *   get:
  *     tags:
  *       - Listing
@@ -572,12 +548,6 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
  *         schema:
  *           type: string
  *         description: The name of the marketplace to retrieve the listing from.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand to retrieve the listing from.
  *       - in: path
  *         name: id
  *         required: true
@@ -617,7 +587,7 @@ listingRouter.put(`/:marketplaceName/:brandName/listing/:id`, async (req, res) =
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) => {
+listingRouter.get('/:marketplaceName/listing/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -640,7 +610,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) =
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/listing/{id}:
+ * /{marketplaceName}/listing/{id}:
  *   delete:
  *     tags:
  *       - Listing
@@ -653,12 +623,6 @@ listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) =
  *         schema:
  *           type: string
  *         description: The name of the marketplace to delete the listing from.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand to delete the listing from.
  *       - in: path
  *         name: id
  *         required: true
@@ -693,7 +657,7 @@ listingRouter.get('/:marketplaceName/:brandName/listing/:id', async (req, res) =
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.delete(`/:marketplaceName/:brandName/listing/:id`, async (req, res) => {
+listingRouter.delete(`/:marketplaceName/listing/:id`, async (req, res) => {
   const { id } = req.params
 
   try {

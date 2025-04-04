@@ -20,7 +20,6 @@ type OrderWithRelations = Order & {
 const createPaymentIntent = async (
   order: OrderWithRelations
 ) => {
-
   const customerId = order?.purchasedBy?.customer?.paymentAccountId
   const sellerId = order?.soldBy?.seller?.paymentAccountId
 
@@ -110,7 +109,6 @@ export const createInvoiceBasedOnBidsInOrderSummary = async (orderSummary: Order
           transactions: {
             create: [{
               amount: subTotal,
-              status: 'PENDING',
               createdById: orderDetails.createdById as string,
             }],
           },
@@ -214,7 +212,6 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
           transactions: {
             create: [{
               amount: subTotal,
-              status: 'PENDING',
               createdById: orderDetails.createdById as string
             }],
           },

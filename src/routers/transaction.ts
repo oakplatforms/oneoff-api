@@ -1,4 +1,4 @@
-import { Prisma, TransactionStatus } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -78,13 +78,12 @@ export const transactionRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 transactionRouter.get('/:marketplaceName/transactions', async (req, res) => {
-  const { include, status, orderId } = req.query
+  const { include, orderId } = req.query
 
   try {
     const transactions = await prisma.transaction.findMany({
       where: {
         AND: [
-          status ? { status: status as TransactionStatus } : {},
           orderId
             ? { orderId: orderId as string }
             : {}

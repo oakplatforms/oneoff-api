@@ -115,16 +115,6 @@
             }
           ]
         },
-        "wallet": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Wallet"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "user": {
           "$ref": "#/definitions/User"
         },
@@ -1682,37 +1672,6 @@
         }
       }
     },
-    "Wallet": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "balance": {
-          "type": "number"
-        },
-        "payouts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Payout"
-          }
-        },
-        "account": {
-          "$ref": "#/definitions/Account"
-        },
-        "accountId": {
-          "type": "string"
-        }
-      }
-    },
     "Payout": {
       "type": "object",
       "properties": {
@@ -1736,27 +1695,15 @@
             "FAILED"
           ]
         },
-        "subTotal": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "taxRate": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "tax": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "total": {
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "last4": {
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -1781,18 +1728,6 @@
           "items": {
             "$ref": "#/definitions/Transaction"
           }
-        },
-        "wallet": {
-          "$ref": "#/definitions/Wallet"
-        },
-        "walletId": {
-          "type": "string"
-        },
-        "invoice": {
-          "$ref": "#/definitions/Invoice"
-        },
-        "invoiceId": {
-          "type": "string"
         }
       }
     },
@@ -2016,12 +1951,6 @@
           "items": {
             "$ref": "#/definitions/Order"
           }
-        },
-        "payouts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Payout"
-          }
         }
       }
     },
@@ -2237,21 +2166,11 @@
         },
         "transactionType": {
           "type": "string",
-          "default": "ORDER",
+          "default": "ORDER_PAYMENT",
           "enum": [
-            "ORDER",
+            "ORDER_PAYMENT",
+            "ORDER_REFUND",
             "PAYOUT"
-          ]
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "COMPLETED",
-            "FAILED",
-            "PENDING",
-            "CANCELED",
-            "REFUNDED",
-            "REQUIRES_ACTION"
           ]
         },
         "description": {
@@ -2562,9 +2481,6 @@
     },
     "review": {
       "$ref": "#/definitions/Review"
-    },
-    "wallet": {
-      "$ref": "#/definitions/Wallet"
     },
     "payout": {
       "$ref": "#/definitions/Payout"
