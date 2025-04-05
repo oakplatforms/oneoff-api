@@ -3,6 +3,8 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
+import { validateSeller } from '../validation/seller'
+import { validateExistingListing } from '../validation/listing'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -303,12 +305,7 @@ listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
   } = req.body
 
   try {
-    const account = await prisma.account.findUnique({
-      where: { id: createdById },
-    })
-    if (!account) {
-      throw new Error('Account does not exist')
-    }
+    await validateSeller(createdById)
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
@@ -495,13 +492,8 @@ listingRouter.put(`/:marketplaceName/listing/:id`, async (req, res) => {
   } = req.body
 
   try {
-    const existingListing = await prisma.listing.findUnique({
-      where: { id },
-    })
-
-    if (!existingListing) {
-      throw new Error('Listing does not exist')
-    }
+    await validateSeller(createdById)
+    await validateExistingListing(id)
 
     const bids = await resolveBids({
       price,

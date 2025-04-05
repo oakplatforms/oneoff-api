@@ -4,6 +4,10 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
 import { generateIncludes } from '../utils/generateIncludes'
+import { validateSeller } from '../validation/seller'
+import { calculateWalletBalance } from '../services/payout'
+import { validatePayoutAmount } from '../validation/payout'
+
 const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
 
@@ -185,7 +189,6 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
     dateOfBirth,
     agreedToTerms
   } = req.body
-
   try {
     const result = await prisma.$transaction(async (prisma) => {
       const updatedAccount = await prisma.account.update({
@@ -363,6 +366,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   } = req.body
 
   try {
+    await validateSeller(accountId)
     const result = await prisma.$transaction(async (prisma) => {
       const updatedSeller = await prisma.seller.update({
         where: { accountId },
@@ -427,9 +431,8 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    console.error('Error updating seller:', error)
-    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage: 'There was an error while updating your seller account' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    return res.status(statusCode).json({ errorMessage })
   }
 })
 
@@ -518,8 +521,8 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
     })
     res.json(updatedSeller)
   } catch (error) {
-    console.error('Error fetching external accounts:', error)
-    return res.status(500).json({ errorMessage: 'Failed to retrieve external accounts' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    return res.status(statusCode).json({ errorMessage })
   }
 })
 
@@ -772,6 +775,7 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
   }
 
   try {
+    await validateSeller(accountId)
     const result = await prisma.$transaction(async (prisma) => {
       const updatedSeller = await prisma.seller.update({
         where: { accountId },
@@ -813,8 +817,8 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     }, { timeout: 60000 })
     res.json(result)
   } catch (error) {
-    console.error('File upload or update failed:', error)
-    return res.status(500).json({ errorMessage: 'Identity verification failed.' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    return res.status(statusCode).json({ errorMessage })
   }
 })
 
@@ -889,6 +893,8 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
   }
 
   try {
+    await validateSeller(createdById)
+    await validatePayoutAmount(createdById, amount)
     const result = await prisma.$transaction(async (prisma) => {
       const stripeAccount = await stripe.accounts.retrieve(sellerId, {
         expand: ['external_accounts'],
@@ -941,9 +947,8 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    console.error('Error creating payout:', error)
-    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage: 'Failed to create payout' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    return res.status(statusCode).json({ errorMessage })
   }
 })
 
@@ -998,8 +1003,8 @@ sellerRouter.get('/seller/payout-history/:accountId', async (req, res) => {
 
     return res.status(200).json(payouts)
   } catch (error) {
-    console.error('Error fetching payout history:', error)
-    return res.status(500).json({ errorMessage: 'Failed to retrieve payout history' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    return res.status(statusCode).json({ errorMessage })
   }
 })
 
@@ -1066,47 +1071,8 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
   }
 
   try {
-    const [ordersAll, ordersCompleted, payoutsCompleted] = await Promise.all([
-      prisma.order.aggregate({
-        where: {
-          soldById: accountId,
-          status: { in: ['PENDING', 'COMPLETED'] },
-        },
-        _sum: {
-          total: true,
-        },
-      }),
-      prisma.order.aggregate({
-        where: {
-          soldById: accountId,
-          status: 'COMPLETED',
-        },
-        _sum: {
-          total: true,
-        },
-      }),
-      prisma.payout.aggregate({
-        where: {
-          createdById: accountId,
-          status: 'COMPLETED',
-        },
-        _sum: {
-          total: true,
-        },
-      }),
-    ])
-
-    const sumAllOrders = ordersAll._sum.total || 0
-    const sumCompletedOrders = ordersCompleted._sum.total || 0
-    const sumCompletedPayouts = payoutsCompleted._sum.total || 0
-
-    const balance = Math.max(0, Number(sumAllOrders) - Number(sumCompletedPayouts))
-    const availableToWithdraw = Math.max(0, Number(sumCompletedOrders) - Number(sumCompletedPayouts))
-
-    return res.json({
-      balance,
-      availableToWithdraw,
-    })
+    const wallet = await calculateWalletBalance(accountId)
+    return res.json(wallet)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

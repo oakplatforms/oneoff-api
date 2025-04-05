@@ -2,7 +2,9 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generatePrismaError } from '../utils/prismaHelpers'
 import { createInvoiceBasedOnListingsInOrderSummary, createInvoiceBasedOnBidsInOrderSummary } from '../services/invoice'
-import { validateOrderSummary } from '../validation/invoice'
+import { validateListingOrderSummary, validateBidOrderSummary } from '../validation/invoice'
+import { validateCustomer } from '../validation/customer'
+import { validateSeller } from '../validation/seller'
 
 export const invoiceRouter = express.Router()
 
@@ -68,7 +70,9 @@ invoiceRouter.post('/:marketplaceName/buy-now', async (req, res) => {
   const { orderSummary } = req.body
 
   try {
-    await validateOrderSummary(orderSummary, 'LISTING')
+    await validateCustomer(orderSummary[0]?.createdById)
+    await validateListingOrderSummary(orderSummary)
+
     const invoice = await createInvoiceBasedOnListingsInOrderSummary(orderSummary)
     if (invoice) {
       res.json(invoice)
@@ -143,7 +147,9 @@ invoiceRouter.post('/:marketplaceName/sell-now', async (req, res) => {
   const { orderSummary } = req.body
 
   try {
-    await validateOrderSummary(orderSummary, 'BID')
+    await validateSeller(orderSummary[0]?.createdById)
+    await validateBidOrderSummary(orderSummary)
+
     const invoice = await createInvoiceBasedOnBidsInOrderSummary(orderSummary)
     if (invoice) {
       res.json(invoice)
