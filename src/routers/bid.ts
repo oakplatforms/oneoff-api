@@ -3,6 +3,8 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
+import { validateCustomer } from '../validation/customer'
+import { validateExistingBid } from '../validation/bid'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -220,12 +222,7 @@ bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
     bidCustomShippingOptions
   } = req.body
   try {
-    const account = await prisma.account.findUnique({
-      where: { id: createdById },
-    })
-    if (!account) {
-      throw new Error('Account does not exist')
-    }
+    await validateCustomer(createdById)
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
@@ -369,13 +366,8 @@ bidRouter.put(`/:marketplaceName/bid/:id`, async (req, res) => {
     bidCustomShippingOptions
   } = req.body
   try {
-    const existingBid = await prisma.bid.findUnique({
-      where: { id },
-    })
-
-    if (!existingBid) {
-      throw new Error('Bid does not exist')
-    }
+    await validateCustomer(createdById)
+    await validateExistingBid(id)
 
     const listings = await resolveListings({
       price,

@@ -130,9 +130,8 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    console.error('Error setting up customer:', error)
-    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage: 'There was an error while creating your customer account' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
   }
 })
 
@@ -255,9 +254,8 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    console.error('Error updating customer:', error)
-    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage: 'There was an error while updating your customer account' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
   }
 })
 
@@ -327,8 +325,8 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
 
     return res.status(200).json(paymentMethods)
   } catch (error) {
-    console.error('Error fetching payment methods:', error)
-    return res.status(500).json({ errorMessage: 'Failed to retrieve payment methods' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
   }
 })
 
@@ -408,8 +406,8 @@ customerRouter.post('/customer/add-payment-method/:customerId', async (req, res)
 
     return res.status(200).json({ success: 'Payment method was successfully added' })
   } catch (error) {
-    console.error('Error adding payment method:', error)
-    return res.status(500).json({ errorMessage: 'There was an error while adding your payment method' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
   }
 })
 
@@ -472,8 +470,8 @@ customerRouter.delete('/customer/payment-method/:paymentMethodId', async (req, r
 
     return res.json({ success: 'Payment method was successfully removed' })
   } catch (error) {
-    console.error('Error removing payment method:', error)
-    return res.status(500).json({ errorMessage: 'There was an error while removing your payment method' })
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
   }
 })
 
