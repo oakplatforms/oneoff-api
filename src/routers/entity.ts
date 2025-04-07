@@ -87,14 +87,13 @@ export const entityRouter = express.Router()
  *                   type: string
  *                   example: Unexpected error occurred
  */
-entityRouter.get('/:marketplaceName/:brandName/entities', async (req, res) => {
-  const { brandName } = req.params
-  const { include, category, entityTag, search } = req.query
+entityRouter.get('/:marketplaceName/entities', async (req, res) => {
+  const { include, category, entityTag, search, brand } = req.query
 
   try {
     const brandCategory = await prisma.brandCategory.findFirstOrThrow({
       where: {
-        brandName: brandName,
+        brandName: brand as string || '',
         categoryName: category as string || ''
       }
     })
@@ -151,7 +150,7 @@ entityRouter.get('/:marketplaceName/:brandName/entities', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/entity:
+ * /{marketplaceName}/entity:
  *   post:
  *     tags:
  *       - Entity
@@ -164,12 +163,6 @@ entityRouter.get('/:marketplaceName/:brandName/entities', async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
  *     requestBody:
  *       required: true
  *       content:
@@ -243,7 +236,7 @@ entityRouter.get('/:marketplaceName/:brandName/entities', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.post(`/:marketplaceName/:brandName/entity`, async (req, res) => {
+entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
   const {
     name,
     type,
@@ -309,7 +302,7 @@ entityRouter.post(`/:marketplaceName/:brandName/entity`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/entity/{id}:
+ * /{marketplaceName}/entity/{id}:
  *   put:
  *     tags:
  *       - Entity
@@ -322,12 +315,6 @@ entityRouter.post(`/:marketplaceName/:brandName/entity`, async (req, res) => {
  *         schema:
  *           type: string
  *         description: The name of the marketplace.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
  *       - in: path
  *         name: id
  *         required: true
@@ -410,7 +397,7 @@ entityRouter.post(`/:marketplaceName/:brandName/entity`, async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.put(`/:marketplaceName/:brandName/entity/:id`, async (req, res) => {
+entityRouter.put(`/:marketplaceName/entity/:id`, async (req, res) => {
   const { id } = req.params
   const { entityTags } = req.body
 
@@ -491,12 +478,6 @@ entityRouter.put(`/:marketplaceName/:brandName/entity/:id`, async (req, res) => 
  *           type: string
  *         description: The name of the marketplace.
  *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
- *       - in: path
  *         name: id
  *         required: true
  *         schema:
@@ -534,7 +515,7 @@ entityRouter.put(`/:marketplaceName/:brandName/entity/:id`, async (req, res) => 
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.get('/:marketplaceName/:brandName/entity/:id', async (req, res) => {
+entityRouter.get('/:marketplaceName/entity/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -559,7 +540,7 @@ entityRouter.get('/:marketplaceName/:brandName/entity/:id', async (req, res) => 
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/entity/{id}:
+ * /{marketplaceName}/entity/{id}:
  *   delete:
  *     tags:
  *       - Entity
@@ -572,12 +553,6 @@ entityRouter.get('/:marketplaceName/:brandName/entity/:id', async (req, res) => 
  *         schema:
  *           type: string
  *         description: The marketplace where the entity belongs.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The brand the entity is associated with.
  *       - in: path
  *         name: id
  *         required: true
@@ -611,7 +586,7 @@ entityRouter.get('/:marketplaceName/:brandName/entity/:id', async (req, res) => 
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.delete(`/:marketplaceName/:brandName/entity/:id`, async (req, res) => {
+entityRouter.delete(`/:marketplaceName/entity/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
