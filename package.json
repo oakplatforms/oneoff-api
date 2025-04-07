@@ -4,7 +4,9 @@
   "license": "MIT",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "test": "jest",
+    "docker:test:up": "docker compose up -d",
+    "docker:test:down": "docker compose down",
+    "test": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5433/testdb jest --runInBand",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix"
   },
@@ -25,6 +27,7 @@
     "@types/stripe": "^8.0.417",
     "@types/supertest": "^6.0.2",
     "@types/swagger-jsdoc": "^6.0.4",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "eslint": "^9.21.0",
     "eslint-plugin-jest": "^28.11.0",
