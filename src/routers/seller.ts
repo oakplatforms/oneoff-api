@@ -443,7 +443,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
  *     tags:
  *       - Seller
  *     summary: Update seller shipping preferences
- *     description: Updates a seller's shipping carrier types and associated shipping categories.
+ *     description: Updates a seller's shipping carrier types and associated shipping methods.
  *     parameters:
  *       - in: path
  *         name: id
@@ -463,7 +463,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
  *                 items:
  *                   type: string
  *                 description: List of selected shipping carrier types (e.g., USPS, UPS).
- *               sellerShippingCategories:
+ *               sellerShippingMethods:
  *                 type: object
  *                 properties:
  *                   create:
@@ -471,13 +471,13 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
  *                     items:
  *                       type: object
  *                       properties:
- *                         shippingCategoryId:
+ *                         shippingMethodId:
  *                           type: string
  *                   delete:
  *                     type: array
  *                     items:
  *                       type: string
- *                 description: Categories to create or delete in the seller’s shipping preferences.
+ *                 description: Methods to create or delete in the seller’s shipping preferences.
  *     responses:
  *       '200':
  *         description: Shipping preferences successfully updated.
@@ -498,7 +498,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
   const { id } = req.params
   const {
-    sellerShippingCategories,
+    sellerShippingMethods,
     shippingCarrierTypes
   } = req.body
 
@@ -507,13 +507,13 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
       where: { id },
       data: {
         shippingCarrierTypes,
-        sellerShippingCategories: sellerShippingCategories
+        sellerShippingMethods: sellerShippingMethods
           ? {
-            create: sellerShippingCategories.create?.map((sellerShippingCategory: { shippingCategoryId: string }) => ({
-              shippingCategoryId: sellerShippingCategory.shippingCategoryId,
+            create: sellerShippingMethods.create?.map((sellerShippingMethod: { sellerShippingMethodId: string }) => ({
+              shippingMethodId: sellerShippingMethod.sellerShippingMethodId,
             })),
-            deleteMany: sellerShippingCategories.delete?.map((sellerShippingCategoryId: string) => ({
-              id: sellerShippingCategoryId
+            deleteMany: sellerShippingMethods.delete?.map((sellerShippingMethodId: string) => ({
+              id: sellerShippingMethodId
             })),
           }
           : undefined,
@@ -845,14 +845,14 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
  *             type: object
  *             required:
  *               - amount
- *               - createdById
+ *               - accountId
  *             properties:
  *               amount:
  *                 type: number
  *                 format: float
  *                 example: 25.00
  *                 description: The amount (in USD) to pay out.
- *               createdById:
+ *               accountId:
  *                 type: string
  *                 example: acct_123abc
  *                 description: The ID of the account that initiated the payout.
@@ -886,15 +886,15 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
  */
 sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
   const { sellerId } = req.params
-  const { amount, createdById } = req.body
+  const { amount, accountId } = req.body
 
-  if (!amount || !createdById) {
+  if (!amount || !accountId) {
     return res.status(400).json({ errorMessage: 'Missing required parameters.' })
   }
 
   try {
-    await validateSeller(createdById)
-    await validatePayoutAmount(createdById, amount)
+    await validateSeller(accountId)
+    await validatePayoutAmount(accountId, amount)
     const result = await prisma.$transaction(async (prisma) => {
       const stripeAccount = await stripe.accounts.retrieve(sellerId, {
         expand: ['external_accounts'],
@@ -916,7 +916,7 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
         data: {
           status: 'COMPLETED',
           total: amount,
-          createdById,
+          accountId,
           last4: externalAccount.last4,
           transactions: {
             create: {
@@ -925,7 +925,7 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
               currency: 'USD',
               paymentAccountType: 'STRIPE',
               paymentMethodType: 'CARD',
-              createdById,
+              accountId,
             },
           },
         },
@@ -991,7 +991,7 @@ sellerRouter.get('/seller/payout-history/:accountId', async (req, res) => {
   try {
     const payouts = await prisma.payout.findMany({
       where: {
-        createdById: accountId,
+        accountId: accountId,
       },
       orderBy: {
         createdAt: 'desc',

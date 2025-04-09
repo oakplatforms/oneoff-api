@@ -8,19 +8,13 @@ export const orderRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/orders:
+ * /orders:
  *   get:
  *     tags:
  *       - Order
  *     summary: Retrieve a list of orders.
  *     description: Fetches a list of orders based on optional query parameters. You can filter orders by status, createdById, purchasedById, or soldById and optionally include related entities.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to retrieve orders from.
  *       - in: query
  *         name: status
  *         schema:
@@ -77,7 +71,7 @@ export const orderRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-orderRouter.get('/:marketplaceName/orders', async (req, res) => {
+orderRouter.get('/orders', async (req, res) => {
   const { include, status, createdById, purchasedById, soldById } = req.query
 
   try {
@@ -107,19 +101,13 @@ orderRouter.get('/:marketplaceName/orders', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/order/{id}:
+ * /order/{id}:
  *   get:
  *     tags:
  *       - Order
  *     summary: Retrieve a specific order by ID.
  *     description: Fetches the details of an order by its unique ID. You can optionally include related entities using the `include` query parameter.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to retrieve the order from.
  *       - in: path
  *         name: id
  *         required: true
@@ -159,7 +147,7 @@ orderRouter.get('/:marketplaceName/orders', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-orderRouter.get('/:marketplaceName/order/:id', async (req, res) => {
+orderRouter.get('/order/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 

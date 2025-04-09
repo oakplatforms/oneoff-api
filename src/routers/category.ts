@@ -8,19 +8,13 @@ export const categoryRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/categories:
+ * /categories:
  *   get:
  *     tags:
  *       - Category
  *     summary: Retrieve a list of categories for a given marketplace.
  *     description: Fetches a list of categories that belong to the specified marketplace.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace for which to list categories.
- *         required: true
- *         schema:
- *           type: string
  *       - name: include
  *         in: query
  *         description: Optional query parameter to include related data.
@@ -56,15 +50,11 @@ export const categoryRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
-  const { marketplaceName } = req.params
+categoryRouter.get('/categories', async (req, res) => {
   const { include } = req.query
 
   try {
     const categories = await prisma.category.findMany({
-      where: {
-        marketplaceName: { contains: marketplaceName as string }
-      },
       include: generateIncludes(include)
     })
 
@@ -77,19 +67,12 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category:
+ * /category:
  *   post:
  *     tags:
  *       - Category
  *     summary: Create a new category for a given marketplace.
  *     description: Creates a new category in the specified marketplace with the provided details.
- *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the new category will be created.
- *         required: true
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -131,8 +114,7 @@ categoryRouter.get('/:marketplaceName/categories', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
-  const { marketplaceName } = req.params
+categoryRouter.post(`/category`, async (req, res) => {
   const { name, displayName, createdById, description } = req.body
 
   try {
@@ -142,7 +124,6 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
         displayName,
         description,
         createdBy: { connect: { id: createdById } },
-        marketplace: { connect: { name: marketplaceName } }
       },
     })
     res.json(category)
@@ -154,19 +135,13 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category/{id}:
+ * /category/{id}:
  *   put:
  *     tags:
  *       - Category
  *     summary: Update an existing category in the specified marketplace.
  *     description: Updates the details of a category by its ID within the specified marketplace.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the category exists.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The unique identifier of the category to update.
@@ -227,7 +202,7 @@ categoryRouter.post(`/:marketplaceName/category`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
+categoryRouter.put(`/category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
@@ -250,19 +225,13 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category/{id}:
+ * /category/{id}:
  *   get:
  *     tags:
  *       - Category
  *     summary: Retrieve a specific category by its ID.
  *     description: Fetches details of a specific category by its ID within the given marketplace, with optional inclusion of related data.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the category is located.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the category to retrieve.
@@ -312,7 +281,7 @@ categoryRouter.put(`/:marketplaceName/category/:id`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
+categoryRouter.get('/category/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -336,19 +305,13 @@ categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/category/{id}:
+ * /category/{id}:
  *   delete:
  *     tags:
  *       - Category
  *     summary: Delete a specific category by its ID.
  *     description: Deletes a category by its ID within the given marketplace.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the category is located.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the category to delete.
@@ -393,7 +356,7 @@ categoryRouter.get('/:marketplaceName/category/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-categoryRouter.delete(`/:marketplaceName/category/:id`, async (req, res) => {
+categoryRouter.delete(`/category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {

@@ -10,7 +10,7 @@ export const invoiceRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/buy-now:
+ * /buy-now:
  *   post:
  *     tags:
  *       - Invoice
@@ -66,7 +66,7 @@ export const invoiceRouter = express.Router()
  *                   type: string
  *                   example: There was an error while creating your invoice.
  */
-invoiceRouter.post('/:marketplaceName/buy-now', async (req, res) => {
+invoiceRouter.post('/buy-now', async (req, res) => {
   const { orderSummary } = req.body
 
   try {
@@ -87,7 +87,7 @@ invoiceRouter.post('/:marketplaceName/buy-now', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/sell-now:
+ * /sell-now:
  *   post:
  *     tags:
  *       - Invoice
@@ -143,7 +143,7 @@ invoiceRouter.post('/:marketplaceName/buy-now', async (req, res) => {
  *                   type: string
  *                   example: There was an error while creating your invoice.
  */
-invoiceRouter.post('/:marketplaceName/sell-now', async (req, res) => {
+invoiceRouter.post('/sell-now', async (req, res) => {
   const { orderSummary } = req.body
 
   try {

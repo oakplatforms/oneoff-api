@@ -14,8 +14,8 @@ export const resolveListings = async (bid: Prisma.BidWhereInput) => {
       quantity: {
         gt: 0,
       },
-      createdById: {
-        not: bid.createdById as string,
+      accountId: {
+        not: bid.accountId as string,
       },
     },
     take: 100,
@@ -34,8 +34,8 @@ export const resolveBids = async (listing: Prisma.ListingWhereInput) => {
       quantity: {
         gt: 0,
       },
-      createdById: {
-        not: listing.createdById as string,
+      accountId: {
+        not: listing.accountId as string,
       },
     },
     take: 100,

@@ -30,7 +30,7 @@ export const validateListingOrderSummary = async (orderSummary: OrderDetails[]) 
       if (listingInOrder.status !== 'ACTIVE') {
         throw new Error('Order cannot include inactive listings')
       }
-      if (listingInOrder.createdById === account?.profile?.id) {
+      if (listingInOrder.accountId === account?.id) {
         throw new Error('Order cannot include listings that your profile created')
       }
     }
@@ -64,7 +64,7 @@ export const validateBidOrderSummary = async (orderSummary: OrderDetails[]) => {
       if (bidInOrder.status !== 'ACTIVE') {
         throw new Error('Order cannot include inactive bids')
       }
-      if (bidInOrder.createdById === account?.profile?.id) {
+      if (bidInOrder.accountId === account?.id) {
         throw new Error('Order cannot include bids that your profile created')
       }
     }

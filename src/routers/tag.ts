@@ -8,7 +8,7 @@ export const tagRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/tags:
+ * /tags:
  *   get:
  *     tags:
  *       - Tag
@@ -46,15 +46,11 @@ export const tagRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.get('/:marketplaceName/tags', async (req, res) => {
-  const { marketplaceName } = req.params
+tagRouter.get('/tags', async (req, res) => {
   const { include } = req.query
 
   try {
     const tags = await prisma.tag.findMany({
-      where: {
-        marketplaceName: { contains: marketplaceName as string }
-      },
       include: generateIncludes(include)
     })
 
@@ -67,19 +63,12 @@ tagRouter.get('/:marketplaceName/tags', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/tag:
+ * /tag:
  *   post:
  *     tags:
  *       - Tag
  *     summary: Create a new tag for a specific marketplace.
  *     description: Creates a new tag associated with the given marketplace name. Optionally, supported tag values can be included in the request.
- *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the tag will be created.
- *         required: true
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -146,10 +135,8 @@ tagRouter.get('/:marketplaceName/tags', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
-  const { marketplaceName } = req.params
+tagRouter.post(`/tag`, async (req, res) => {
   const { name, displayName, supportedTagValues, createdById } = req.body
-
   try {
     const tag = await prisma.tag.create({
       data: {
@@ -165,7 +152,6 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
             ),
           }
           : undefined,
-        marketplace: { connect: { name: marketplaceName } },
         createdBy: { connect: { id: createdById } },
       },
     })
@@ -181,19 +167,13 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/tag/{id}:
+ * /tag/{id}:
  *   put:
  *     tags:
  *       - Tag
  *     summary: Update an existing tag for a specific marketplace.
  *     description: Updates an existing tag associated with the given marketplace. Optionally, supported tag values can also be updated.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the tag exists.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the tag to be updated.
@@ -266,8 +246,8 @@ tagRouter.post(`/:marketplaceName/tag`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
-  const { marketplaceName, id } = req.params
+tagRouter.put('/tag/:id', async (req, res) => {
+  const { id } = req.params
   const { supportedTagValues, lastModifiedById, ...rest } = req.body
 
   try {
@@ -297,7 +277,6 @@ tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
             ),
           }
           : undefined,
-        marketplace: { connect: { name: marketplaceName } },
       },
     })
 
@@ -312,19 +291,13 @@ tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/tag/{id}:
+ * /tag/{id}:
  *   get:
  *     tags:
  *       - Tag
  *     summary: Retrieve a specific tag by ID for a given marketplace.
  *     description: Fetches the details of a tag by its ID for the specified marketplace, with optional inclusion of related data.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the tag is located.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the tag to retrieve.
@@ -374,7 +347,7 @@ tagRouter.put('/:marketplaceName/tag/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.get('/:marketplaceName/tag/:id', async (req, res) => {
+tagRouter.get('/tag/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -398,19 +371,13 @@ tagRouter.get('/:marketplaceName/tag/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/tag/{id}:
+ * /tag/{id}:
  *   delete:
  *     tags:
  *       - Tag
  *     summary: Delete a specific tag by ID for a given marketplace.
  *     description: Deletes a tag by its ID from the specified marketplace.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the tag is located.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the tag to delete.
@@ -455,7 +422,7 @@ tagRouter.get('/:marketplaceName/tag/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-tagRouter.delete(`/:marketplaceName/tag/:id`, async (req, res) => {
+tagRouter.delete(`/tag/:id`, async (req, res) => {
   const { id } = req.params
 
   try {

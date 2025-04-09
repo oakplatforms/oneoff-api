@@ -11,19 +11,13 @@ export const bidRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/bids:
+ * /bids:
  *   get:
  *     tags:
  *       - Bid
  *     summary: Retrieve bids by entity or profile.
  *     description: Fetches bids for a specific entity or profile. You can filter by `entityId`, `profileId`, or both. Optionally, include related entities using the `include` query parameter.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace for which to retrieve the bids.
  *       - in: query
  *         name: entityId
  *         schema:
@@ -67,19 +61,19 @@ export const bidRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.get('/:marketplaceName/bids', async (req, res) => {
-  const { include, entityId, createdById, status } = req.query
+bidRouter.get('/bids', async (req, res) => {
+  const { include, entityId, accountId, status } = req.query
   try {
     const bids = await prisma.bid.findMany({
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          entityId && createdById
-            ? { entityId: entityId as string, createdById: createdById as string }
+          entityId && accountId
+            ? { entityId: entityId as string, accountId: accountId as string }
             : entityId
               ? { entityId: entityId as string }
-              : createdById
-                ? { createdById: createdById as string }
+              : accountId
+                ? { accountId: accountId as string }
                 : {}
         ]
       },
@@ -94,19 +88,12 @@ bidRouter.get('/:marketplaceName/bids', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/bid:
+ * /bid:
  *   post:
  *     tags:
  *       - Bid
  *     summary: Create a new bid.
  *     description: Adds a new bid to the database. If a bid for the specified entity and profile already exists, it will return an error. Otherwise, the bid is created, and any relevant listings are resolved to create bid transactions.
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace where the bid is being made.
  *     requestBody:
  *       required: true
  *       content:
@@ -210,23 +197,23 @@ bidRouter.get('/:marketplaceName/bids', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
+bidRouter.post(`/bid`, async (req, res) => {
   const {
     price,
     quantity,
     status,
     multiTransactionsEnabled,
-    createdById,
+    accountId,
     entityId,
-    bidShippingCategories,
-    bidCustomShippingOptions
+    bidShippingMethods,
+    bidShippingOptions
   } = req.body
   try {
-    await validateCustomer(createdById)
+    await validateCustomer(accountId)
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
-          { createdById: createdById },
+          { accountId: accountId },
           { entityId: entityId },
           { status: 'ACTIVE' }
         ],
@@ -240,7 +227,7 @@ bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
       const listings = await resolveListings({
         price,
         entityId,
-        createdById,
+        accountId,
       })
 
       if (listings.length) {
@@ -253,25 +240,25 @@ bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
           quantity,
           status,
           multiTransactionsEnabled,
-          createdBy: { connect: { id: createdById } },
+          account: { connect: { id: accountId } },
           entity: { connect: { id: entityId } },
-          bidShippingCategories: bidShippingCategories?.create?.length
+          bidShippingMethods: bidShippingMethods?.create?.length
             ? {
-              create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+              create: bidShippingMethods.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
                 shippingCategoryId: bidShippingCategory.shippingCategoryId,
               })),
             }
             : undefined,
-          bidCustomShippingOptions: bidCustomShippingOptions?.create?.length
+          bidShippingOptions: bidShippingOptions?.create?.length
             ? {
-              create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+              create: bidShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
                 shippingOptionId: bidCustomShippingOption.shippingOptionId,
               })),
             }
             : undefined,
         },
         include: {
-          createdBy: true
+          account: true
         }
       })
       res.json(bid)
@@ -284,19 +271,13 @@ bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/bid/{id}:
+ * /bid/{id}:
  *   put:
  *     tags:
  *       - Bid
  *     summary: Update a bid by its ID.
  *     description: Updates an existing bid by its unique ID. Any fields provided in the request body will be updated. If successful, the updated bid is returned.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace for which the bid is being updated.
  *       - in: path
  *         name: id
  *         required: true
@@ -356,23 +337,23 @@ bidRouter.post(`/:marketplaceName/bid`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.put(`/:marketplaceName/bid/:id`, async (req, res) => {
+bidRouter.put(`/bid/:id`, async (req, res) => {
   const { id } = req.params
   const {
     price,
     entityId,
-    createdById,
-    bidShippingCategories,
-    bidCustomShippingOptions
+    accountId,
+    bidShippingMethods,
+    bidShippingOptions
   } = req.body
   try {
-    await validateCustomer(createdById)
+    await validateCustomer(accountId)
     await validateExistingBid(id)
 
     const listings = await resolveListings({
       price,
       entityId,
-      createdById,
+      accountId,
     })
 
     if (listings.length) {
@@ -383,29 +364,29 @@ bidRouter.put(`/:marketplaceName/bid/:id`, async (req, res) => {
       where: { id },
       data: {
         ...req.body,
-        bidShippingCategories: bidShippingCategories
+        bidShippingMethods: bidShippingMethods
           ? {
-            create: bidShippingCategories.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
+            create: bidShippingMethods.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
               shippingCategoryId: bidShippingCategory.shippingCategoryId,
             })),
-            deleteMany: bidShippingCategories.delete?.map((bidShippingCategoryId: string) => ({
+            deleteMany: bidShippingMethods.delete?.map((bidShippingCategoryId: string) => ({
               id: bidShippingCategoryId
             })),
           }
           : undefined,
-        bidCustomShippingOptions: bidCustomShippingOptions
+        bidShippingOptions: bidShippingOptions
           ? {
-            create: bidCustomShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
+            create: bidShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
               shippingOptionId: bidCustomShippingOption.shippingOptionId,
             })),
-            deleteMany: bidCustomShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
+            deleteMany: bidShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
               id: bidCustomShippingOptionId
             })),
           }
           : undefined,
       },
       include: {
-        createdBy: true
+        account: true
       }
     })
     if (bid) {
@@ -421,19 +402,13 @@ bidRouter.put(`/:marketplaceName/bid/:id`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/bid/{id}:
+ * /bid/{id}:
  *   get:
  *     tags:
  *       - Bid
  *     summary: Get a bid by its ID.
  *     description: Retrieves a bid by its unique ID. Optionally, related entities can be included in the response by passing the `include` query parameter.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
  *       - in: path
  *         name: id
  *         required: true
@@ -483,7 +458,7 @@ bidRouter.put(`/:marketplaceName/bid/:id`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.get('/:marketplaceName/bid/:id', async (req, res) => {
+bidRouter.get('/bid/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -506,19 +481,13 @@ bidRouter.get('/:marketplaceName/bid/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/bid/{id}:
+ * /bid/{id}:
  *   delete:
  *     tags:
  *       - Bid
  *     summary: Delete a bid by its ID.
  *     description: Deletes a bid by its unique ID. If the bid is successfully deleted, the deleted bid object will be returned.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
  *       - in: path
  *         name: id
  *         required: true
@@ -563,11 +532,11 @@ bidRouter.get('/:marketplaceName/bid/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.delete(`/:marketplaceName/bid/:id`, async (req, res) => {
+bidRouter.delete(`/bid/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    await prisma.bidShippingCategory.deleteMany({
+    await prisma.bidShippingMethod.deleteMany({
       where: {
         bidId: id,
       },

@@ -8,7 +8,7 @@ export const brandRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/brands:
+ * /brands:
  *   get:
  *     summary: Retrieve a list of brands
  *     tags:
@@ -21,15 +21,11 @@ export const brandRouter = express.Router()
  *             schema:
  *               $ref: '#/components/schemas/Brand'
  */
-brandRouter.get('/:marketplaceName/brands', async (req, res) => {
-  const { marketplaceName } = req.params
+brandRouter.get('/brands', async (req, res) => {
   const { include } = req.query
 
   try {
     const brands = await prisma.brand.findMany({
-      where: {
-        marketplaceName: { contains: marketplaceName as string }
-      },
       include: generateIncludes(include)
     })
     res.json(brands)
@@ -41,7 +37,7 @@ brandRouter.get('/:marketplaceName/brands', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/brand:
+ * /brand:
  *   post:
  *     summary: Create a brand
  *     tags:
@@ -54,24 +50,15 @@ brandRouter.get('/:marketplaceName/brands', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Brand'
  */
-brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
-  const { marketplaceName } = req.params
-  const { name, displayName, createdById, brandCategories } = req.body
+brandRouter.post(`/brand`, async (req, res) => {
+  const { name, displayName, createdById } = req.body
 
   try {
     const brand = await prisma.brand.create({
       data: {
         name,
         displayName,
-        brandCategories: brandCategories?.create?.length
-          ? {
-            create: brandCategories.create.map(({ categoryName }: { categoryName: string }) => ({
-              categoryName
-            })),
-          }
-          : undefined,
         createdBy: { connect: { id: createdById } },
-        marketplace: { connect: { name: marketplaceName } }
       },
     })
     res.json(brand)
@@ -83,19 +70,13 @@ brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/brand/{id}:
+ * /brand/{id}:
  *   put:
  *     tags:
  *       - Brand
  *     summary: Update a brand by ID
  *     description: Updates a brand within a given marketplace. You can update basic brand fields and modify associated categories.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to which the brand belongs.
  *       - in: path
  *         name: id
  *         required: true
@@ -123,21 +104,6 @@ brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
  *               lastModifiedById:
  *                 type: string
  *                 description: User ID of the last person to modify the brand.
- *               brandCategories:
- *                 type: object
- *                 properties:
- *                   create:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         categoryName:
- *                           type: string
- *                   delete:
- *                     type: array
- *                     items:
- *                       type: string
- *                     description: List of category IDs to delete.
  *     responses:
  *       '200':
  *         description: Successfully updated the brand.
@@ -158,9 +124,9 @@ brandRouter.post(`/:marketplaceName/brand`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-brandRouter.put('/:marketplaceName/brand/:id', async (req, res) => {
-  const { marketplaceName, id } = req.params
-  const { brandCategories, lastModifiedById, ...rest } = req.body
+brandRouter.put('/brand/:id', async (req, res) => {
+  const { id } = req.params
+  const { lastModifiedById, ...rest } = req.body
 
   try {
     const brand = await prisma.brand.update({
@@ -168,17 +134,6 @@ brandRouter.put('/:marketplaceName/brand/:id', async (req, res) => {
       data: {
         ...rest,
         lastModifiedBy: { connect: { id: lastModifiedById } },
-        brandCategories: brandCategories
-          ? {
-            create: brandCategories.create?.map(({ categoryName }: { categoryName: string }) => ({
-              categoryName,
-            })),
-            deleteMany: brandCategories.delete?.map((categoryId: string) => ({
-              id: categoryId,
-            })),
-          }
-          : undefined,
-        marketplace: { connect: { name: marketplaceName } },
       },
     })
 
@@ -193,19 +148,13 @@ brandRouter.put('/:marketplaceName/brand/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/brand/{id}:
+ * /brand/{id}:
  *   get:
  *     tags:
  *       - Brand
  *     summary: Get a brand by ID
  *     description: Retrieves a brand by its ID and associated marketplace. You can optionally include related entities using the `include` query parameter.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace the brand belongs to.
  *       - in: path
  *         name: id
  *         required: true
@@ -244,15 +193,14 @@ brandRouter.put('/:marketplaceName/brand/:id', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-brandRouter.get('/:marketplaceName/brand/:id', async (req, res) => {
-  const { marketplaceName, id } = req.params
+brandRouter.get('/brand/:id', async (req, res) => {
+  const { id } = req.params
   const { include } = req.query
 
   try {
     const brand = await prisma.brand.findUnique({
       where: {
         id,
-        marketplaceName: marketplaceName
       },
       include: generateIncludes(include)
     })
@@ -270,19 +218,13 @@ brandRouter.get('/:marketplaceName/brand/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/brand/{id}:
+ * /brand/{id}:
  *   delete:
  *     tags:
  *       - Brand
  *     summary: Delete a brand by ID
  *     description: Deletes a brand by its ID for a given marketplace. Returns the deleted brand object on success.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace the brand belongs to.
  *       - in: path
  *         name: id
  *         required: true
@@ -315,14 +257,13 @@ brandRouter.get('/:marketplaceName/brand/:id', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-brandRouter.delete(`/:marketplaceName/brand/:id`, async (req, res) => {
-  const { marketplaceName, id } = req.params
+brandRouter.delete(`/brand/:id`, async (req, res) => {
+  const { id } = req.params
 
   try {
     const brand = await prisma.brand.delete({
       where: {
         id: id,
-        marketplaceName: { contains: marketplaceName as string }
       },
     })
     if (brand) {
