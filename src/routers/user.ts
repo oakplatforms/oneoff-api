@@ -123,7 +123,7 @@ userRouter.get('/users', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 userRouter.post(`/user`, async (req, res) => {
-  const { authId, isAdmin, account } = req.body
+  const { authId, isAdmin, account, admin } = req.body
   const { profile: profileProps, ...accountProps } = account || {}
 
   try {
@@ -131,14 +131,25 @@ userRouter.post(`/user`, async (req, res) => {
       data: {
         authId,
         isAdmin,
-        account: {
-          create: {
-            ...accountProps,
-            profile: profileProps && {
-              create: profileProps
+        ...(isAdmin && admin && {
+          admin: {
+            create: {
+              ...admin
             }
-          },
-        },
+          }
+        }),
+        ...(!isAdmin && account && {
+          account: {
+            create: {
+              ...accountProps,
+              ...(profileProps && {
+                profile: {
+                  create: profileProps
+                }
+              })
+            }
+          }
+        }),
       },
     })
     res.json(user)

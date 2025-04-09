@@ -8,7 +8,7 @@ export const transactionRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/transactions:
+ * /transactions:
  *   get:
  *     tags:
  *       - Transaction
@@ -77,7 +77,7 @@ export const transactionRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-transactionRouter.get('/:marketplaceName/transactions', async (req, res) => {
+transactionRouter.get('/transactions', async (req, res) => {
   const { include, orderId } = req.query
 
   try {
@@ -100,7 +100,7 @@ transactionRouter.get('/:marketplaceName/transactions', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/transaction/{id}:
+ * /transaction/{id}:
  *   get:
  *     tags:
  *       - Transaction
@@ -152,7 +152,7 @@ transactionRouter.get('/:marketplaceName/transactions', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-transactionRouter.get('/:marketplaceName/transaction/:id', async (req, res) => {
+transactionRouter.get('/transaction/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 

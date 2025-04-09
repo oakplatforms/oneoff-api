@@ -25,7 +25,6 @@ export async function createTestUserAndAccount() {
  * Clean up all test data
  */
 export async function cleanTestDatabase() {
-  await prisma.marketplace.deleteMany()
   await prisma.brand.deleteMany()
   await prisma.account.deleteMany()
   await prisma.user.deleteMany()

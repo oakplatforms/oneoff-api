@@ -4,23 +4,17 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
-export const shippingCategoryRouter = express.Router()
+export const shippingMethodRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/shipping-categories:
+ * /shipping-methods:
  *   get:
  *     tags:
  *       - Shipping Category
  *     summary: Retrieve a list of shipping categories for a given marketplace.
  *     description: Fetches a list of shipping categories that belong to the specified marketplace.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace for which to list shipping categories.
- *         required: true
- *         schema:
- *           type: string
  *       - name: include
  *         in: query
  *         description: Optional query parameter to include related data.
@@ -34,7 +28,7 @@ export const shippingCategoryRouter = express.Router()
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/ShippingCategory'
+ *                 $ref: '#/components/schemas/shippingMethod'
  *       '400':
  *         description: Bad request, typically due to invalid parameters.
  *         content:
@@ -56,17 +50,13 @@ export const shippingCategoryRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, res) => {
-  const { marketplaceName } = req.params
+shippingMethodRouter.get('/shipping-methods', async (req, res) => {
   const { include } = req.query
   try {
-    const shippingCategories = await prisma.shippingCategory.findMany({
-      where: {
-        marketplaceName: { contains: marketplaceName as string }
-      },
+    const shippingMethods = await prisma.shippingMethod.findMany({
       include: generateIncludes(include)
     })
-    res.json(shippingCategories)
+    res.json(shippingMethods)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -75,7 +65,7 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, 
 
 /**
  * @openapi
- * /{marketplaceName}/shipping-category:
+ * /shipping-method:
  *   post:
  *     tags:
  *       - Shipping Category
@@ -112,7 +102,7 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, 
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ShippingCategory'
+ *               $ref: '#/components/schemas/shippingMethod'
  *       '400':
  *         description: Bad request, typically due to invalid parameters or missing required fields.
  *         content:
@@ -134,17 +124,15 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-categories', async (req, 
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, res) => {
-  const { marketplaceName } = req.params
+shippingMethodRouter.post('/shipping-method', async (req, res) => {
   const { name, displayName, shippingOptions, createdById } = req.body
 
   try {
-    const shippingCategory = await prisma.shippingCategory.create({
+    const shippingMethod = await prisma.shippingMethod.create({
       data: {
         name,
         displayName,
         createdBy: { connect: { id: createdById } },
-        marketplace: { connect: { name: marketplaceName } },
         shippingOptions: shippingOptions?.create?.length
           ? {
             create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
@@ -154,7 +142,7 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
           : undefined,
       },
     })
-    res.json(shippingCategory)
+    res.json(shippingMethod)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
@@ -163,7 +151,7 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
 
 /**
  * @openapi
- * /{marketplaceName}/shipping-category/{id}:
+ * /shipping-method/{id}:
  *   put:
  *     tags:
  *       - Shipping Category
@@ -205,7 +193,7 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ShippingCategory'
+ *               $ref: '#/components/schemas/shippingMethod'
  *       '400':
  *         description: Bad request, typically due to invalid parameters or missing fields.
  *         content:
@@ -237,12 +225,12 @@ shippingCategoryRouter.post(`/:marketplaceName/shipping-category`, async (req, r
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req, res) => {
+shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
   const { id } = req.params
   const { shippingOptions } = req.body
 
   try {
-    const shippingCategory = await prisma.shippingCategory.update({
+    const shippingMethod = await prisma.shippingMethod.update({
       where: { id },
       data: {
         ...req.body,
@@ -264,8 +252,8 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
           : undefined,
       }
     })
-    if (shippingCategory) {
-      res.json(shippingCategory)
+    if (shippingMethod) {
+      res.json(shippingMethod)
     } else {
       throw new Error('Cannot update shipping category by id')
     }
@@ -277,19 +265,13 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
 
 /**
  * @openapi
- * /{marketplaceName}/shipping-category/{id}:
+ * /shipping-method/{id}:
  *   get:
  *     tags:
  *       - Shipping Category
  *     summary: Retrieve details of a specific shipping category by its ID.
  *     description: Fetches the details of a single shipping category in the specified marketplace using its unique ID.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the shipping category exists.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The unique identifier of the shipping category.
@@ -307,7 +289,7 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ShippingCategory'
+ *               $ref: '#/components/schemas/shippingMethod'
  *       '400':
  *         description: Bad request, typically due to invalid parameters or query syntax.
  *         content:
@@ -339,19 +321,19 @@ shippingCategoryRouter.put(`/:marketplaceName/shipping-category/:id`, async (req
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req, res) => {
+shippingMethodRouter.get('/shipping-method/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
   try {
-    const shippingCategory = await prisma.shippingCategory.findUnique({
+    const shippingMethod = await prisma.shippingMethod.findUnique({
       where: {
         id,
       },
       include: generateIncludes(include)
     })
-    if (shippingCategory) {
-      res.json(shippingCategory)
+    if (shippingMethod) {
+      res.json(shippingMethod)
     } else {
       throw new Error('Cannot update shipping category by id')
     }
@@ -363,7 +345,7 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req
 
 /**
  * @openapi
- * /{marketplaceName}/shipping-category/{id}:
+ * /shipping-method/{id}:
  *   delete:
  *     tags:
  *       - Shipping Category
@@ -388,7 +370,7 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ShippingCategory'
+ *               $ref: '#/components/schemas/shippingMethod'
  *       '400':
  *         description: Bad request, typically due to invalid parameters or query syntax.
  *         content:
@@ -420,17 +402,17 @@ shippingCategoryRouter.get('/:marketplaceName/shipping-category/:id', async (req
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-shippingCategoryRouter.delete(`/:marketplaceName/shipping-category/:id`, async (req, res) => {
+shippingMethodRouter.delete(`/shipping-method/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    const shippingCategory = await prisma.shippingCategory.delete({
+    const shippingMethod = await prisma.shippingMethod.delete({
       where: {
         id: id,
       },
     })
-    if (shippingCategory) {
-      res.json(shippingCategory)
+    if (shippingMethod) {
+      res.json(shippingMethod)
     } else {
       throw new Error('No shipping category ID found')
     }

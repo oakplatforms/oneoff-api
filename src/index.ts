@@ -18,7 +18,7 @@ const jsDocOptions = {
   definition: {
     openapi: '3.0.1',
     info: {
-      title: 'TCGX API Documentation',
+      title: 'Oak API Documentation',
       description: 'Endpoints + Schema Definitions',
       version: '1.0.0',
     },

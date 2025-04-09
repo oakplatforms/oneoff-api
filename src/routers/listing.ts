@@ -11,19 +11,13 @@ export const listingRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/listings:
+ * /listings:
  *   get:
  *     tags:
  *       - Listing
  *     summary: Retrieve a list of listings.
  *     description: Fetches a list of listings for a specific marketplace and brand. Optional query parameters can be used to filter listings by `entityId` or `profileId`, and to include related data.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to retrieve listings from.
  *       - in: query
  *         name: entityId
  *         schema:
@@ -69,19 +63,19 @@ export const listingRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/:marketplaceName/listings', async (req, res) => {
-  const { include, entityId, createdById, status } = req.query
+listingRouter.get('/listings', async (req, res) => {
+  const { include, entityId, accountId, status } = req.query
   try {
     const listings = await prisma.listing.findMany({
       where: {
         AND: [
           status ? { status: status as Status } : {},
-          entityId && createdById
-            ? { entityId: entityId as string, createdById: createdById as string }
+          entityId && accountId
+            ? { entityId: entityId as string, accountId: accountId as string }
             : entityId
               ? { entityId: entityId as string }
-              : createdById
-                ? { createdById: createdById as string }
+              : accountId
+                ? { accountId: accountId as string }
                 : {}
         ]
       },
@@ -96,19 +90,13 @@ listingRouter.get('/:marketplaceName/listings', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/listing/lowest-ask:
+ * /listing/lowest-ask:
  *   get:
  *     tags:
  *       - Listing
  *     summary: Retrieve the lowest ask listing.
  *     description: Fetches the listing with the lowest price for a specific entity in a given marketplace and brand. The listing returned is the one with the lowest price, and if multiple listings have the same price, the oldest listing is returned.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to retrieve the lowest ask from.
  *       - in: query
  *         name: entityId
  *         schema:
@@ -147,7 +135,7 @@ listingRouter.get('/:marketplaceName/listings', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/:marketplaceName/listing/lowest-ask', async (req, res) => {
+listingRouter.get('/listing/lowest-ask', async (req, res) => {
   const { include, entityId } = req.query
 
   if (!entityId) {
@@ -178,19 +166,12 @@ listingRouter.get('/:marketplaceName/listing/lowest-ask', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/listing:
+ * /listing:
  *   post:
  *     tags:
  *       - Listing
  *     summary: Create a new listing.
  *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, `entityId`, and optionally `listingShippingCategories`. If the user already has a listing for this entity, an error will be returned.
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace for the listing.
  *     requestBody:
  *       required: true
  *       content:
@@ -294,22 +275,22 @@ listingRouter.get('/:marketplaceName/listing/lowest-ask', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
+listingRouter.post(`/listing`, async (req, res) => {
   const {
     price,
     quantity,
     status,
     multiTransactionsEnabled,
-    createdById,
+    accountId,
     entityId,
   } = req.body
 
   try {
-    await validateSeller(createdById)
+    await validateSeller(accountId)
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
-          { createdById: createdById },
+          { accountId: accountId },
           { entityId: entityId },
           { status: 'ACTIVE' }
         ],
@@ -324,7 +305,7 @@ listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
       const bids = await resolveBids({
         price,
         entityId,
-        createdById,
+        accountId,
       })
 
       if (bids.length) {
@@ -337,11 +318,11 @@ listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
           quantity,
           status,
           multiTransactionsEnabled,
-          createdBy: { connect: { id: createdById } },
+          account: { connect: { id: accountId } },
           entity: { connect: { id: entityId } },
         },
         include: {
-          createdBy: true
+          account: true
         }
       })
 
@@ -355,19 +336,13 @@ listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/listing/{id}:
+ * /listing/{id}:
  *   put:
  *     tags:
  *       - Listing
  *     summary: Update an existing listing.
  *     description: Updates an existing listing in the database for a specific marketplace and brand. The request body can include fields like `price`, `quantity`, `status`, and optionally `listingShippingCategories` for associating or disassociating shipping categories.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace for the listing.
  *       - in: path
  *         name: id
  *         required: true
@@ -483,22 +458,22 @@ listingRouter.post(`/:marketplaceName/listing`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.put(`/:marketplaceName/listing/:id`, async (req, res) => {
+listingRouter.put(`/listing/:id`, async (req, res) => {
   const { id } = req.params
   const {
     price,
-    createdById,
+    accountId,
     entityId,
   } = req.body
 
   try {
-    await validateSeller(createdById)
+    await validateSeller(accountId)
     await validateExistingListing(id)
 
     const bids = await resolveBids({
       price,
       entityId,
-      createdById,
+      accountId,
     })
 
     if (bids.length) {
@@ -511,7 +486,7 @@ listingRouter.put(`/:marketplaceName/listing/:id`, async (req, res) => {
         ...req.body,
       },
       include: {
-        createdBy: true
+        account: true
       }
     })
     if (listing) {
@@ -527,19 +502,13 @@ listingRouter.put(`/:marketplaceName/listing/:id`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/listing/{id}:
+ * /listing/{id}:
  *   get:
  *     tags:
  *       - Listing
  *     summary: Retrieve a specific listing by ID.
  *     description: Fetches the details of a listing by its unique ID. You can optionally include related entities using the `include` query parameter.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to retrieve the listing from.
  *       - in: path
  *         name: id
  *         required: true
@@ -579,7 +548,7 @@ listingRouter.put(`/:marketplaceName/listing/:id`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/:marketplaceName/listing/:id', async (req, res) => {
+listingRouter.get('/listing/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -602,19 +571,13 @@ listingRouter.get('/:marketplaceName/listing/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/listing/{id}:
+ * /listing/{id}:
  *   delete:
  *     tags:
  *       - Listing
  *     summary: Delete a specific listing by ID.
  *     description: Deletes a listing by its unique ID from the specified marketplace and brand.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace to delete the listing from.
  *       - in: path
  *         name: id
  *         required: true
@@ -649,7 +612,7 @@ listingRouter.get('/:marketplaceName/listing/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.delete(`/:marketplaceName/listing/:id`, async (req, res) => {
+listingRouter.delete(`/listing/:id`, async (req, res) => {
   const { id } = req.params
 
   try {

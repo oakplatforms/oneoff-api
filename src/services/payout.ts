@@ -27,7 +27,7 @@ export const calculateWalletBalance = async (accountId?: string) => {
     }),
     prisma.payout.aggregate({
       where: {
-        createdById: accountId,
+        accountId: accountId,
         status: 'COMPLETED',
       },
       _sum: {

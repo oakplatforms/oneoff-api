@@ -7,19 +7,12 @@ export const supportedTagValueRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/supported-tag-value:
+ * /supported-tag-value:
  *   post:
  *     tags:
  *       - Supported Tag Value
  *     summary: Create a new supported tag value for a specific tag.
  *     description: Creates a new supported tag value associated with the given marketplace name and a specific tag.
- *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the supported tag value will be created.
- *         required: true
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -68,11 +61,11 @@ export const supportedTagValueRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-supportedTagValueRouter.post(`/:marketplaceName/supported-tag-value`, async (req, res) => {
+supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
   const { name, displayName, tagId, createdById } = req.body
 
   try {
-    const supportedTagValue = await prisma.supportedTagValues.create({
+    const supportedTagValue = await prisma.supportedTagValue.create({
       data: {
         name,
         createdBy: { connect: { id: createdById } },
@@ -89,19 +82,13 @@ supportedTagValueRouter.post(`/:marketplaceName/supported-tag-value`, async (req
 
 /**
  * @openapi
- * /{marketplaceName}/supported-tag-value/{id}:
+ * /supported-tag-value/{id}:
  *   delete:
  *     tags:
  *       - Supported Tag Value
  *     summary: Delete a specific supported tag value.
  *     description: Deletes a supported tag value associated with the given ID within a specific marketplace.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the supported tag value exists.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the supported tag value to delete.
@@ -136,11 +123,11 @@ supportedTagValueRouter.post(`/:marketplaceName/supported-tag-value`, async (req
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-supportedTagValueRouter.delete(`/:marketplaceName/supported-tag-value/:id`, async (req, res) => {
+supportedTagValueRouter.delete(`/supported-tag-value/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    const supportedTagValue = await prisma.supportedTagValues.delete({
+    const supportedTagValue = await prisma.supportedTagValue.delete({
       where: {
         id: id,
       },

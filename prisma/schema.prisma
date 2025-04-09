@@ -26,13 +26,11 @@ enum ProductType {
 
 enum ListType {
   COLLECTION
-  SET
   DECK
   FAVORITE
 }
 
 enum AccountType {
-  ADMIN
   REGISTERED
   CUSTOMER
   SELLER
@@ -130,11 +128,44 @@ model User {
   status        Status @default(ACTIVE)
 
   // custom
-  authId     String
-  isAdmin    Boolean? @default(false)
+  authId        String
+  isAdmin       Boolean? @default(false)
 
   // relations
   account       Account?
+  admin         Admin?
+}
+
+model Admin {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  status        Status @default(ACTIVE)
+
+  // custom
+  email         String?
+
+  // relations
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String  @unique
+
+  // created by and last modified by relations
+  createdBrands  Brand[] @relation(name: "CreatedBy")
+  lastModifiedBrands Brand[] @relation(name: "LastModifiedBy")
+  createdThemes Theme[] @relation(name: "CreatedBy")
+  lastModifiedThemes Theme[] @relation(name: "LastModifiedBy")
+  createdCategories Category[] @relation(name: "CreatedBy")
+  lastModifiedCategories Category[] @relation(name: "LastModifiedBy")
+  createdTags   Tag[] @relation(name: "CreatedBy")
+  lastModifiedTags Tag[] @relation(name: "LastModifiedBy")
+  createdSupportedTagValues SupportedTagValue[] @relation(name: "CreatedBy")
+  lastModifiedSupportedTagValues SupportedTagValue[] @relation(name: "LastModifiedBy")
+  createdEntities Entity[] @relation(name: "CreatedBy")
+  lastModifiedEntities Entity[] @relation(name: "LastModifiedBy")
+  createdShippingMethods ShippingMethod[] @relation(name: "CreatedBy")
+  lastModifiedShippingMethods ShippingMethod[] @relation(name: "LastModifiedBy")
+  createdShippingOptions ShippingOption[] @relation(name: "CreatedBy")
+  lastModifiedShippingOptions ShippingOption[] @relation(name: "LastModifiedBy")
 }
 
 model Account {
@@ -153,33 +184,15 @@ model Account {
   profile       Profile?
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String  @unique
+  lists List[]
+  reviews Review[]
+  bids Bid[]
+  listings Listing[]
+  payouts Payout[]
+  transactions Transaction[]
+  shipments Shipment[]
 
-  // created by, last modified by, purchased by, sold by relations
-  createdMarketplaces Marketplace[] @relation(name: "CreatedBy")
-  lastModifiedMarketplaces Marketplace[] @relation(name: "LastModifiedBy")
-  createdBrands  Brand[] @relation(name: "CreatedBy")
-  lastModifiedBrands Brand[] @relation(name: "LastModifiedBy")
-  createdThemes Theme[] @relation(name: "CreatedBy")
-  lastModifiedThemes Theme[] @relation(name: "LastModifiedBy")
-  createdCategories Category[] @relation(name: "CreatedBy")
-  lastModifiedCategories Category[] @relation(name: "LastModifiedBy")
-  createdTags   Tag[] @relation(name: "CreatedBy")
-  lastModifiedTags Tag[] @relation(name: "LastModifiedBy")
-  createdSupportedTagValues SupportedTagValues[] @relation(name: "CreatedBy")
-  lastModifiedSupportedTagValues SupportedTagValues[] @relation(name: "LastModifiedBy")
-  createdEntities Entity[] @relation(name: "CreatedBy")
-  lastModifiedEntities Entity[] @relation(name: "LastModifiedBy")
-  createdShippingCategories ShippingCategory[] @relation(name: "CreatedBy")
-  lastModifiedShippingCategories ShippingCategory[] @relation(name: "LastModifiedBy")
-  createdShippingOptions ShippingOption[] @relation(name: "CreatedBy")
-  lastModifiedShippingOptions ShippingOption[] @relation(name: "LastModifiedBy")
-  createdLists List[] @relation(name: "CreatedBy")
-  createdReviews Review[] @relation(name: "CreatedBy")
-  createdBids Bid[] @relation(name: "CreatedBy")
-  createdListings Listing[] @relation(name: "CreatedBy")
-  createdPayouts Payout[] @relation(name: "CreatedBy")
-  createdTransactions Transaction[] @relation(name: "CreatedBy")
-  createdShipments     Shipment[] @relation(name: "CreatedBy")
+  // order relations
   createdOrders Order[] @relation(name: "CreatedBy")
   purchasedOrders Order[] @relation(name: "PurchasedBy")
   soldOrders     Order[] @relation(name: "SoldBy")
@@ -233,8 +246,8 @@ model Seller {
   // relations
   account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
-  sellerShippingCategories SellerShippingCategory[]
-  sellerCustomShippingOptions SellerCustomShippingOption[]
+  sellerShippingMethods SellerShippingMethod[]
+  sellerShippingOptions SellerShippingOption[]
   shippingCarrierTypes ShippingCarrierType[]
 }
 
@@ -245,35 +258,12 @@ model Profile {
 
   // custom
   username      String? @unique
-  isPrivate     Boolean? @default(false)
   image         String?
   qrCode        String?
 
   // relations
-  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId     String  @unique
-}
-
-model Marketplace {
-  id               String  @id @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // custom
-  name             String  @unique
-  displayName      String?
-  hasMultiSellerEnabled Boolean? @default(false)
-
-  // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  theme            Theme?
-  brands           Brand[]
-  categories       Category[]
-  shippingCategories ShippingCategory[]
-  tags             Tag[]
+  account       Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId     String?  @unique
 }
 
 model Brand {
@@ -286,14 +276,12 @@ model Brand {
   displayName      String?
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
-  marketplaceName  String
   theme            Theme?
-  brandCategories  BrandCategory[]
+  entities         Entity[]
 }
 
 model Theme {
@@ -307,12 +295,10 @@ model Theme {
   secondaryColor   String?
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  marketplace      Marketplace @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
-  marketplaceId    String  @unique
   brand            Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   brandId          String  @unique
 }
@@ -328,16 +314,14 @@ model Category {
   description      String?
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
-  marketplaceName  String
-  brandCategories  BrandCategory[]
+  entities         Entity[]
 }
 
-model ShippingCategory {
+model ShippingMethod {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -351,15 +335,13 @@ model ShippingCategory {
   shippingServiceType ShippingServiceType @default(ECONOMY)
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
-  marketplaceName  String
   shippingOptions  ShippingOption[]
-  sellerShippingCategories SellerShippingCategory[]
-  bidShippingCategories BidShippingCategory[]
+  sellerShippingMethods SellerShippingMethod[]
+  bidShippingMethods BidShippingMethod[]
 }
 
 model ShippingOption {
@@ -374,17 +356,16 @@ model ShippingOption {
   maxQuantity      Int?
   maxWeight        Float?
   rate             Decimal @db.Decimal(10, 2)
-  isRequired       Boolean?
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  shippingCategory    ShippingCategory? @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
-  shippingCategoryId  String?
-  sellerCustomShippingOptions SellerCustomShippingOption[]
-  bidCustomShippingOptions BidCustomShippingOption[]
+  createdBy         Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById       String?
+  lastModifiedBy    Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById  String?
+  shippingMethod    ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId  String?
+  sellerShippingOptions SellerShippingOption[]
+  bidShippingOptions BidShippingOption[]
 }
 
 model Tag {
@@ -397,17 +378,15 @@ model Tag {
   displayName      String?
   
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  marketplace      Marketplace  @relation(fields: [marketplaceName], references: [name], onDelete: Cascade)
-  marketplaceName  String
   entityTags       EntityTag[]
-  supportedTagValues SupportedTagValues[]
+  supportedTagValues SupportedTagValue[]
 }
 
-model SupportedTagValues {
+model SupportedTagValue {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -417,12 +396,56 @@ model SupportedTagValues {
   displayName      String?
   
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
   tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId            String
+}
+
+model List {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String
+  displayName      String?
+  description      String?
+  type             ListType?
+
+  // relations
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
+}
+
+model Entity {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  name             String
+  displayName      String?
+  description      String?
+  type             EntityType @default(PRODUCT)
+  image            String?
+
+  // relations
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
+  category         Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId       String?
+  brand            Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  brandId          String?
+  product          Product?
+  entityTags       EntityTag[]
+  reviews          Review[]
+  bids             Bid[]
+  listings         Listing[]
 }
 
 model EntityTag {
@@ -439,69 +462,6 @@ model EntityTag {
   tagId            String
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId         String
-}
-
-model BrandCategory {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // relations
-  brand            Brand @relation(fields: [brandName], references: [name], onDelete: Cascade)
-  brandName        String
-  category         Category @relation(fields: [categoryName], references: [name], onDelete: Cascade)
-  categoryName     String
-  lists            List[]
-  entities         Entity[]
-
-  @@id([brandName, categoryName])
-}
-
-model List {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // custom
-  name             String
-  displayName      String?
-  description      String?
-  type             ListType?
-
-  // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
-  brandCategoryId  String
-  entities         Entity[]
-}
-
-model Entity {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // custom
-  name             String
-  displayName      String?
-  description      String?
-  type             EntityType @default(PRODUCT)
-  image            String?
-
-  // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Account? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  product          Product?
-  brandCategory    BrandCategory @relation(fields: [brandCategoryId], references: [id], onDelete: Cascade)
-  brandCategoryId  String
-  list             List? @relation(fields: [listId], references: [id], onDelete: Cascade)
-  listId           String?
-  entityTags       EntityTag[]
-  reviews          Review[]
-  bids             Bid[]
-  listings         Listing[]
 }
 
 model Product {
@@ -531,8 +491,8 @@ model Review {
   description      String
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId         String
 }
@@ -548,8 +508,8 @@ model Payout {
   last4            String? 
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
   transactions     Transaction[]
 }
 
@@ -567,8 +527,8 @@ model Listing {
   isPrimary        Boolean? @default(false)
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderListings    OrderListing[]
@@ -587,13 +547,13 @@ model Bid {
   condition        Condition @default(MINT)
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderBids        OrderBid[]
-  bidShippingCategories BidShippingCategory[]
-  bidCustomShippingOptions BidCustomShippingOption[]
+  bidShippingMethods BidShippingMethod[]
+  bidShippingOptions BidShippingOption[]
 }
 
 model Invoice {
@@ -682,15 +642,15 @@ model Transaction {
   paymentMethodType PaymentMethodType @default(CARD)
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
   order            Order? @relation(fields: [orderId], references: [id])
   orderId          String?
   payout           Payout? @relation(fields: [payoutId], references: [id])
   payoutId         String?
 }
 
-model SellerShippingCategory {
+model SellerShippingMethod {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -698,13 +658,13 @@ model SellerShippingCategory {
   // relations
   seller           Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId         String
-  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
-  shippingCategoryId String
+  shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId String
 
-  @@id([sellerId, shippingCategoryId])
+  @@id([sellerId, shippingMethodId])
 }
 
-model SellerCustomShippingOption {
+model SellerShippingOption {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -718,7 +678,7 @@ model SellerCustomShippingOption {
   @@id([sellerId, shippingOptionId])
 }
 
-model BidShippingCategory {
+model BidShippingMethod {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -726,13 +686,13 @@ model BidShippingCategory {
   // relations
   bid              Bid @relation(fields: [bidId], references: [id], onDelete: Cascade)
   bidId            String
-  shippingCategory ShippingCategory @relation(fields: [shippingCategoryId], references: [id], onDelete: Cascade)
-  shippingCategoryId String
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId String
 
-  @@id([bidId, shippingCategoryId])
+  @@id([bidId, shippingMethodId])
 }
 
-model BidCustomShippingOption {
+model BidShippingOption {
   id               String  @unique @default(cuid()) 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -756,8 +716,8 @@ model Shipment {
   trackingNumber   String?
 
   // relations
-  createdBy        Account? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
+  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
   order            Order @relation(fields: [transactionId], references: [id])
   transactionId    String  @unique
 }

@@ -6,28 +6,79 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
 
-listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
-  const { name, type, displayName, description, entities, createdById, brandCategoryId } = req.body
+/**
+ * @openapi
+ * /list:
+ *   post:
+ *     tags:
+ *       - List
+ *     summary: Create a new list
+ *     description: Creates a new list associated with a user account.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - type
+ *               - createdById
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Internal name for the list.
+ *               type:
+ *                 type: string
+ *                 description: Type of the list (e.g., "wishlist", "favorites", etc.)
+ *               displayName:
+ *                 type: string
+ *                 description: Public-facing display name for the list.
+ *               description:
+ *                 type: string
+ *                 description: Optional description of the list.
+ *               createdById:
+ *                 type: string
+ *                 description: The ID of the account creating the list.
+ *     responses:
+ *       '200':
+ *         description: Successfully created the list.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/List'
+ *       '400':
+ *         description: Bad request, typically due to missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal server error, often due to database issues or unexpected errors.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listRouter.post(`/list`, async (req, res) => {
+  const { name, type, displayName, description, createdById } = req.body
 
   try {
-    const entitiesData = entities?.map((entity: Prisma.EntityCreateInput) => {
-      return {
-        ...entity,
-        brandCategory: { connect: { id: brandCategoryId }
-        }}
-    })
-
     const list = await prisma.list.create({
       data: {
         name,
         displayName,
         description,
         type,
-        entities: {
-          create: entitiesData,
-        },
-        createdBy: { connect: { id: createdById } },
-        brandCategory: { connect: { id: brandCategoryId } },
+        account: { connect: { id: createdById } },
       },
     })
     res.json(list)
@@ -39,7 +90,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/list/{id}:
+ * /list/{id}:
  *   get:
  *     tags:
  *       - List
@@ -107,7 +158,7 @@ listRouter.post(`/:marketplaceName/:brandName/list`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
+listRouter.get('/list/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -130,7 +181,7 @@ listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/list/{id}:
+ * /list/{id}:
  *   delete:
  *     tags:
  *       - List
@@ -193,7 +244,7 @@ listRouter.get('/:marketplaceName/:brandName/list/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listRouter.delete(`/:marketplaceName/:brandName/list/:id`, async (req, res) => {
+listRouter.delete(`/list/:id`, async (req, res) => {
   const { id } = req.params
   try {
     const list = await prisma.list.delete({

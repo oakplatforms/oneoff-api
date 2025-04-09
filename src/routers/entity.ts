@@ -8,41 +8,29 @@ export const entityRouter = express.Router()
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/entities:
+ * /entities:
  *   get:
  *     tags:
  *       - Entity
- *     summary: Retrieve entities by brand and optional filters
+ *     summary: Retrieve entities with filtering
  *     description: |
- *       Fetch a list of entities associated with a specific brand and marketplace.
- *       Optional filters include category, entity tags, and search.
+ *       Fetch a list of entities with optional filters for categoryId, brandId, entity tags, and a search term.
+ *       Supports filtering by category ID, brand ID, tag name/value, and free-text search on entity name or displayName.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
- *       - in: path
- *         name: brandName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the brand.
  *       - in: query
- *         name: category
- *         required: true
- *         schema:
- *           type: string
- *         description: The category associated with the brand.
- *       - in: query
- *         name: include
+ *         name: categoryId
  *         required: false
  *         schema:
  *           type: string
- *         description: Comma-separated list of related entities to include (e.g. `tags,images`).
+ *         description: The ID of the category to filter entities by.
  *       - in: query
- *         name: entityTag
+ *         name: brandId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: The ID of the brand to filter entities by.
+ *       - in: query
+ *         name: entityTags
  *         required: false
  *         schema:
  *           type: array
@@ -56,18 +44,24 @@ export const entityRouter = express.Router()
  *         required: false
  *         schema:
  *           type: string
- *         description: Search term to match against entity name or displayName.
+ *         description: A search term to match against entity name or display name.
+ *       - in: query
+ *         name: include
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include (e.g., `tags,product,brand,category`).
  *     responses:
  *       '200':
- *         description: A list of matching entities.
+ *         description: Successfully retrieved a list of entities.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Entity'
- *       '404':
- *         description: Brand category not found.
+ *       '400':
+ *         description: Bad request, typically due to invalid filters.
  *         content:
  *           application/json:
  *             schema:
@@ -75,9 +69,9 @@ export const entityRouter = express.Router()
  *               properties:
  *                 errorMessage:
  *                   type: string
- *                   example: Brand category not found
+ *                   example: Invalid query parameters
  *       '500':
- *         description: Internal server error while querying entities.
+ *         description: Internal server error occurred while querying entities.
  *         content:
  *           application/json:
  *             schema:
@@ -87,39 +81,45 @@ export const entityRouter = express.Router()
  *                   type: string
  *                   example: Unexpected error occurred
  */
-entityRouter.get('/:marketplaceName/entities', async (req, res) => {
-  const { include, category, entityTag, search, brand } = req.query
+entityRouter.get('/entities', async (req, res) => {
+  const { include, entityTags, categoryId, brandId, search } = req.query
 
   try {
-    const brandCategory = await prisma.brandCategory.findFirstOrThrow({
-      where: {
-        brandName: brand as string || '',
-        categoryName: category as string || ''
-      }
-    })
-
-    const entityTagFilters = Array.isArray(entityTag)
-      ? entityTag.filter(tag => typeof tag === 'string')
-      : typeof entityTag === 'string'
-        ? [entityTag]
+    const entityTagFilters = Array.isArray(entityTags)
+      ? entityTags.filter(tag => typeof tag === 'string')
+      : typeof entityTags === 'string'
+        ? [entityTags]
         : []
 
-    const parsedFilters = entityTagFilters.map(tagFilter => {
+    const parsedTagFilters = entityTagFilters.map(tagFilter => {
       const [tagName, tagValue] = (tagFilter as string)?.split?.(':') ?? ['', '']
       return { tag: { name: tagName }, tagValue }
     })
 
     const whereClause: Prisma.EntityWhereInput = {
-      brandCategoryId: brandCategory.id,
       AND: [
-        ...(parsedFilters.length > 0
+        ...(parsedTagFilters.length > 0
           ? [
             {
               entityTags: {
                 some: {
-                  OR: parsedFilters
+                  OR: parsedTagFilters
                 }
               }
+            }
+          ]
+          : []),
+        ...(categoryId
+          ? [
+            {
+              categoryId: categoryId as string
+            }
+          ]
+          : []),
+        ...(brandId
+          ? [
+            {
+              brandId: brandId as string
             }
           ]
           : []),
@@ -127,10 +127,10 @@ entityRouter.get('/:marketplaceName/entities', async (req, res) => {
           ? [
             {
               OR: [
-                { displayName: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } },
-                { name: { contains: search as string, mode: 'insensitive' as Prisma.QueryMode } }
+                { displayName: { contains: search as string, mode: 'insensitive' } },
+                { name: { contains: search as string, mode: 'insensitive' } }
               ]
-            }
+            } as Prisma.EntityWhereInput
           ]
           : [])
       ]
@@ -150,19 +150,12 @@ entityRouter.get('/:marketplaceName/entities', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/entity:
+ * /entity:
  *   post:
  *     tags:
  *       - Entity
  *     summary: Create a new entity
- *     description: Creates a new entity under a given brand and marketplace. Validates supported tag values if provided.
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
+ *     description: Creates a new entity with optional related tags, categories, and brands.
  *     requestBody:
  *       required: true
  *       content:
@@ -172,33 +165,34 @@ entityRouter.get('/:marketplaceName/entities', async (req, res) => {
  *             required:
  *               - name
  *               - type
- *               - brandCategoryId
  *               - createdById
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Unique name of the entity.
  *               type:
  *                 type: string
- *                 description: Type of the entity (e.g., PRODUCT, CONTENT, etc.)
+ *                 description: Type of the entity (e.g., PRODUCT, CONTENT, SERVICE, CONTRACT).
  *               displayName:
  *                 type: string
+ *                 description: Optional display name of the entity.
  *               description:
  *                 type: string
+ *                 description: Optional description of the entity.
  *               image:
  *                 type: string
  *                 format: uri
- *               brandCategoryId:
- *                 type: string
- *                 description: ID of the associated brand category.
+ *                 description: Optional image URL for the entity.
  *               createdById:
  *                 type: string
  *                 description: ID of the user creating the entity.
  *               product:
  *                 type: object
- *                 description: Product data to create alongside the entity.
+ *                 description: Optional product data to create alongside the entity.
  *                 additionalProperties: true
  *               entityTags:
  *                 type: object
+ *                 description: Optional tags to associate with the entity.
  *                 properties:
  *                   create:
  *                     type: array
@@ -207,17 +201,43 @@ entityRouter.get('/:marketplaceName/entities', async (req, res) => {
  *                       properties:
  *                         tagId:
  *                           type: string
+ *                           description: ID of the tag to associate.
  *                         tagValue:
  *                           type: string
+ *                           description: Value for the tag.
+ *               entityCategories:
+ *                 type: object
+ *                 description: Optional categories to associate with the entity.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         categoryId:
+ *                           type: string
+ *                           description: ID of the category to associate.
+ *               entityBrands:
+ *                 type: object
+ *                 description: Optional brands to associate with the entity.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         brandId:
+ *                           type: string
+ *                           description: ID of the brand to associate.
  *     responses:
  *       '200':
- *         description: Successfully created entity.
+ *         description: Successfully created the entity.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Entity'
  *       '400':
- *         description: Tag value not supported or bad request.
+ *         description: Bad request (invalid input or missing required fields).
  *         content:
  *           application/json:
  *             schema:
@@ -225,7 +245,7 @@ entityRouter.get('/:marketplaceName/entities', async (req, res) => {
  *               properties:
  *                 errorMessage:
  *                   type: string
- *                   example: Tag value Green is not supported for Color tag
+ *                   example: Invalid input provided
  *       '500':
  *         description: Internal server error during entity creation.
  *         content:
@@ -235,42 +255,44 @@ entityRouter.get('/:marketplaceName/entities', async (req, res) => {
  *               properties:
  *                 errorMessage:
  *                   type: string
+ *                   example: Unexpected error occurred
  */
-entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
+entityRouter.post('/entity', async (req, res) => {
   const {
     name,
     type,
     displayName,
     description,
-    product,
-    brandCategoryId,
     image,
+    product,
     entityTags,
+    categoryId,
+    brandId,
     createdById
   } = req.body
 
-  if (entityTags?.create?.length) {
-    entityTags.create.forEach(async (entityTag: { tagId: string; tagValue: string }) => {
-      const selectedTag = await prisma.tag.findUnique({
-        where: {
-          id: entityTag.tagId,
-        },
-        include: {
-          supportedTagValues: true
-        }
-      })
+  try {
+    if (entityTags?.create?.length) {
+      for (const entityTag of entityTags.create) {
+        const selectedTag = await prisma.tag.findUnique({
+          where: { id: entityTag.tagId },
+          include: { supportedTagValues: true },
+        })
 
-      if (selectedTag?.supportedTagValues?.length) {
-        const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === entityTag.tagValue)
+        if (selectedTag?.supportedTagValues?.length) {
+          const supportedTagValue = selectedTag.supportedTagValues.find(
+            (supported) => supported.displayName === entityTag.tagValue
+          )
 
-        if (!supportedTagValue) {
-          throw new Error(`Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
+          if (!supportedTagValue) {
+            return res.status(400).send({
+              errorMessage: `Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`,
+            })
+          }
         }
       }
-    })
-  }
+    }
 
-  try {
     const entity = await prisma.entity.create({
       data: {
         name,
@@ -278,21 +300,21 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
         displayName,
         description,
         image,
-        product: {
-          create: product,
-        },
+        product: product ? { create: product } : undefined,
         entityTags: entityTags?.create?.length
           ? {
-            create: entityTags.create.map((entityTag: { tagId: string; tagValue: string }) => ({
-              tag: { connect: { id: entityTag.tagId } },
-              tagValue: entityTag.tagValue,
+            create: entityTags.create.map((tag: { tagId: string; tagValue: string }) => ({
+              tag: { connect: { id: tag.tagId } },
+              tagValue: tag.tagValue,
             })),
           }
           : undefined,
-        brandCategory: { connect: { id: brandCategoryId } },
+        category: { connect: { id: categoryId } },
+        brand: { connect: { id: brandId } },
         createdBy: { connect: { id: createdById } },
       },
     })
+
     res.json(entity)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -302,19 +324,13 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/entity/{id}:
+ * /entity/{id}:
  *   put:
  *     tags:
  *       - Entity
  *     summary: Update an existing entity
- *     description: Updates an existing entity, its tags, and product details. Validates tag values against supported values.
+ *     description: Updates an existing entity, including its tags, categories, brands, and product details. Validates tag values against supported values.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
  *       - in: path
  *         name: id
  *         required: true
@@ -327,25 +343,27 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - brandCategoryId
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Updated unique name of the entity.
  *               displayName:
  *                 type: string
+ *                 description: Updated display name of the entity.
  *               description:
  *                 type: string
+ *                 description: Updated description of the entity.
  *               image:
  *                 type: string
- *               brandCategoryId:
- *                 type: string
+ *                 format: uri
+ *                 description: Updated image URL of the entity.
  *               product:
  *                 type: object
- *                 description: Product data to update.
+ *                 description: Updated product data.
  *                 additionalProperties: true
  *               entityTags:
  *                 type: object
+ *                 description: Manage associated tags for the entity.
  *                 properties:
  *                   create:
  *                     type: array
@@ -354,8 +372,10 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
  *                       properties:
  *                         tagId:
  *                           type: string
+ *                           description: ID of the tag to create.
  *                         tagValue:
  *                           type: string
+ *                           description: Tag value to assign.
  *                   update:
  *                     type: array
  *                     items:
@@ -363,16 +383,74 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
  *                       properties:
  *                         id:
  *                           type: string
+ *                           description: ID of the existing entity tag relation.
  *                         tagValue:
  *                           type: string
+ *                           description: New value for the tag.
  *                   delete:
  *                     type: array
  *                     items:
  *                       type: string
- *                       description: ID of the tag relation to delete
+ *                       description: ID of the entity tag relation to delete.
+ *               entityCategories:
+ *                 type: object
+ *                 description: Manage associated categories for the entity.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         categoryId:
+ *                           type: string
+ *                           description: ID of the category to create.
+ *                   update:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           description: ID of the existing entity category relation.
+ *                         categoryId:
+ *                           type: string
+ *                           description: Updated category ID.
+ *                   delete:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       description: ID of the entity category relation to delete.
+ *               entityBrands:
+ *                 type: object
+ *                 description: Manage associated brands for the entity.
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         brandId:
+ *                           type: string
+ *                           description: ID of the brand to create.
+ *                   update:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           description: ID of the existing entity brand relation.
+ *                         brandId:
+ *                           type: string
+ *                           description: Updated brand ID.
+ *                   delete:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       description: ID of the entity brand relation to delete.
  *     responses:
  *       '200':
- *         description: Successfully updated entity.
+ *         description: Successfully updated the entity.
  *         content:
  *           application/json:
  *             schema:
@@ -388,7 +466,7 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
  *                   type: string
  *                   example: Tag value "Rainbow" is not supported for "Color" tag.
  *       '500':
- *         description: Internal server error during update.
+ *         description: Internal server error during entity update.
  *         content:
  *           application/json:
  *             schema:
@@ -396,43 +474,46 @@ entityRouter.post(`/:marketplaceName/entity`, async (req, res) => {
  *               properties:
  *                 errorMessage:
  *                   type: string
+ *                   example: Unexpected error occurred
  */
-entityRouter.put(`/:marketplaceName/entity/:id`, async (req, res) => {
+entityRouter.put('/entity/:id', async (req, res) => {
   const { id } = req.params
-  const { entityTags } = req.body
-
-  if (entityTags?.create?.length) {
-    entityTags.create.forEach(async (entityTag: { tagId: string; tagValue: string }) => {
-      const selectedTag = await prisma.tag.findUnique({
-        where: {
-          id: entityTag.tagId,
-        },
-        include: {
-          supportedTagValues: true
-        }
-      })
-
-      if (selectedTag?.supportedTagValues?.length) {
-        const supportedTagValue = selectedTag?.supportedTagValues?.find(supportedTagValue => supportedTagValue.displayName === entityTag.tagValue)
-
-        if (!supportedTagValue) {
-          throw new Error(`Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
-        }
-      }
-    })
-  }
+  const { entityTags, categoryId, brandId, product, brandCategoryId } = req.body
 
   try {
+    if (entityTags?.create?.length) {
+      for (const entityTag of entityTags.create) {
+        const selectedTag = await prisma.tag.findUnique({
+          where: { id: entityTag.tagId },
+          include: { supportedTagValues: true },
+        })
+
+        if (selectedTag?.supportedTagValues?.length) {
+          const supportedTagValue = selectedTag.supportedTagValues.find(
+            (supported) => supported.displayName === entityTag.tagValue
+          )
+
+          if (!supportedTagValue) {
+            return res.status(400).send({
+              errorMessage: `Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`,
+            })
+          }
+        }
+      }
+    }
+
     const entity = await prisma.entity.update({
       where: { id },
       data: {
         ...req.body,
-        product: req.body.product ? {
-          update: {
-            ...req.body.product,
-            brandCategoryId: req.body.brandCategoryId
+        product: product
+          ? {
+            update: {
+              ...product,
+              brandCategoryId: brandCategoryId,
+            },
           }
-        } : undefined,
+          : undefined,
         entityTags: entityTags
           ? {
             create: entityTags.create?.map((entityTag: { tagId: string; tagValue: string }) => ({
@@ -448,9 +529,12 @@ entityRouter.put(`/:marketplaceName/entity/:id`, async (req, res) => {
             })),
           }
           : undefined,
-        brandCategoryId: req.body.brandCategoryId,
-      }
+        categoryId,
+        brandId,
+        brandCategoryId,
+      },
     })
+
     if (entity) {
       res.json(entity)
     } else {
@@ -464,19 +548,13 @@ entityRouter.put(`/:marketplaceName/entity/:id`, async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/{brandName}/entity/{id}:
+ * /entity/{id}:
  *   get:
  *     tags:
  *       - Entity
  *     summary: Get a single entity by ID
  *     description: Retrieves a specific entity by ID. Optionally, include related data by passing the `include` query parameter.
  *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace.
  *       - in: path
  *         name: id
  *         required: true
@@ -515,7 +593,7 @@ entityRouter.put(`/:marketplaceName/entity/:id`, async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.get('/:marketplaceName/entity/:id', async (req, res) => {
+entityRouter.get('/entity/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
@@ -540,7 +618,7 @@ entityRouter.get('/:marketplaceName/entity/:id', async (req, res) => {
 
 /**
  * @openapi
- * /{marketplaceName}/entity/{id}:
+ * /entity/{id}:
  *   delete:
  *     tags:
  *       - Entity
@@ -586,7 +664,7 @@ entityRouter.get('/:marketplaceName/entity/:id', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.delete(`/:marketplaceName/entity/:id`, async (req, res) => {
+entityRouter.delete(`/entity/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
