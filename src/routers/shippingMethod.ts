@@ -125,13 +125,26 @@ shippingMethodRouter.get('/shipping-methods', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 shippingMethodRouter.post('/shipping-method', async (req, res) => {
-  const { name, displayName, shippingOptions, createdById } = req.body
+  const {
+    name,
+    displayName,
+    description,
+    shippingOptions,
+    createdById,
+    shippingServiceType,
+    shippingPackageType,
+    size
+  } = req.body
 
   try {
     const shippingMethod = await prisma.shippingMethod.create({
       data: {
         name,
         displayName,
+        shippingServiceType,
+        shippingPackageType,
+        size,
+        description,
         createdBy: { connect: { id: createdById } },
         shippingOptions: shippingOptions?.create?.length
           ? {

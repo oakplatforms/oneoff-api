@@ -10,6 +10,7 @@ import { entityRouter } from './entity'
 import { bidRouter } from './bid'
 import { listingRouter } from './listing'
 import { shippingMethodRouter } from './shippingMethod'
+import { shippingOptionRouter } from './shippingOption'
 import { orderRouter } from './order'
 import { transactionRouter } from './transaction'
 import { invoiceRouter } from './invoice'
@@ -30,6 +31,7 @@ router.use(entityRouter)
 router.use(bidRouter)
 router.use(listingRouter)
 router.use(shippingMethodRouter)
+router.use(shippingOptionRouter)
 router.use(transactionRouter)
 router.use(orderRouter)
 router.use(invoiceRouter)

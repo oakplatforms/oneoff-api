@@ -207,6 +207,7 @@ model Customer {
   paymentAccountId  String? @unique
   paymentAccountType PaymentAccountType @default(STRIPE)
   paymentAccountStatus ProcessStatus?
+  hasPaymentMethod Boolean? @default(false)
 
   firstName     String?
   lastName      String?
@@ -231,6 +232,7 @@ model Seller {
   paymentAccountType PaymentAccountType @default(STRIPE)
   paymentAccountStatus ProcessStatus?
   isPaymentAccountVerified Boolean? @default(false)
+  hasPaymentMethod Boolean? @default(false)
   sellerType SellerType?
 
   firstName     String?
@@ -356,6 +358,7 @@ model ShippingOption {
   maxQuantity      Int?
   maxWeight        Float?
   rate             Decimal @db.Decimal(10, 2)
+  isStandalone     Boolean? @default(false)
 
   // relations
   createdBy         Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)

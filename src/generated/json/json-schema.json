@@ -373,6 +373,13 @@
             "FAILED"
           ]
         },
+        "hasPaymentMethod": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "firstName": {
           "type": [
             "string",
@@ -472,6 +479,13 @@
           ]
         },
         "isPaymentAccountVerified": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "hasPaymentMethod": {
           "type": [
             "boolean",
             "null"
@@ -994,6 +1008,13 @@
         },
         "rate": {
           "type": "number"
+        },
+        "isStandalone": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
         },
         "createdBy": {
           "anyOf": [

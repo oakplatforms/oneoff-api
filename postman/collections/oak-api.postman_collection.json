@@ -311,6 +311,61 @@
 							"response": []
 						},
 						{
+							"name": "get user 3 by id",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200)",
+											"    const jsonData = pm.response.json()",
+											"    pm.collectionVariables.set(\"account3Id\", jsonData.admin.id)",
+											"})",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{HOST_NAME}}/api/v1/user/{{user3AuthId}}?include=admin",
+									"host": [
+										"{{HOST_NAME}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"user",
+										"{{user3AuthId}}"
+									],
+									"query": [
+										{
+											"key": "include",
+											"value": "admin"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "get users",
 							"event": [
 								{
@@ -1511,10 +1566,10 @@
 					]
 				},
 				{
-					"name": "shippingCategories",
+					"name": "shippingMethods",
 					"item": [
 						{
-							"name": "create shipping category 1",
+							"name": "create shipping method 1",
 							"event": [
 								{
 									"listen": "test",
@@ -1536,7 +1591,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"name\": \"envelope\",\n    \"displayName\": \"Envelope\",\n    \"maxQuantity\": 3,\n    \"maxWeight\": 1.25,\n    \"price\": 0.89,\n    \"createdById\": \"{{account1Id}}\"\n}",
+									"raw": "{\n  \"name\": \"small-envelope-usps\",\n  \"displayName\": \"USPS Small Envelope\",\n  \"description\": \"Standard small envelope for USPS deliveries\",\n  \"size\": \"SMALL\",\n  \"shippingPackageType\": \"ENVELOPE\",\n  \"shippingServiceType\": \"ECONOMY\",\n  \"createdById\": \"{{account3Id}}\",\n  \"shippingOptions\": {\n    \"create\": [\n      {\n        \"name\": \"standard-usps-small\",\n        \"displayName\": \"USPS Standard Small\",\n        \"description\": \"Up to 16oz, flat rate envelope\",\n        \"maxQuantity\": 5,\n        \"maxWeight\": 1.0,\n        \"rate\": 5.99,\n        \"isStandalone\": false,\n        \"createdById\": \"{{account3Id}}\"\n      },\n      {\n        \"name\": \"priority-usps-small\",\n        \"displayName\": \"USPS Priority Small\",\n        \"description\": \"Priority shipping for small items\",\n        \"maxQuantity\": 3,\n        \"maxWeight\": 2.0,\n        \"rate\": 8.99,\n        \"isStandalone\": false,\n        \"createdById\": \"{{account3Id}}\"\n      }\n    ]\n  }\n}\n",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1544,21 +1599,21 @@
 									}
 								},
 								"url": {
-									"raw": "{{HOST_NAME}}/api/v1/shipping-category",
+									"raw": "{{HOST_NAME}}/api/v1/shipping-method",
 									"host": [
 										"{{HOST_NAME}}"
 									],
 									"path": [
 										"api",
 										"v1",
-										"shipping-category"
+										"shipping-method"
 									]
 								}
 							},
 							"response": []
 						},
 						{
-							"name": "create shipping category 2",
+							"name": "create shipping method 2",
 							"event": [
 								{
 									"listen": "test",
@@ -1580,7 +1635,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"name\": \"tracking-envelope\",\n    \"displayName\": \"Tracking Envelope\",\n    \"maxQuantity\": 9,\n    \"maxWeight\": 3.75,\n    \"price\": 5.50,\n    \"createdById\": \"{{account1Id}}\"\n}",
+									"raw": "{\n  \"name\": \"medium-box-ups\",\n  \"displayName\": \"UPS Medium Box\",\n  \"description\": \"UPS shipping option for medium-sized packages\",\n  \"size\": \"MEDIUM\",\n  \"shippingPackageType\": \"BOX\",\n  \"shippingServiceType\": \"STANDARD\",\n  \"createdById\": \"{{account1Id}}\",\n  \"shippingOptions\": {\n    \"create\": [\n      {\n        \"name\": \"standard-ups-medium\",\n        \"displayName\": \"UPS Standard Medium\",\n        \"description\": \"Standard UPS shipping for medium packages\",\n        \"maxQuantity\": 10,\n        \"maxWeight\": 5.0,\n        \"rate\": 10.99,\n        \"isStandalone\": false,\n        \"createdById\": \"{{account1Id}}\"\n      },\n      {\n        \"name\": \"express-ups-medium\",\n        \"displayName\": \"UPS Express Medium\",\n        \"description\": \"Express UPS shipping for medium packages\",\n        \"maxQuantity\": 5,\n        \"maxWeight\": 5.0,\n        \"rate\": 18.50,\n        \"isStandalone\": false,\n        \"createdById\": \"{{account1Id}}\"\n      }\n    ]\n  }\n}\n",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1588,21 +1643,21 @@
 									}
 								},
 								"url": {
-									"raw": "{{HOST_NAME}}/api/v1/shipping-category",
+									"raw": "{{HOST_NAME}}/api/v1/shipping-method",
 									"host": [
 										"{{HOST_NAME}}"
 									],
 									"path": [
 										"api",
 										"v1",
-										"shipping-category"
+										"shipping-method"
 									]
 								}
 							},
 							"response": []
 						},
 						{
-							"name": "get all shipping categories",
+							"name": "get all shipping methods",
 							"event": [
 								{
 									"listen": "test",
@@ -1636,14 +1691,63 @@
 									}
 								},
 								"url": {
-									"raw": "{{HOST_NAME}}/api/v1/shipping-categories",
+									"raw": "{{HOST_NAME}}/api/v1/shipping-methods",
 									"host": [
 										"{{HOST_NAME}}"
 									],
 									"path": [
 										"api",
 										"v1",
-										"shipping-categories"
+										"shipping-methods"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "shippingOptions",
+					"item": [
+						{
+							"name": "create shipping option 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200)",
+											"    const jsonData = pm.response.json()",
+											"    pm.collectionVariables.set(\"shippingCategory1Id\", jsonData.id)",
+											"})"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"protective-sleeve\",\n  \"displayName\": \"Protective Sleeve\",\n  \"description\": \"Economy shipping for medium-sized UPS boxes\",\n  \"maxQuantity\": 10,\n  \"maxWeight\": 10.0,\n  \"rate\": \"12.50\",\n  \"isStandalone\": true,\n  \"createdById\": \"{{account3Id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{HOST_NAME}}/api/v1/shipping-option",
+									"host": [
+										"{{HOST_NAME}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"shipping-option"
 									]
 								}
 							},
@@ -2898,6 +3002,10 @@
 		},
 		{
 			"key": "user3AuthId",
+			"value": ""
+		},
+		{
+			"key": "account3Id",
 			"value": ""
 		}
 	]
