@@ -332,7 +332,7 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
 
 /**
  * @openapi
- * /customer/add-payment-method/{customerId}:
+ * /customer/payment-method/{customerId}:
  *   post:
  *     tags:
  *       - Customer
@@ -389,22 +389,33 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
  *                   type: string
  *                   example: There was an error while adding your payment method
  */
-customerRouter.post('/customer/add-payment-method/:customerId', async (req, res) => {
-  const { customerId } = req.params
+customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
+  const { accountId } = req.params
   const { paymentMethodId } = req.body
 
-  if (!customerId || !paymentMethodId) {
+  if (!accountId || !paymentMethodId) {
     return res.status(400).json({ errorMessage: 'Missing required parameters.' })
   }
 
   try {
-    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId })
+    const result = await prisma.$transaction(async (prisma) => {
+      const updatedCustomer = await prisma.customer.update({
+        where: { accountId },
+        data: {
+          hasPaymentMethod: true,
+        },
+      })
+      if (!updatedCustomer.paymentAccountId) {
+        throw new Error('Seller does not have a payment account ID.')
+      }
+      await stripe.paymentMethods.attach(paymentMethodId, { customer: updatedCustomer.paymentAccountId! })
 
-    await stripe.customers.update(customerId, {
-      invoice_settings: { default_payment_method: paymentMethodId },
-    })
-
-    return res.status(200).json({ success: 'Payment method was successfully added' })
+      await stripe.customers.update(updatedCustomer.paymentAccountId!, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      })
+      return { success: 'Payment method was successfully added'}
+    }, { timeout: 60000 })
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

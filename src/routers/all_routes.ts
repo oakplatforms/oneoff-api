@@ -7,6 +7,7 @@ import { tagRouter } from './tag'
 import { supportedTagValueRouter } from './supportedTagValue'
 import { listRouter } from './list'
 import { entityRouter } from './entity'
+import { entityTagRouter } from './entityTag'
 import { bidRouter } from './bid'
 import { listingRouter } from './listing'
 import { shippingMethodRouter } from './shippingMethod'
@@ -28,6 +29,7 @@ router.use(tagRouter)
 router.use(supportedTagValueRouter)
 router.use(listRouter)
 router.use(entityRouter)
+router.use(entityTagRouter)
 router.use(bidRouter)
 router.use(listingRouter)
 router.use(shippingMethodRouter)

@@ -21,4 +21,7 @@ export const validateSeller = async (accountId?: string) => {
   if (!account.seller) {
     throw new Error('Account does not have an associated seller')
   }
+  if (!account.seller.hasPaymentMethod) {
+    throw new Error('Seller does not have an associated payment method')
+  }
 }

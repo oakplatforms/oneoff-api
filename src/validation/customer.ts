@@ -21,4 +21,7 @@ export const validateCustomer = async (accountId?: string) => {
   if (!account.customer) {
     throw new Error('Account does not have an associated customer')
   }
+  if (!account.customer.hasPaymentMethod) {
+    throw new Error('The customer does not have an associated payment method')
+  }
 }

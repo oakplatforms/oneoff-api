@@ -18,6 +18,7 @@ enum EntityType {
   PRODUCT
   SERVICE
   CONTENT
+  EVENT
 }
 
 enum ProductType {
@@ -60,8 +61,8 @@ enum ProcessStatus {
 }
 
 enum TransactionType {
-  ORDER_PAYMENT
-  ORDER_REFUND
+  PAYMENT
+  REFUND
   PAYOUT
 }
 
@@ -90,17 +91,15 @@ enum ShippingCarrierType {
 
 enum ShippingPackageType {
   ENVELOPE
+  BUBBLE_MAILER
   BOX
 }
 
 enum ShippingServiceType {
-  FLAT_RATE
-  ECONOMY
+  STANDARD
   GROUND
-  FIRST_CLASS
   PRIORITY
   EXPRESS
-  OVERNIGHT
 }
 
 enum Size {
@@ -332,9 +331,9 @@ model ShippingMethod {
   name             String
   displayName      String?
   description      String?
-  size             Size? @default(SMALL)
+  size             Size?
   shippingPackageType ShippingPackageType @default(ENVELOPE)
-  shippingServiceType ShippingServiceType @default(ECONOMY)
+  shippingServiceType ShippingServiceType @default(STANDARD)
 
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -343,7 +342,6 @@ model ShippingMethod {
   lastModifiedById String?
   shippingOptions  ShippingOption[]
   sellerShippingMethods SellerShippingMethod[]
-  bidShippingMethods BidShippingMethod[]
 }
 
 model ShippingOption {
@@ -368,7 +366,6 @@ model ShippingOption {
   shippingMethod    ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
   shippingMethodId  String?
   sellerShippingOptions SellerShippingOption[]
-  bidShippingOptions BidShippingOption[]
 }
 
 model Tag {
@@ -476,6 +473,9 @@ model Product {
   type             ProductType @default(CARD)
   releaseDate      DateTime?
   weight           Float?
+  width            Float?
+  length           Float?
+  height           Float?
   sku              String?
   number           String?
 
@@ -555,8 +555,6 @@ model Bid {
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderBids        OrderBid[]
-  bidShippingMethods BidShippingMethod[]
-  bidShippingOptions BidShippingOption[]
 }
 
 model Invoice {
@@ -636,7 +634,7 @@ model Transaction {
   // custom
   amount           Decimal @db.Decimal(10, 2)
   refundedAmount   Decimal? @db.Decimal(10, 2)
-  transactionType  TransactionType @default(ORDER_PAYMENT)
+  transactionType  TransactionType @default(PAYMENT)
   description      String?
   currency         Currency @default(USD)
 
@@ -679,34 +677,6 @@ model SellerShippingOption {
   shippingOptionId String
 
   @@id([sellerId, shippingOptionId])
-}
-
-model BidShippingMethod {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // relations
-  bid              Bid @relation(fields: [bidId], references: [id], onDelete: Cascade)
-  bidId            String
-  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId String
-
-  @@id([bidId, shippingMethodId])
-}
-
-model BidShippingOption {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // relations
-  bid              Bid @relation(fields: [bidId], references: [id], onDelete: Cascade)
-  bidId            String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
-  shippingOptionId String
-
-  @@id([bidId, shippingOptionId])
 }
 
 model Shipment {
