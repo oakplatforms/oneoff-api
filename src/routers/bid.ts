@@ -88,6 +88,84 @@ bidRouter.get('/bids', async (req, res) => {
 
 /**
  * @openapi
+ * /bid/highest-bid:
+ *   get:
+ *     tags:
+ *       - Bid
+ *     summary: Retrieve the highest active bid for a specific entity.
+ *     description: Fetches the highest active bid placed for a specific entity (product) by price. If there are ties, the earliest created bid will be returned.
+ *     parameters:
+ *       - name: entityId
+ *         in: query
+ *         description: The unique ID of the entity (product) to find the highest bid for.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: include
+ *         in: query
+ *         description: Optional query parameter to include related data (e.g., account, product details).
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the highest bid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Bid'
+ *       '400':
+ *         description: Missing entity ID or invalid parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the validation error.
+ *       '500':
+ *         description: Internal server error, typically due to database or server issues.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Detailed error message for debugging.
+ */
+bidRouter.get('/bid/highest-bid', async (req, res) => {
+  const { include, entityId } = req.query
+
+  if (!entityId) {
+    res.status(400).send({ errorMessage: 'Entity ID is required to retrieve highest bid' })
+    return
+  }
+
+  try {
+    const bid = await prisma.bid.findFirst({
+      where: {
+        AND: [
+          { status: 'ACTIVE' },
+          { entityId: entityId as string },
+        ],
+      },
+      orderBy: [
+        { price: 'desc' },
+        { createdAt: 'asc' }
+      ],
+      include: generateIncludes(include)
+    })
+
+    res.json(bid)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
  * /bid:
  *   post:
  *     tags:
@@ -204,9 +282,7 @@ bidRouter.post(`/bid`, async (req, res) => {
     status,
     multiTransactionsEnabled,
     accountId,
-    entityId,
-    bidShippingMethods,
-    bidShippingOptions
+    entityId
   } = req.body
   try {
     await validateCustomer(accountId)
@@ -241,21 +317,7 @@ bidRouter.post(`/bid`, async (req, res) => {
           status,
           multiTransactionsEnabled,
           account: { connect: { id: accountId } },
-          entity: { connect: { id: entityId } },
-          bidShippingMethods: bidShippingMethods?.create?.length
-            ? {
-              create: bidShippingMethods.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
-                shippingCategoryId: bidShippingCategory.shippingCategoryId,
-              })),
-            }
-            : undefined,
-          bidShippingOptions: bidShippingOptions?.create?.length
-            ? {
-              create: bidShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
-                shippingOptionId: bidCustomShippingOption.shippingOptionId,
-              })),
-            }
-            : undefined,
+          entity: { connect: { id: entityId } }
         },
         include: {
           account: true
@@ -343,8 +405,6 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
     price,
     entityId,
     accountId,
-    bidShippingMethods,
-    bidShippingOptions
   } = req.body
   try {
     await validateCustomer(accountId)
@@ -364,26 +424,6 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
       where: { id },
       data: {
         ...req.body,
-        bidShippingMethods: bidShippingMethods
-          ? {
-            create: bidShippingMethods.create?.map((bidShippingCategory: { shippingCategoryId: string }) => ({
-              shippingCategoryId: bidShippingCategory.shippingCategoryId,
-            })),
-            deleteMany: bidShippingMethods.delete?.map((bidShippingCategoryId: string) => ({
-              id: bidShippingCategoryId
-            })),
-          }
-          : undefined,
-        bidShippingOptions: bidShippingOptions
-          ? {
-            create: bidShippingOptions.create?.map((bidCustomShippingOption: { shippingOptionId: string }) => ({
-              shippingOptionId: bidCustomShippingOption.shippingOptionId,
-            })),
-            deleteMany: bidShippingOptions.delete?.map((bidCustomShippingOptionId: string) => ({
-              id: bidCustomShippingOptionId
-            })),
-          }
-          : undefined,
       },
       include: {
         account: true
@@ -536,11 +576,6 @@ bidRouter.delete(`/bid/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    await prisma.bidShippingMethod.deleteMany({
-      where: {
-        bidId: id,
-      },
-    })
     const bid = await prisma.bid.delete({
       where: { id },
     })

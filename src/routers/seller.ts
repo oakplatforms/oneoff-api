@@ -366,7 +366,6 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   } = req.body
 
   try {
-    await validateSeller(accountId)
     const result = await prisma.$transaction(async (prisma) => {
       const updatedSeller = await prisma.seller.update({
         where: { accountId },
@@ -498,8 +497,9 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
   const { id } = req.params
   const {
+    shippingCarrierTypes,
     sellerShippingMethods,
-    shippingCarrierTypes
+    sellerShippingOptions
   } = req.body
 
   try {
@@ -509,11 +509,21 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
         shippingCarrierTypes,
         sellerShippingMethods: sellerShippingMethods
           ? {
-            create: sellerShippingMethods.create?.map((sellerShippingMethod: { sellerShippingMethodId: string }) => ({
-              shippingMethodId: sellerShippingMethod.sellerShippingMethodId,
+            create: sellerShippingMethods.create?.map((sellerShippingMethod: { shippingMethodId: string }) => ({
+              shippingMethodId: sellerShippingMethod.shippingMethodId,
             })),
             deleteMany: sellerShippingMethods.delete?.map((sellerShippingMethodId: string) => ({
               id: sellerShippingMethodId
+            })),
+          }
+          : undefined,
+        sellerShippingOptions: sellerShippingOptions
+          ? {
+            create: sellerShippingOptions.create?.map((sellerShippingOption: { shippingOptionId: string }) => ({
+              shippingOptionId: sellerShippingOption.shippingOptionId,
+            })),
+            deleteMany: sellerShippingOptions.delete?.map((sellerShippingOptionId: string) => ({
+              id: sellerShippingOptionId
             })),
           }
           : undefined,
@@ -597,7 +607,7 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
 
 /**
  * @openapi
- * /seller/add-payment-method/{sellerId}:
+ * /seller/payment-method/{sellerId}:
  *   post:
  *     tags:
  *       - Seller
@@ -654,21 +664,32 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
  *                   type: string
  *                   example: There was an error while confirming setup intent
  */
-sellerRouter.post('/seller/add-payment-method/:sellerId', async (req, res) => {
-  const { sellerId } = req.params
+sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
+  const { accountId } = req.params
   const { tokenId } = req.body
 
-  if (!sellerId || !tokenId) {
+  if (!accountId || !tokenId) {
     return res.status(400).json({ errorMessage: 'Missing required parameters.' })
   }
 
   try {
-    await stripe.accounts.createExternalAccount(
-      sellerId,
-      { external_account: tokenId }
-    )
-
-    return res.status(200).json({ success: 'External account was successfully added' })
+    const result = await prisma.$transaction(async (prisma) => {
+      const updatedSeller = await prisma.seller.update({
+        where: { accountId },
+        data: {
+          hasPaymentMethod: true,
+        },
+      })
+      if (!updatedSeller.paymentAccountId) {
+        throw new Error('Seller does not have a payment account ID.')
+      }
+      await stripe.accounts.createExternalAccount(
+        updatedSeller.paymentAccountId,
+        { external_account: tokenId }
+      )
+      return { success: 'Payment method was successfully added'}
+    }, { timeout: 60000 })
+    res.json(result)
   } catch (error) {
     const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     return res.status(statusCode).json({ errorMessage: 'There was an error while confirming setup intent' })
@@ -775,7 +796,6 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
   }
 
   try {
-    await validateSeller(accountId)
     const result = await prisma.$transaction(async (prisma) => {
       const updatedSeller = await prisma.seller.update({
         where: { accountId },

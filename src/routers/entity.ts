@@ -478,7 +478,7 @@ entityRouter.post('/entity', async (req, res) => {
  */
 entityRouter.put('/entity/:id', async (req, res) => {
   const { id } = req.params
-  const { entityTags, categoryId, brandId, product, brandCategoryId } = req.body
+  const { entityTags, categoryId, brandId, product } = req.body
 
   try {
     if (entityTags?.create?.length) {
@@ -510,7 +510,6 @@ entityRouter.put('/entity/:id', async (req, res) => {
           ? {
             update: {
               ...product,
-              brandCategoryId: brandCategoryId,
             },
           }
           : undefined,
@@ -531,7 +530,6 @@ entityRouter.put('/entity/:id', async (req, res) => {
           : undefined,
         categoryId,
         brandId,
-        brandCategoryId,
       },
     })
 

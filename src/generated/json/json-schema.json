@@ -373,6 +373,13 @@
             "FAILED"
           ]
         },
+        "hasPaymentMethod": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "firstName": {
           "type": [
             "string",
@@ -472,6 +479,13 @@
           ]
         },
         "isPaymentAccountVerified": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "hasPaymentMethod": {
           "type": [
             "boolean",
             "null"
@@ -869,7 +883,6 @@
             "string",
             "null"
           ],
-          "default": "SMALL",
           "enum": [
             "EXTRA_SMALL",
             "SMALL",
@@ -883,20 +896,18 @@
           "default": "ENVELOPE",
           "enum": [
             "ENVELOPE",
+            "BUBBLE_MAILER",
             "BOX"
           ]
         },
         "shippingServiceType": {
           "type": "string",
-          "default": "ECONOMY",
+          "default": "STANDARD",
           "enum": [
-            "FLAT_RATE",
-            "ECONOMY",
+            "STANDARD",
             "GROUND",
-            "FIRST_CLASS",
             "PRIORITY",
-            "EXPRESS",
-            "OVERNIGHT"
+            "EXPRESS"
           ]
         },
         "createdBy": {
@@ -941,12 +952,6 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/SellerShippingMethod"
-          }
-        },
-        "bidShippingMethods": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BidShippingMethod"
           }
         }
       }
@@ -994,6 +999,13 @@
         },
         "rate": {
           "type": "number"
+        },
+        "isStandalone": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
         },
         "createdBy": {
           "anyOf": [
@@ -1047,12 +1059,6 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/SellerShippingOption"
-          }
-        },
-        "bidShippingOptions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BidShippingOption"
           }
         }
       }
@@ -1282,7 +1288,8 @@
           "enum": [
             "PRODUCT",
             "SERVICE",
-            "CONTENT"
+            "CONTENT",
+            "EVENT"
           ]
         },
         "image": {
@@ -1463,6 +1470,24 @@
           "format": "date-time"
         },
         "weight": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "width": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "height": {
           "type": [
             "number",
             "null"
@@ -1768,18 +1793,6 @@
           "items": {
             "$ref": "#/definitions/OrderBid"
           }
-        },
-        "bidShippingMethods": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BidShippingMethod"
-          }
-        },
-        "bidShippingOptions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BidShippingOption"
-          }
         }
       }
     },
@@ -2026,10 +2039,10 @@
         },
         "transactionType": {
           "type": "string",
-          "default": "ORDER_PAYMENT",
+          "default": "PAYMENT",
           "enum": [
-            "ORDER_PAYMENT",
-            "ORDER_REFUND",
+            "PAYMENT",
+            "REFUND",
             "PAYOUT"
           ]
         },
@@ -2176,62 +2189,6 @@
         }
       }
     },
-    "BidShippingMethod": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "bid": {
-          "$ref": "#/definitions/Bid"
-        },
-        "bidId": {
-          "type": "string"
-        },
-        "shippingMethod": {
-          "$ref": "#/definitions/ShippingMethod"
-        },
-        "shippingMethodId": {
-          "type": "string"
-        }
-      }
-    },
-    "BidShippingOption": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "bid": {
-          "$ref": "#/definitions/Bid"
-        },
-        "bidId": {
-          "type": "string"
-        },
-        "shippingOption": {
-          "$ref": "#/definitions/ShippingOption"
-        },
-        "shippingOptionId": {
-          "type": "string"
-        }
-      }
-    },
     "Shipment": {
       "type": "object",
       "properties": {
@@ -2368,12 +2325,6 @@
     },
     "sellerShippingOption": {
       "$ref": "#/definitions/SellerShippingOption"
-    },
-    "bidShippingMethod": {
-      "$ref": "#/definitions/BidShippingMethod"
-    },
-    "bidShippingOption": {
-      "$ref": "#/definitions/BidShippingOption"
     },
     "shipment": {
       "$ref": "#/definitions/Shipment"
