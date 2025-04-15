@@ -1229,10 +1229,11 @@
             "string",
             "null"
           ],
+          "default": "DEFAULT",
           "enum": [
+            "DEFAULT",
             "COLLECTION",
-            "DECK",
-            "FAVORITE"
+            "DECK"
           ]
         },
         "account": {
@@ -1250,6 +1251,12 @@
             "string",
             "null"
           ]
+        },
+        "entityList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EntityList"
+          }
         }
       }
     },
@@ -1378,6 +1385,12 @@
             "$ref": "#/definitions/EntityTag"
           }
         },
+        "entityList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EntityList"
+          }
+        },
         "reviews": {
           "type": "array",
           "items": {
@@ -1395,6 +1408,34 @@
           "items": {
             "$ref": "#/definitions/Listing"
           }
+        }
+      }
+    },
+    "EntityList": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "list": {
+          "$ref": "#/definitions/List"
+        },
+        "listId": {
+          "type": "string"
+        },
+        "entity": {
+          "$ref": "#/definitions/Entity"
+        },
+        "entityId": {
+          "type": "string"
         }
       }
     },
@@ -2286,6 +2327,9 @@
     },
     "entity": {
       "$ref": "#/definitions/Entity"
+    },
+    "entityList": {
+      "$ref": "#/definitions/EntityList"
     },
     "entityTag": {
       "$ref": "#/definitions/EntityTag"

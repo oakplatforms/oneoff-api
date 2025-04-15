@@ -26,9 +26,9 @@ enum ProductType {
 }
 
 enum ListType {
+  DEFAULT
   COLLECTION
   DECK
-  FAVORITE
 }
 
 enum AccountType {
@@ -413,11 +413,12 @@ model List {
   name             String
   displayName      String?
   description      String?
-  type             ListType?
+  type             ListType? @default(DEFAULT)
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId        String?
+  entityList       EntityList[]
 }
 
 model Entity {
@@ -443,9 +444,22 @@ model Entity {
   brandId          String?
   product          Product?
   entityTags       EntityTag[]
+  entityList       EntityList[]
   reviews          Review[]
   bids             Bid[]
   listings         Listing[]
+}
+
+model EntityList {
+  id               String  @unique @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // relations
+  list             List @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listId           String
+  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId         String
 }
 
 model EntityTag {
