@@ -1,10 +1,80 @@
-import { Prisma } from '@prisma/client'
+import { ListType, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
+
+/**
+ * @openapi
+ * /lists:
+ *   get:
+ *     tags:
+ *       - List
+ *     summary: Get all lists
+ *     description: Retrieves all lists, optionally filtering by list type.
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [COLLECTION, DECK, DEFAULT]
+ *         required: false
+ *         description: Optional list type to filter by.
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Comma-separated related entities to include (e.g., "account,entityList").
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the list of lists.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/List'
+ *       '400':
+ *         description: Bad request, possibly due to invalid query params.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal server error, typically due to database issues.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listRouter.get('/lists', async (req, res) => {
+  const { include, type } = req.query
+
+  try {
+    const lists = await prisma.list.findMany({
+      where: {
+        ...(type ? { type: type as ListType } : {}),
+      },
+      include: generateIncludes(include),
+    })
+
+    res.json(lists)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
 
 /**
  * @openapi
@@ -23,7 +93,7 @@ export const listRouter = express.Router()
  *             required:
  *               - name
  *               - type
- *               - createdById
+ *               - accountId
  *             properties:
  *               name:
  *                 type: string
@@ -37,7 +107,7 @@ export const listRouter = express.Router()
  *               description:
  *                 type: string
  *                 description: Optional description of the list.
- *               createdById:
+ *               accountId:
  *                 type: string
  *                 description: The ID of the account creating the list.
  *     responses:
@@ -68,8 +138,8 @@ export const listRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listRouter.post(`/list`, async (req, res) => {
-  const { name, type, displayName, description, createdById } = req.body
+listRouter.post('/list', async (req, res) => {
+  const { name, type, displayName, description, accountId, entityList } = req.body
 
   try {
     const list = await prisma.list.create({
@@ -78,12 +148,137 @@ listRouter.post(`/list`, async (req, res) => {
         displayName,
         description,
         type,
-        account: { connect: { id: createdById } },
+        account: { connect: { id: accountId } },
+        entityList: entityList?.create?.length
+          ? {
+            create: entityList.create.map((item: { entityId: string }) => ({
+              entity: { connect: { id: item.entityId } },
+            })),
+          }
+          : undefined,
       },
     })
+
     res.json(list)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    const { statusCode, errorMessage } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
+ * /list/{id}:
+ *   put:
+ *     tags:
+ *       - List
+ *     summary: Update an existing list
+ *     description: Updates a list and its associated entityList records. You can create and delete entityList entries.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the list to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Internal name of the list.
+ *               displayName:
+ *                 type: string
+ *                 description: Public-facing display name of the list.
+ *               description:
+ *                 type: string
+ *                 description: Optional description of the list.
+ *               type:
+ *                 type: string
+ *                 enum: [DEFAULT, COLLECTION, DECK]
+ *                 description: The type of list.
+ *               entityList:
+ *                 type: object
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         entityId:
+ *                           type: string
+ *                           description: ID of the entity to link to the list.
+ *                   delete:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       description: IDs of the entityList records to remove from the list.
+ *     responses:
+ *       '200':
+ *         description: Successfully updated the list.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/List'
+ *       '400':
+ *         description: Bad request due to invalid input or unsupported relations.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+listRouter.put('/list/:id', async (req, res) => {
+  const { id } = req.params
+  const { name, type, displayName, description, entityList } = req.body
+
+  try {
+    const updatedList = await prisma.list.update({
+      where: { id },
+      data: {
+        name,
+        displayName,
+        description,
+        type,
+        entityList: entityList
+          ? {
+            create: entityList.create?.map((item: { entityId: string }) => ({
+              entity: { connect: { id: item.entityId } },
+            })),
+            deleteMany: entityList.delete?.map((entityListId: string) => ({
+              id: entityListId,
+            })),
+          }
+          : undefined,
+      },
+    })
+
+    if (updatedList) {
+      res.json(updatedList)
+    } else {
+      throw new Error('Cannot update list by id')
+    }
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
     res.status(statusCode).send({ errorMessage })
   }
 })
