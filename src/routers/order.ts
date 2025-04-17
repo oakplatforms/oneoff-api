@@ -72,22 +72,20 @@ export const orderRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 orderRouter.get('/orders', async (req, res) => {
-  const { include, status, createdById, purchasedById, soldById } = req.query
+  const { include, status, sellerId, customerId } = req.query
 
   try {
     const orders = await prisma.order.findMany({
       where: {
         AND: [
           status ? { status: status as ProcessStatus } : {},
-          purchasedById && soldById
-            ? { purchasedById: purchasedById as string, soldById: soldById as string, }
-            : createdById
-              ? { createdById: createdById as string }
-              : purchasedById
-                ? { purchasedById: purchasedById as string }
-                : soldById
-                  ? { soldById: soldById as string }
-                  : {}
+          sellerId && customerId
+            ? { sellerId: sellerId as string, customerId: customerId as string, }
+            : sellerId
+              ? { sellerId: sellerId as string }
+              : customerId
+                ? { customerId: customerId as string }
+                : {}
         ]
       },
       include: generateIncludes(include)
@@ -163,7 +161,6 @@ orderRouter.get('/order/:id', async (req, res) => {
       throw new Error('No order ID found')
     }
   } catch (error) {
-    console.log('error')
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
   }

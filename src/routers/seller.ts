@@ -914,7 +914,7 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
 
   try {
     await validateSeller(accountId)
-    await validatePayoutAmount(accountId, amount)
+    await validatePayoutAmount(accountId, sellerId, amount)
     const result = await prisma.$transaction(async (prisma) => {
       const stripeAccount = await stripe.accounts.retrieve(sellerId, {
         expand: ['external_accounts'],
@@ -1091,7 +1091,16 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
   }
 
   try {
-    const wallet = await calculateWalletBalance(accountId)
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+      include: { seller: true },
+    })
+
+    if (!account?.seller?.id) {
+      return res.status(404).json({ error: 'Seller not found for this account.' })
+    }
+
+    const wallet = await calculateWalletBalance(accountId, account.seller.id)
     return res.json(wallet)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

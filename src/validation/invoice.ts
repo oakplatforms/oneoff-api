@@ -5,12 +5,9 @@ const prisma = getPrismaClient()
 
 export const validateListingOrderSummary = async (orderSummary: OrderDetails[]) => {
   for (const orderDetails of orderSummary) {
-    if (orderDetails?.createdById !== orderDetails?.purchasedById) {
-      throw new Error('The purchaser has to create the order')
-    }
 
     const account = await prisma.account.findUnique({
-      where: { id: orderDetails?.createdById },
+      where: { id: orderDetails?.accountId },
       include: { profile: true }
     })
 
@@ -32,40 +29,6 @@ export const validateListingOrderSummary = async (orderSummary: OrderDetails[]) 
       }
       if (listingInOrder.accountId === account?.id) {
         throw new Error('Order cannot include listings that your profile created')
-      }
-    }
-  }
-}
-
-export const validateBidOrderSummary = async (orderSummary: OrderDetails[]) => {
-  for (const orderDetails of orderSummary) {
-    if (orderDetails?.createdById !== orderDetails?.soldById) {
-      throw new Error('The seller has to create the order')
-    }
-
-    const account = await prisma.account.findUnique({
-      where: { id: orderDetails?.createdById },
-      include: { profile: true }
-    })
-
-    if (!account) {
-      throw new Error('Account does not exist')
-    }
-
-    if (!orderDetails?.bidIds?.length) {
-      throw new Error('Order must include at least one bid id')
-    }
-
-    const bidsInOrder = await prisma.listing.findMany({
-      where: { id: { in: orderDetails.bidIds } },
-    })
-
-    for (const bidInOrder of bidsInOrder) {
-      if (bidInOrder.status !== 'ACTIVE') {
-        throw new Error('Order cannot include inactive bids')
-      }
-      if (bidInOrder.accountId === account?.id) {
-        throw new Error('Order cannot include bids that your profile created')
       }
     }
   }
