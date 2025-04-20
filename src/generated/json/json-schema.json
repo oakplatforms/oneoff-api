@@ -227,6 +227,12 @@
             "null"
           ]
         },
+        "carts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Cart"
+          }
+        },
         "seller": {
           "anyOf": [
             {
@@ -301,6 +307,60 @@
         }
       }
     },
+    "Cart": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
+        },
+        "isPrimary": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": true
+        },
+        "account": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        }
+      }
+    },
     "Customer": {
       "type": "object",
       "properties": {
@@ -343,8 +403,9 @@
             "null"
           ],
           "enum": [
-            "COMPLETED",
+            "CREATED",
             "PENDING",
+            "COMPLETED",
             "CANCELED",
             "FAILED"
           ]
@@ -409,12 +470,6 @@
           "items": {
             "$ref": "#/definitions/Order"
           }
-        },
-        "shipments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Shipment"
-          }
         }
       }
     },
@@ -460,8 +515,9 @@
             "null"
           ],
           "enum": [
-            "COMPLETED",
+            "CREATED",
             "PENDING",
+            "COMPLETED",
             "CANCELED",
             "FAILED"
           ]
@@ -575,12 +631,6 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Order"
-          }
-        },
-        "shipments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Shipment"
           }
         }
       }
@@ -1632,8 +1682,9 @@
         "status": {
           "type": "string",
           "enum": [
-            "COMPLETED",
+            "CREATED",
             "PENDING",
+            "COMPLETED",
             "CANCELED",
             "FAILED"
           ]
@@ -1902,8 +1953,9 @@
         "status": {
           "type": "string",
           "enum": [
-            "COMPLETED",
+            "CREATED",
             "PENDING",
+            "COMPLETED",
             "CANCELED",
             "FAILED"
           ]
@@ -1929,6 +1981,22 @@
         "total": {
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "cart": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Cart"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cartId": {
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -1970,21 +2038,27 @@
             "$ref": "#/definitions/Transaction"
           }
         },
-        "shipment": {
+        "shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Shipment"
+          }
+        },
+        "invoice": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Shipment"
+              "$ref": "#/definitions/Invoice"
             },
             {
               "type": "null"
             }
           ]
         },
-        "invoice": {
-          "$ref": "#/definitions/Invoice"
-        },
         "invoiceId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "orderBids": {
           "type": "array",
@@ -2263,8 +2337,9 @@
         "status": {
           "type": "string",
           "enum": [
-            "COMPLETED",
+            "CREATED",
             "PENDING",
+            "COMPLETED",
             "CANCELED",
             "FAILED"
           ]
@@ -2273,38 +2348,6 @@
           "type": "number"
         },
         "externalShipmentId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "customer": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Customer"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "customerId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "seller": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Seller"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sellerId": {
           "type": [
             "string",
             "null"
@@ -2389,6 +2432,9 @@
     },
     "account": {
       "$ref": "#/definitions/Account"
+    },
+    "cart": {
+      "$ref": "#/definitions/Cart"
     },
     "customer": {
       "$ref": "#/definitions/Customer"

@@ -124,7 +124,7 @@ userRouter.get('/users', async (req, res) => {
  */
 userRouter.post(`/user`, async (req, res) => {
   const { authId, isAdmin, account, admin } = req.body
-  const { profile: profileProps, ...accountProps } = account || {}
+  const { profile: profileProps, carts: cartsProps, ...accountProps } = account || {}
 
   try {
     const user = await prisma.user.create({
@@ -142,6 +142,11 @@ userRouter.post(`/user`, async (req, res) => {
           account: {
             create: {
               ...accountProps,
+              ...(cartsProps && {
+                carts: {
+                  create: cartsProps
+                }
+              }),
               ...(profileProps && {
                 profile: {
                   create: profileProps
@@ -241,9 +246,11 @@ userRouter.put(`/user/:id`, async (req, res) => {
         account: {
           update: {
             ...accountProps,
-            profile: profileProps && {
-              update: profileProps
-            }
+            ...(profileProps && {
+              profile: {
+                update: profileProps
+              }
+            })
           },
         },
       }})

@@ -54,8 +54,9 @@ enum Status {
 }
 
 enum ProcessStatus {
-  COMPLETED
+  CREATED
   PENDING
+  COMPLETED
   CANCELED
   FAILED
 }
@@ -179,6 +180,7 @@ model Account {
   email         String?
 
   // relations
+  carts         Cart[]
   seller        Seller?
   customer      Customer?
   profile       Profile?
@@ -190,6 +192,20 @@ model Account {
   listings Listing[]
   payouts Payout[]
   transactions Transaction[]
+}
+
+model Cart {
+  id            String   @id @default(cuid()) 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  status        Status @default(ACTIVE)
+  isPrimary     Boolean? @default(true)
+
+  // relations
+  account       Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId     String?
+  orders        Order[]
 }
 
 model Customer {
@@ -215,7 +231,6 @@ model Customer {
   account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
   orders    Order[]
-  shipments Shipment[]
 }
 
 model Seller {
@@ -248,7 +263,6 @@ model Seller {
   sellerShippingOptions SellerShippingOption[]
   shippingCarrierTypes ShippingCarrierType[]
   orders    Order[]
-  shipments Shipment[]
 }
 
 model Profile {
@@ -599,14 +613,16 @@ model Order {
   total            Decimal? @db.Decimal(10, 2)
 
   // relations
+  cart             Cart? @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId           String? @unique
   customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerId       String?
   seller           Seller? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   sellerId         String?
   transactions     Transaction[]
-  shipment         Shipment?
-  invoice          Invoice @relation(fields: [invoiceId], references: [id])
-  invoiceId        String
+  shipments        Shipment[]
+  invoice          Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId        String?
   orderBids        OrderBid[]
   orderListings    OrderListing[]
 }
@@ -705,10 +721,6 @@ model Shipment {
   externalShipmentId  String?
 
   // relations
-  customer           Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  customerId         String?
-  seller             Seller? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
-  sellerId           String?
   order              Order? @relation(fields: [orderId], references: [id])
   orderId            String?  @unique
   shippingMethod     ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)

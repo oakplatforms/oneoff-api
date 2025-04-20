@@ -6,6 +6,11 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
 
+export type ListingInOrder = {
+  listingId: string
+  quantityInOrder: number
+}
+
 /**
  * @openapi
  * /orders:
@@ -165,3 +170,87 @@ orderRouter.get('/order/:id', async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
+
+orderRouter.post('/order', async (req, res) => {
+  const {
+    customerId,
+    sellerId,
+    accountId,
+    cartId,
+    listingsInOrder,
+  }: {
+    customerId: string
+    sellerId: string
+    accountId: string
+    cartId: string
+    listingsInOrder: ListingInOrder[]
+  } = req.body
+  if (!customerId || !sellerId || !accountId || !listingsInOrder?.length) {
+    return res.status(400).json({ error: 'Missing required fields in request body.' })
+  }
+
+  try {
+    const listingIds = listingsInOrder.map((item) => item.listingId)
+    const listings = await prisma.listing.findMany({
+      where: { id: { in: listingIds } },
+    })
+
+    let subTotal = 0
+
+    for (const item of listingsInOrder) {
+      const listing = listings.find((l) => l.id === item.listingId)
+
+      if (!listing?.price || !item.quantityInOrder) {
+        throw new Error(`Order failed: Missing listing data or invalid quantity for ${item.listingId}`)
+      }
+
+      const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
+
+      if (remainingQuantity < 0) {
+        throw new Error(`Order failed: Insufficient quantity for listing ${listing.id}.`)
+      }
+
+      if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
+        throw new Error(`Order failed: You must purchase all items for single-seller listing ${listing.id}.`)
+      }
+
+      await prisma.listing.update({
+        where: { id: listing.id },
+        data: {
+          quantity: remainingQuantity,
+          status: remainingQuantity === 0 ? 'INACTIVE' : 'ACTIVE',
+        },
+      })
+
+      subTotal += Number(listing.price) * item.quantityInOrder
+    }
+
+    const order = await prisma.order.create({
+      data: {
+        subTotal,
+        total: subTotal,
+        status: 'CREATED',
+        customerId,
+        sellerId,
+        cartId,
+        orderListings: {
+          create: listingsInOrder.map(({ listingId }) => ({
+            listingId,
+          })),
+        },
+      },
+      include: {
+        customer: true,
+        seller: true,
+      },
+    })
+
+    res.json(order)
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
