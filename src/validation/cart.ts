@@ -1,23 +1,23 @@
-import { PrismaClient, Status } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export const validateCartAccount = async (accountId: string, status: Status) => {
+export const validateCartAccount = async (accountId: string, isPrimary: boolean) => {
   const existingCart = await prisma.cart.findFirst({
-    where: { accountId, status: 'ACTIVE' },
+    where: { accountId, isPrimary: true },
   })
 
-  if (existingCart && status === 'ACTIVE') {
-    throw new Error('Account already has an active cart.')
+  if (existingCart && isPrimary) {
+    throw new Error('Account already has a primary cart.')
   }
 }
 
 export const validateCart = async (id: string) => {
-  const activeCart = await prisma.cart.findUnique({
-    where: { id, status: 'ACTIVE' },
+  const existingCart = await prisma.cart.findUnique({
+    where: { id },
   })
 
-  if (!activeCart) {
-    throw new Error('There is no active cart with this id.')
+  if (!existingCart) {
+    throw new Error('There is no cart with this id.')
   }
 }

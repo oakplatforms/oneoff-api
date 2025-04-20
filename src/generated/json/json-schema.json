@@ -321,21 +321,12 @@
           "type": "string",
           "format": "date-time"
         },
-        "status": {
-          "type": "string",
-          "default": "ACTIVE",
-          "enum": [
-            "ACTIVE",
-            "DELETED",
-            "INACTIVE"
-          ]
-        },
         "isPrimary": {
           "type": [
             "boolean",
             "null"
           ],
-          "default": true
+          "default": false
         },
         "account": {
           "anyOf": [
@@ -404,6 +395,7 @@
           ],
           "enum": [
             "CREATED",
+            "DELETED",
             "PENDING",
             "COMPLETED",
             "CANCELED",
@@ -516,6 +508,7 @@
           ],
           "enum": [
             "CREATED",
+            "DELETED",
             "PENDING",
             "COMPLETED",
             "CANCELED",
@@ -1067,6 +1060,12 @@
             "null"
           ],
           "default": false
+        },
+        "maxQuantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "createdBy": {
           "anyOf": [
@@ -1683,6 +1682,7 @@
           "type": "string",
           "enum": [
             "CREATED",
+            "DELETED",
             "PENDING",
             "COMPLETED",
             "CANCELED",
@@ -1954,6 +1954,7 @@
           "type": "string",
           "enum": [
             "CREATED",
+            "DELETED",
             "PENDING",
             "COMPLETED",
             "CANCELED",
@@ -2338,6 +2339,7 @@
           "type": "string",
           "enum": [
             "CREATED",
+            "DELETED",
             "PENDING",
             "COMPLETED",
             "CANCELED",

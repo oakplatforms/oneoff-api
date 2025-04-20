@@ -35,12 +35,12 @@ export const cartRouter = express.Router()
  *               $ref: '#/components/schemas/Cart'
  */
 cartRouter.post('/cart', async (req, res) => {
-  const { accountId, status } = req.body
+  const { accountId, isPrimary } = req.body
 
   try {
-    await validateCartAccount(accountId, status)
+    await validateCartAccount(accountId, isPrimary)
     const cart = await prisma.cart.create({
-      data: { accountId, status },
+      data: { accountId, isPrimary },
     })
     res.json(cart)
   } catch (error) {

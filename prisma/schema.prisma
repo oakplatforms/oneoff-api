@@ -55,6 +55,7 @@ enum Status {
 
 enum ProcessStatus {
   CREATED
+  DELETED
   PENDING
   COMPLETED
   CANCELED
@@ -199,8 +200,7 @@ model Cart {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  status        Status @default(ACTIVE)
-  isPrimary     Boolean? @default(true)
+  isPrimary     Boolean? @default(false)
 
   // relations
   account       Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -373,6 +373,7 @@ model ShippingOption {
   weight           Float?
   rate             Decimal @db.Decimal(10, 2)
   isStandalone     Boolean? @default(false)
+  maxQuantity      Int?
 
   // relations
   createdBy         Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
