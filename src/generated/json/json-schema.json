@@ -298,30 +298,6 @@
           "items": {
             "$ref": "#/definitions/Transaction"
           }
-        },
-        "shipments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Shipment"
-          }
-        },
-        "createdOrders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
-        },
-        "purchasedOrders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
-        },
-        "soldOrders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
         }
       }
     },
@@ -427,6 +403,18 @@
         },
         "accountId": {
           "type": "string"
+        },
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Shipment"
+          }
         }
       }
     },
@@ -582,6 +570,18 @@
             "FEDEX",
             "DHL"
           ]
+        },
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Shipment"
+          }
         }
       }
     },
@@ -878,17 +878,28 @@
             "null"
           ]
         },
-        "size": {
+        "height": {
           "type": [
-            "string",
+            "number",
             "null"
-          ],
-          "enum": [
-            "EXTRA_SMALL",
-            "SMALL",
-            "MEDIUM",
-            "LARGE",
-            "EXTRA_LARGE"
+          ]
+        },
+        "length": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "width": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maxQuantity": {
+          "type": [
+            "integer",
+            "null"
           ]
         },
         "shippingPackageType": {
@@ -953,6 +964,12 @@
           "items": {
             "$ref": "#/definitions/SellerShippingMethod"
           }
+        },
+        "shipments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Shipment"
+          }
         }
       }
     },
@@ -985,13 +1002,7 @@
             "null"
           ]
         },
-        "maxQuantity": {
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "maxWeight": {
+        "weight": {
           "type": [
             "number",
             "null"
@@ -1059,6 +1070,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/SellerShippingOption"
+          }
+        },
+        "shipmentShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShipmentShippingOption"
           }
         }
       }
@@ -1915,49 +1932,33 @@
             "null"
           ]
         },
-        "createdBy": {
+        "customer": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Account"
+              "$ref": "#/definitions/Customer"
             },
             {
               "type": "null"
             }
           ]
         },
-        "createdById": {
+        "customerId": {
           "type": [
             "string",
             "null"
           ]
         },
-        "purchasedBy": {
+        "seller": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Account"
+              "$ref": "#/definitions/Seller"
             },
             {
               "type": "null"
             }
           ]
         },
-        "purchasedById": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "soldBy": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Account"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "soldById": {
+        "sellerId": {
           "type": [
             "string",
             "null"
@@ -2244,38 +2245,135 @@
           "type": "string",
           "format": "date-time"
         },
-        "fee": {
-          "type": [
-            "number",
-            "null"
+        "type": {
+          "type": "string",
+          "default": "OUTBOUND",
+          "enum": [
+            "OUTBOUND",
+            "RETURN"
           ]
         },
-        "trackingNumber": {
+        "shipmentAccountType": {
+          "type": "string",
+          "default": "EASY_POST",
+          "enum": [
+            "EASY_POST"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPLETED",
+            "PENDING",
+            "CANCELED",
+            "FAILED"
+          ]
+        },
+        "rate": {
+          "type": "number"
+        },
+        "externalShipmentId": {
           "type": [
             "string",
             "null"
           ]
         },
-        "account": {
+        "customer": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Account"
+              "$ref": "#/definitions/Customer"
             },
             {
               "type": "null"
             }
           ]
         },
-        "accountId": {
+        "customerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "seller": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Seller"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sellerId": {
           "type": [
             "string",
             "null"
           ]
         },
         "order": {
-          "$ref": "#/definitions/Order"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Order"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
-        "transactionId": {
+        "orderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shippingMethod": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ShippingMethod"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingMethodId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shipmentShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShipmentShippingOption"
+          }
+        }
+      }
+    },
+    "ShipmentShippingOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "shipment": {
+          "$ref": "#/definitions/Shipment"
+        },
+        "shipmentId": {
+          "type": "string"
+        },
+        "shippingOption": {
+          "$ref": "#/definitions/ShippingOption"
+        },
+        "shippingOptionId": {
           "type": "string"
         }
       }
@@ -2372,6 +2470,9 @@
     },
     "shipment": {
       "$ref": "#/definitions/Shipment"
+    },
+    "shipmentShippingOption": {
+      "$ref": "#/definitions/ShipmentShippingOption"
     }
   }
 }

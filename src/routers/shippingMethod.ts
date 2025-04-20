@@ -133,7 +133,10 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
     createdById,
     shippingServiceType,
     shippingPackageType,
-    size
+    height,
+    length,
+    width,
+    maxQuantity
   } = req.body
 
   try {
@@ -143,8 +146,11 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
         displayName,
         shippingServiceType,
         shippingPackageType,
-        size,
         description,
+        height,
+        length,
+        width,
+        maxQuantity,
         createdBy: { connect: { id: createdById } },
         shippingOptions: shippingOptions?.create?.length
           ? {

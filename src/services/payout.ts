@@ -2,14 +2,14 @@ import { getPrismaClient } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
 
-export const calculateWalletBalance = async (accountId?: string) => {
+export const calculateWalletBalance = async (accountId?: string, sellerId?: string) => {
   if (!accountId) {
     throw new Error('Account ID is required')
   }
   const [ordersAll, ordersCompleted, payoutsCompleted] = await Promise.all([
     prisma.order.aggregate({
       where: {
-        soldById: accountId,
+        sellerId: sellerId,
         status: { in: ['PENDING', 'COMPLETED'] },
       },
       _sum: {
@@ -18,7 +18,7 @@ export const calculateWalletBalance = async (accountId?: string) => {
     }),
     prisma.order.aggregate({
       where: {
-        soldById: accountId,
+        sellerId: sellerId,
         status: 'COMPLETED',
       },
       _sum: {
