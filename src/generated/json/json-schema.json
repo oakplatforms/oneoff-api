@@ -1896,12 +1896,6 @@
             "string",
             "null"
           ]
-        },
-        "orderBids": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/OrderBid"
-          }
         }
       }
     },
@@ -2061,12 +2055,6 @@
             "null"
           ]
         },
-        "orderBids": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/OrderBid"
-          }
-        },
         "orderListings": {
           "type": "array",
           "items": {
@@ -2089,6 +2077,12 @@
           "type": "string",
           "format": "date-time"
         },
+        "quantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "order": {
           "$ref": "#/definitions/Order"
         },
@@ -2099,34 +2093,6 @@
           "$ref": "#/definitions/Listing"
         },
         "listingId": {
-          "type": "string"
-        }
-      }
-    },
-    "OrderBid": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "order": {
-          "$ref": "#/definitions/Order"
-        },
-        "orderId": {
-          "type": "string"
-        },
-        "bid": {
-          "$ref": "#/definitions/Bid"
-        },
-        "bidId": {
           "type": "string"
         }
       }
@@ -2503,9 +2469,6 @@
     },
     "orderListing": {
       "$ref": "#/definitions/OrderListing"
-    },
-    "orderBid": {
-      "$ref": "#/definitions/OrderBid"
     },
     "transaction": {
       "$ref": "#/definitions/Transaction"

@@ -586,7 +586,6 @@ model Bid {
   accountId        String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
-  orderBids        OrderBid[]
 }
 
 model Invoice {
@@ -615,7 +614,7 @@ model Order {
 
   // relations
   cart             Cart? @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  cartId           String? @unique
+  cartId           String?
   customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerId       String?
   seller           Seller? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
@@ -624,7 +623,6 @@ model Order {
   shipments        Shipment[]
   invoice          Invoice? @relation(fields: [invoiceId], references: [id])
   invoiceId        String?
-  orderBids        OrderBid[]
   orderListings    OrderListing[]
 }
 
@@ -633,6 +631,9 @@ model OrderListing {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  // custom
+  quantity         Int?
+
   // relations
   order            Order @relation(fields: [orderId], references: [id])
   orderId          String
@@ -640,20 +641,6 @@ model OrderListing {
   listingId        String
 
   @@id([orderId, listingId])
-}
-
-model OrderBid {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-    // relations
-  order            Order @relation(fields: [orderId], references: [id])
-  orderId          String
-  bid              Bid @relation(fields: [bidId], references: [id])
-  bidId            String
-
-  @@id([orderId, bidId])
 }
 
 model Transaction {
