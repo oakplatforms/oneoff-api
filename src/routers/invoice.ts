@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generatePrismaError } from '../utils/prismaHelpers'
-import { createInvoiceBasedOnListingsInOrderSummary } from '../services/invoice'
+import { createInvoiceWithTransactions } from '../services/invoice'
 import { validateListingOrderSummary } from '../validation/invoice'
 import { validateCustomer } from '../validation/customer'
 
@@ -9,7 +9,7 @@ export const invoiceRouter = express.Router()
 
 /**
  * @openapi
- * /buy-now:
+ * /invoice:
  *   post:
  *     tags:
  *       - Invoice
@@ -65,14 +65,14 @@ export const invoiceRouter = express.Router()
  *                   type: string
  *                   example: There was an error while creating your invoice.
  */
-invoiceRouter.post('/buy-now', async (req, res) => {
+invoiceRouter.post('/invoice', async (req, res) => {
   const { orderSummary } = req.body
 
   try {
     await validateCustomer(orderSummary[0]?.createdById)
     await validateListingOrderSummary(orderSummary)
 
-    const invoice = await createInvoiceBasedOnListingsInOrderSummary(orderSummary)
+    const invoice = await createInvoiceWithTransactions(orderSummary)
     if (invoice) {
       res.json(invoice)
     } else {

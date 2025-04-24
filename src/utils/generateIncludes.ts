@@ -6,25 +6,38 @@ export const generateIncludes = (
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
   const items: Record<string, any> = {}
 
-  const addNestedInclude = (parent: string, child: string) => {
-    if (!items[parent]) {
-      items[parent] = { include: {} }
+  const addDeepNestedInclude = (path: string[]) => {
+    let current = items
+
+    for (let i = 0; i < path.length; i++) {
+      const key = path[i]
+
+      if (!current[key]) {
+        current[key] = {}
+      }
+
+      if (i < path.length - 1) {
+        if (!current[key].include) {
+          current[key].include = {}
+        }
+        current = current[key].include
+      } else {
+        current[key] = true
+      }
     }
-    if (!items[parent].include) {
-      items[parent].include = {}
-    }
-    items[parent].include[child] = true
   }
 
   if (include) {
     const includes = Array.isArray(include) ? include : [include]
 
     includes.forEach((key) => {
-      if (typeof key === 'string' && key.includes('.')) {
-        const [parent, child] = key.split('.')
-        addNestedInclude(parent, child)
-      } else if (typeof key === 'string') {
-        items[key] = true
+      if (typeof key === 'string') {
+        const path = key.split('.')
+        if (path.length > 1) {
+          addDeepNestedInclude(path)
+        } else {
+          items[key] = true
+        }
       }
     })
   }

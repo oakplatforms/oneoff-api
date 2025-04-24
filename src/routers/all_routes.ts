@@ -1,6 +1,8 @@
 import express from 'express'
 const router = express.Router()
 import { userRouter } from './user'
+import { accountRouter } from './account'
+import { cartRouter } from './cart'
 import { brandRouter } from './brand'
 import { categoryRouter } from './category'
 import { tagRouter } from './tag'
@@ -15,12 +17,12 @@ import { shippingOptionRouter } from './shippingOption'
 import { orderRouter } from './order'
 import { transactionRouter } from './transaction'
 import { invoiceRouter } from './invoice'
-import { accountRouter } from './account'
 import { sellerRouter } from './seller'
 import { customerRouter } from './customers'
 
 router.use(userRouter)
 router.use(accountRouter)
+router.use(cartRouter)
 router.use(customerRouter)
 router.use(sellerRouter)
 router.use(brandRouter)

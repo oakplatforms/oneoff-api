@@ -58,7 +58,7 @@ const createPaymentIntent = async (
   return { success: true, paymentIntent }
 }
 
-export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: OrderDetails[]) => {
+export const createInvoiceWithTransactions = async (orderSummary: OrderDetails[]) => {
   return prisma.$transaction(async (prisma) => {
     //Create empty invoice
     const invoice = await prisma.invoice.create({
@@ -90,6 +90,24 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
         }
       }, 0) || 0
 
+      for (const { id, multiTransactionsEnabled, quantity: listingQuantity, quantityInOrder } of listingsInOrderWithQuantity) {
+        const remainingQuantity = listingQuantity && (listingQuantity - quantityInOrder)
+        if (remainingQuantity !== undefined) {
+          if (remainingQuantity < 0) {
+            throw new Error(`Order failed: Insufficient quantity for listing ${id}.`)
+          }
+          if (!multiTransactionsEnabled && listingQuantity !== quantityInOrder) {
+            throw new Error('Order failed: You must purchase all items for single seller listings.')
+          }
+          await prisma.listing.update({
+            where: { id },
+            data: {
+              quantity: remainingQuantity,
+              status: remainingQuantity === 0 ? 'INACTIVE' : 'ACTIVE',
+            },
+          })
+        }
+      }
       const order = await prisma.order.create({
         data: {
           subTotal,
@@ -117,26 +135,7 @@ export const createInvoiceBasedOnListingsInOrderSummary = async (orderSummary: O
           seller: true,
         },
       })
-
       await createPaymentIntent(order as OrderWithRelations)
-      for (const { id, multiTransactionsEnabled, quantity: listingQuantity, quantityInOrder } of listingsInOrderWithQuantity) {
-        const remainingQuantity = listingQuantity && (listingQuantity - quantityInOrder)
-        if (remainingQuantity !== undefined) {
-          if (remainingQuantity < 0) {
-            throw new Error(`Order failed: Insufficient quantity for listing ${id}.`)
-          }
-          if (!multiTransactionsEnabled && listingQuantity !== quantityInOrder) {
-            throw new Error('Order failed: You must purchase all items for single seller listings.')
-          }
-          await prisma.listing.update({
-            where: { id },
-            data: {
-              quantity: remainingQuantity,
-              status: remainingQuantity === 0 ? 'INACTIVE' : 'ACTIVE',
-            },
-          })
-        }
-      }
     }
 
     //Delete invoice if it is still empty
