@@ -1,34 +1,38 @@
-import { getPrismaClient } from '../utils/prismaHelpers'
-import { OrderDetails } from '../services/invoice'
+import { PrismaClient } from '@prisma/client'
 
-const prisma = getPrismaClient()
+const prisma = new PrismaClient()
 
-export const validateListingOrderSummary = async (orderSummary: OrderDetails[]) => {
-  for (const orderDetails of orderSummary) {
+export const validateOrdersForInvoice = async (orderIds: string[]) => {
+  const orders = await prisma.order.findMany({
+    where: {
+      id: { in: orderIds },
+    },
+    include: {
+      orderListings: {
+        include: {
+          listing: true,
+        },
+      },
+    },
+  })
 
-    const account = await prisma.account.findUnique({
-      where: { id: orderDetails?.accountId },
-      include: { profile: true }
-    })
+  if (orders.length !== orderIds.length) {
+    throw new Error('One or more order IDs are invalid or missing.')
+  }
 
-    if (!account) {
-      throw new Error('Account does not exist')
+  for (const order of orders) {
+    if (order.status !== 'CREATED') {
+      throw new Error(`Order ${order.id} is not in a valid status for invoice creation.`)
     }
 
-    if (!orderDetails?.listingIds?.length) {
-      throw new Error('Order must include at least one listing id')
-    }
+    for (const orderListing of order.orderListings) {
+      const availableQuantity = orderListing.listing?.quantity ?? 0
+      const orderedQuantity = orderListing.quantity ?? 0
 
-    const listingsInOrder = await prisma.listing.findMany({
-      where: { id: { in: orderDetails.listingIds } },
-    })
-
-    for (const listingInOrder of listingsInOrder) {
-      if (listingInOrder.status !== 'ACTIVE') {
-        throw new Error('Order cannot include inactive listings')
-      }
-      if (listingInOrder.accountId === account?.id) {
-        throw new Error('Order cannot include listings that your profile created')
+      if (orderedQuantity > availableQuantity) {
+        throw new Error(
+          'Insufficient quantity for specific listing in your order.'
+        )
       }
     }
   }
