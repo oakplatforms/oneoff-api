@@ -2,9 +2,7 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generatePrismaError } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
-import { validateListingOrderSummary } from '../validation/invoice'
-import { validateCustomer } from '../validation/customer'
-
+import { validateOrdersForInvoice } from '../validation/invoice'
 export const invoiceRouter = express.Router()
 
 /**
@@ -66,13 +64,15 @@ export const invoiceRouter = express.Router()
  *                   example: There was an error while creating your invoice.
  */
 invoiceRouter.post('/invoice', async (req, res) => {
-  const { orderSummary } = req.body
+  const { orderIds } = req.body
+
+  if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+    return res.status(400).json({ errorMessage: 'Missing or invalid orderIds in request body.' })
+  }
 
   try {
-    await validateCustomer(orderSummary[0]?.createdById)
-    await validateListingOrderSummary(orderSummary)
-
-    const invoice = await createInvoiceWithTransactions(orderSummary)
+    await validateOrdersForInvoice(orderIds)
+    const invoice = await createInvoiceWithTransactions(orderIds)
     if (invoice) {
       res.json(invoice)
     } else {

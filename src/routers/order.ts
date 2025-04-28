@@ -84,9 +84,11 @@ orderRouter.get('/orders', async (req, res) => {
     const orders = await prisma.order.findMany({
       where: {
         AND: [
-          status ? { status: status as ProcessStatus } : {},
+          status
+            ? { status: status as ProcessStatus }
+            : { status: { notIn: ['DELETED', 'CREATED'] } },
           sellerId && customerId && cartId
-            ? { sellerId: sellerId as string, customerId: customerId as string, cartId: cartId as string, }
+            ? { sellerId: sellerId as string, customerId: customerId as string, cartId: cartId as string }
             : sellerId
               ? { sellerId: sellerId as string }
               : customerId
@@ -481,6 +483,7 @@ orderRouter.put('/order/:id', async (req, res) => {
         ...(sellerId && { sellerId }),
         ...(cartId && { cartId }),
         ...(shipmentId && { shipments: { connect: { id: shipmentId } } }),
+        ...(listingsInOrder?.delete?.length === existingOrder.orderListings.length && { status: 'DELETED' }),
         ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
           subTotal,
           total: subTotal,
