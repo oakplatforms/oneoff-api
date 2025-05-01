@@ -1,4 +1,4 @@
-import { Prisma, ProcessStatus } from '@prisma/client'
+import { Prisma, ProcessStatus, ShippingCarrierType } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -10,6 +10,11 @@ export type ListingsInOrder = {
   create: [{ listingId: string, quantityInOrder: number }],
   update: [{ orderId: string, listingId: string, quantityInOrder: number }],
   delete: [string]
+}
+
+export type ShipmentPayload = {
+  create?: { shippingMethodId: string; shipmentShippingOptions: string[]; shippingCarrierType: ShippingCarrierType }[];
+  update?: { id: string; shippingMethodId?: string; shipmentShippingOptions?: string[]; shippingCarrierType?: ShippingCarrierType }[];
 }
 
 /**
@@ -394,13 +399,13 @@ orderRouter.put('/order/:id', async (req, res) => {
   const {
     customerId,
     sellerId,
-    shipmentId,
+    shipments,
     cartId,
     listingsInOrder,
   }: {
     customerId?: string
     sellerId?: string
-    shipmentId?: string
+    shipments?: ShipmentPayload
     cartId?: string
     listingsInOrder?: ListingsInOrder
   } = req.body
@@ -482,7 +487,6 @@ orderRouter.put('/order/:id', async (req, res) => {
         ...(customerId && { customerId }),
         ...(sellerId && { sellerId }),
         ...(cartId && { cartId }),
-        ...(shipmentId && { shipments: { connect: { id: shipmentId } } }),
         ...(listingsInOrder?.delete?.length === existingOrder.orderListings.length && { status: 'DELETED' }),
         ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
           subTotal,
@@ -503,6 +507,53 @@ orderRouter.put('/order/:id', async (req, res) => {
             }
             : undefined,
         } : {}),
+        ...(shipments?.create?.length || shipments?.update?.length ? {
+          shipments: {
+            ...(shipments.create?.length
+              ? {
+                create: shipments.create.map(({ shippingMethodId, shipmentShippingOptions, shippingCarrierType }) => ({
+                  type: 'OUTBOUND',
+                  shipmentAccountType: 'EASY_POST',
+                  shippingCarrierType,
+                  rate: new Prisma.Decimal(0),
+                  status: 'PENDING',
+                  shippingMethod: { connect: { id: shippingMethodId } },
+                  shipmentShippingOptions: {
+                    create: shipmentShippingOptions?.map((optionId) => ({
+                      shippingOption: { connect: { id: optionId } },
+                    })) || [],
+                  },
+                })),
+              }
+              : {}),
+            ...(shipments.update?.length
+              ? {
+                update: shipments.update.map(({ id, shippingMethodId, shipmentShippingOptions, shippingCarrierType }) => ({
+                  where: { id },
+                  data: {
+                    ...(shippingMethodId && {
+                      shippingMethod: {
+                        connect: { id: shippingMethodId },
+                      },
+                    }),
+                    ...(shippingCarrierType && {
+                      shippingCarrierType,
+                    }),
+                    ...(shipmentShippingOptions?.length && {
+                      shipmentShippingOptions: {
+                        deleteMany: {},
+                        create: shipmentShippingOptions.map((optionId) => ({
+                          shippingOption: { connect: { id: optionId } },
+                        })),
+                      },
+                    }),
+                  },
+                })),
+              }
+              : {}),
+          },
+        } : {}),
+
       },
     })
 
@@ -514,4 +565,3 @@ orderRouter.put('/order/:id', async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
-
