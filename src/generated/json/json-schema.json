@@ -2337,6 +2337,15 @@
             "null"
           ]
         },
+        "shippingCarrierType": {
+          "type": "string",
+          "enum": [
+            "USPS",
+            "UPS",
+            "FEDEX",
+            "DHL"
+          ]
+        },
         "shippingMethod": {
           "anyOf": [
             {

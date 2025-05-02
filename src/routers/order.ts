@@ -1,4 +1,4 @@
-import { Prisma, ProcessStatus } from '@prisma/client'
+import { Prisma, ProcessStatus, ShippingCarrierType } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -10,6 +10,11 @@ export type ListingsInOrder = {
   create: [{ listingId: string, quantityInOrder: number }],
   update: [{ orderId: string, listingId: string, quantityInOrder: number }],
   delete: [string]
+}
+
+export type ShipmentPayload = {
+  create?: { shippingMethodId: string; shipmentShippingOptions: string[]; shippingCarrierType: ShippingCarrierType }[];
+  update?: { id: string; shippingMethodId?: string; shipmentShippingOptions?: string[]; shippingCarrierType?: ShippingCarrierType }[];
 }
 
 /**
@@ -394,119 +399,180 @@ orderRouter.put('/order/:id', async (req, res) => {
   const {
     customerId,
     sellerId,
-    shipmentId,
+    shipments,
     cartId,
     listingsInOrder,
   }: {
     customerId?: string
     sellerId?: string
-    shipmentId?: string
+    shipments?: ShipmentPayload
     cartId?: string
     listingsInOrder?: ListingsInOrder
   } = req.body
 
   try {
-    const existingOrder = await prisma.order.findUnique({
-      where: { id },
-      include: {
-        orderListings: {
-          include: {
-            listing: true,
+    const result = await prisma.$transaction(async (prisma) => {
+      const existingOrder = await prisma.order.findUnique({
+        where: { id },
+        include: {
+          orderListings: {
+            include: {
+              listing: true,
+            }
+          }
+        }
+      })
+
+      if (!existingOrder) {
+        throw new Error('Order not found.')
+      }
+
+      let subTotal = Number(existingOrder.subTotal || 0)
+
+      const createAndUpdateItems = [
+        ...(listingsInOrder?.create || []),
+        ...(listingsInOrder?.update || []),
+      ]
+
+      if (createAndUpdateItems.length) {
+        const listingIds = createAndUpdateItems.map((item) => item.listingId)
+
+        const listings = await prisma.listing.findMany({
+          where: { id: { in: listingIds } }
+        })
+
+        for (const item of createAndUpdateItems) {
+          const listing = listings.find((l) => l.id === item.listingId)
+
+          if (!listing?.price || !item.quantityInOrder) {
+            throw new Error(`Order failed: Missing listing data or invalid quantity`)
+          }
+
+          const previous = existingOrder.orderListings.find(
+            (orderListing) => orderListing.listingId === item.listingId
+          )
+          const newAmount = Number(listing.price) * item.quantityInOrder
+
+          if (previous) {
+            const previousAmount = Number(listing.price) * (previous.quantity || 0)
+            subTotal = subTotal - previousAmount + newAmount
+          } else {
+            subTotal += newAmount
+          }
+
+          const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
+
+          if (remainingQuantity < 0) {
+            throw new Error(`Order failed: Insufficient quantity for listing.`)
+          }
+
+          if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
+            throw new Error(`Order failed: You must purchase all items for single-seller listing ${listing.id}.`)
           }
         }
       }
-    })
 
-    if (!existingOrder) {
-      throw new Error('Order not found.')
-    }
+      if (listingsInOrder?.delete?.length) {
+        for (const deletedId of listingsInOrder.delete) {
+          const match = existingOrder.orderListings.find((orderListing) => orderListing.id === deletedId)
+          if (match?.listing?.price && match.quantity) {
+            const deletedAmount = Number(match.listing.price) * match.quantity
+            subTotal -= deletedAmount
+          }
+        }
+      }
 
-    let subTotal = Number(existingOrder.subTotal || 0)
+      const isDeleted = listingsInOrder?.delete?.length === existingOrder.orderListings.length
 
-    const createAndUpdateItems = [
-      ...(listingsInOrder?.create || []),
-      ...(listingsInOrder?.update || []),
-    ]
+      const updatedOrder = await prisma.order.update({
+        where: { id },
+        data: {
+          ...(customerId && { customerId }),
+          ...(sellerId && { sellerId }),
+          ...(cartId && { cartId }),
+          ...(isDeleted && { status: 'DELETED' }),
+          ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
+            subTotal,
+            total: subTotal,
+          } : {}),
+          ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
+            orderListings: listingsInOrder
+              ? {
+                create: listingsInOrder.create?.map(({ listingId, quantityInOrder }) => ({
+                  listingId,
+                  quantity: quantityInOrder,
+                })),
+                updateMany: listingsInOrder.update?.map(({ orderId, listingId, quantityInOrder }) => ({
+                  where: { listingId, orderId },
+                  data: { quantity: quantityInOrder },
+                })),
+                deleteMany: listingsInOrder.delete?.map((id) => ({ id })),
+              }
+              : undefined,
+          } : {}),
+          ...(shipments?.create?.length || shipments?.update?.length ? {
+            shipments: {
+              ...(shipments.create?.length
+                ? {
+                  create: shipments.create.map(({ shippingMethodId, shipmentShippingOptions, shippingCarrierType }) => ({
+                    type: 'OUTBOUND',
+                    shipmentAccountType: 'EASY_POST',
+                    shippingCarrierType,
+                    rate: new Prisma.Decimal(0),
+                    status: 'CREATED',
+                    shippingMethod: { connect: { id: shippingMethodId } },
+                    shipmentShippingOptions: {
+                      create: shipmentShippingOptions?.map((optionId) => ({
+                        shippingOption: { connect: { id: optionId } },
+                      })) || [],
+                    },
+                  })),
+                }
+                : {}),
+              ...(shipments.update?.length
+                ? {
+                  update: shipments.update.map(({ id, shippingMethodId, shipmentShippingOptions, shippingCarrierType }) => ({
+                    where: { id },
+                    data: {
+                      ...(shippingMethodId && {
+                        shippingMethod: {
+                          connect: { id: shippingMethodId },
+                        },
+                      }),
+                      ...(shippingCarrierType && {
+                        shippingCarrierType,
+                      }),
+                      ...(shipmentShippingOptions !== undefined && {
+                        shipmentShippingOptions: {
+                          deleteMany: {},
+                          ...(shipmentShippingOptions.length > 0 && {
+                            create: shipmentShippingOptions.map((optionId) => ({
+                              shippingOption: { connect: { id: optionId } },
+                            })),
+                          }),
+                        },
+                      }),
+                    },
+                  })),
+                }
+                : {}),
+            },
+          } : {}),
 
-    if (createAndUpdateItems.length) {
-      const listingIds = createAndUpdateItems.map((item) => item.listingId)
-
-      const listings = await prisma.listing.findMany({
-        where: { id: { in: listingIds } }
+        },
       })
 
-      for (const item of createAndUpdateItems) {
-        const listing = listings.find((l) => l.id === item.listingId)
-
-        if (!listing?.price || !item.quantityInOrder) {
-          throw new Error(`Order failed: Missing listing data or invalid quantity`)
-        }
-
-        const previous = existingOrder.orderListings.find(
-          (orderListing) => orderListing.listingId === item.listingId
-        )
-        const newAmount = Number(listing.price) * item.quantityInOrder
-
-        if (previous) {
-          const previousAmount = Number(listing.price) * (previous.quantity || 0)
-          subTotal = subTotal - previousAmount + newAmount
-        } else {
-          subTotal += newAmount
-        }
-
-        const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
-
-        if (remainingQuantity < 0) {
-          throw new Error(`Order failed: Insufficient quantity for listing.`)
-        }
-
-        if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
-          throw new Error(`Order failed: You must purchase all items for single-seller listing ${listing.id}.`)
-        }
+      if (isDeleted) {
+        await prisma.shipment.updateMany({
+          where: { orderId: id },
+          data: { status: 'DELETED' },
+        })
       }
-    }
 
-    if (listingsInOrder?.delete?.length) {
-      for (const deletedId of listingsInOrder.delete) {
-        const match = existingOrder.orderListings.find((orderListing) => orderListing.id === deletedId)
-        if (match?.listing?.price && match.quantity) {
-          const deletedAmount = Number(match.listing.price) * match.quantity
-          subTotal -= deletedAmount
-        }
-      }
-    }
-
-    const updatedOrder = await prisma.order.update({
-      where: { id },
-      data: {
-        ...(customerId && { customerId }),
-        ...(sellerId && { sellerId }),
-        ...(cartId && { cartId }),
-        ...(shipmentId && { shipments: { connect: { id: shipmentId } } }),
-        ...(listingsInOrder?.delete?.length === existingOrder.orderListings.length && { status: 'DELETED' }),
-        ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
-          subTotal,
-          total: subTotal,
-        } : {}),
-        ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
-          orderListings: listingsInOrder
-            ? {
-              create: listingsInOrder.create?.map(({ listingId, quantityInOrder }) => ({
-                listingId,
-                quantity: quantityInOrder,
-              })),
-              updateMany: listingsInOrder.update?.map(({ orderId, listingId, quantityInOrder }) => ({
-                where: { listingId, orderId },
-                data: { quantity: quantityInOrder },
-              })),
-              deleteMany: listingsInOrder.delete?.map((id) => ({ id })),
-            }
-            : undefined,
-        } : {}),
-      },
+      return updatedOrder
     })
 
-    res.json(updatedOrder)
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(
       error as Prisma.PrismaClientKnownRequestError
@@ -514,4 +580,3 @@ orderRouter.put('/order/:id', async (req, res) => {
     res.status(statusCode).send({ errorMessage })
   }
 })
-

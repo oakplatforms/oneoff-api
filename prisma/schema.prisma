@@ -709,10 +709,11 @@ model Shipment {
   externalShipmentId  String?
 
   // relations
-  order              Order? @relation(fields: [orderId], references: [id])
-  orderId            String?  @unique
-  shippingMethod     ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
-  shippingMethodId   String?
+  order               Order? @relation(fields: [orderId], references: [id])
+  orderId             String?  @unique
+  shippingCarrierType ShippingCarrierType
+  shippingMethod      ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  shippingMethodId    String?
   shipmentShippingOptions ShipmentShippingOption[]
 }
 
