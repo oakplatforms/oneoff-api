@@ -539,12 +539,14 @@ orderRouter.put('/order/:id', async (req, res) => {
                     ...(shippingCarrierType && {
                       shippingCarrierType,
                     }),
-                    ...(shipmentShippingOptions?.length && {
+                    ...(shipmentShippingOptions !== undefined && {
                       shipmentShippingOptions: {
                         deleteMany: {},
-                        create: shipmentShippingOptions.map((optionId) => ({
-                          shippingOption: { connect: { id: optionId } },
-                        })),
+                        ...(shipmentShippingOptions.length > 0 && {
+                          create: shipmentShippingOptions.map((optionId) => ({
+                            shippingOption: { connect: { id: optionId } },
+                          })),
+                        }),
                       },
                     }),
                   },
