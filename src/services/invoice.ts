@@ -69,6 +69,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       include: {
         customer: { include: { account: true } },
         seller: true,
+        shipments: true,
         orderListings: {
           include: {
             listing: true,
@@ -112,7 +113,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           invoiceId: invoice.id,
           transactions: {
             create: [{
-              amount: order.subTotal,
+              amount: Number(order.subTotal) + Number(order.shipments[0]?.rate),
               accountId: order?.customer?.accountId
             }],
           },
