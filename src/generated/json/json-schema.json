@@ -539,6 +539,12 @@
             "BUSINESS"
           ]
         },
+        "taxRate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "firstName": {
           "type": [
             "string",
@@ -593,6 +599,15 @@
             "null"
           ]
         },
+        "shippingCarrierTypes": {
+          "type": "array",
+          "enum": [
+            "USPS",
+            "UPS",
+            "FEDEX",
+            "DHL"
+          ]
+        },
         "account": {
           "$ref": "#/definitions/Account"
         },
@@ -610,15 +625,6 @@
           "items": {
             "$ref": "#/definitions/SellerShippingOption"
           }
-        },
-        "shippingCarrierTypes": {
-          "type": "array",
-          "enum": [
-            "USPS",
-            "UPS",
-            "FEDEX",
-            "DHL"
-          ]
         },
         "orders": {
           "type": "array",
@@ -921,49 +927,6 @@
             "null"
           ]
         },
-        "height": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "length": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "width": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "maxQuantity": {
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "shippingPackageType": {
-          "type": "string",
-          "default": "ENVELOPE",
-          "enum": [
-            "ENVELOPE",
-            "BUBBLE_MAILER",
-            "BOX"
-          ]
-        },
-        "shippingServiceType": {
-          "type": "string",
-          "default": "STANDARD",
-          "enum": [
-            "STANDARD",
-            "GROUND",
-            "PRIORITY",
-            "EXPRESS"
-          ]
-        },
         "createdBy": {
           "anyOf": [
             {
@@ -996,6 +959,18 @@
             "null"
           ]
         },
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Order"
+          }
+        },
+        "parcels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Parcel"
+          }
+        },
         "shippingOptions": {
           "type": "array",
           "items": {
@@ -1007,12 +982,53 @@
           "items": {
             "$ref": "#/definitions/SellerShippingMethod"
           }
+        }
+      }
+    },
+    "Parcel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "shipments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Shipment"
-          }
+        "carrier": {
+          "type": "string",
+          "enum": [
+            "USPS",
+            "UPS",
+            "FEDEX",
+            "DHL"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "USPS_FlatRateEnvelope",
+            "USPS_SoftPack",
+            "UPS_Box_10kg",
+            "UPS_Box_25kg",
+            "UPS_Pad_Pak",
+            "FedEx_Envelope",
+            "FedEx_Padded_Pak",
+            "FedEx_Box_10kg",
+            "FedEx_Box_25kg"
+          ]
+        },
+        "shippingMethod": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ShippingMethod"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingMethodId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1121,10 +1137,10 @@
             "$ref": "#/definitions/SellerShippingOption"
           }
         },
-        "shipmentShippingOptions": {
+        "orderShippingOptions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ShipmentShippingOption"
+            "$ref": "#/definitions/OrderShippingOption"
           }
         }
       }
@@ -1961,12 +1977,6 @@
             "null"
           ]
         },
-        "taxRate": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "tax": {
           "type": [
             "number",
@@ -2059,6 +2069,28 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/OrderListing"
+          }
+        },
+        "shippingMethod": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ShippingMethod"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingMethodId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "orderShippingOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderShippingOption"
           }
         }
       }
@@ -2286,6 +2318,24 @@
           "type": "string",
           "format": "date-time"
         },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "type": {
           "type": "string",
           "default": "OUTBOUND",
@@ -2296,9 +2346,9 @@
         },
         "shipmentAccountType": {
           "type": "string",
-          "default": "EASY_POST",
+          "default": "SHIPPO",
           "enum": [
-            "EASY_POST"
+            "SHIPPO"
           ]
         },
         "status": {
@@ -2315,7 +2365,37 @@
         "rate": {
           "type": "number"
         },
+        "trackingNumber": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "labelUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "externalShipmentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "externalShipmentRateId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "externalShipmentServiceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "externalShipmentCarrierId": {
           "type": [
             "string",
             "null"
@@ -2336,41 +2416,10 @@
             "string",
             "null"
           ]
-        },
-        "shippingCarrierType": {
-          "type": "string",
-          "enum": [
-            "USPS",
-            "UPS",
-            "FEDEX",
-            "DHL"
-          ]
-        },
-        "shippingMethod": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ShippingMethod"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "shippingMethodId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "shipmentShippingOptions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ShipmentShippingOption"
-          }
         }
       }
     },
-    "ShipmentShippingOption": {
+    "OrderShippingOption": {
       "type": "object",
       "properties": {
         "id": {
@@ -2384,10 +2433,10 @@
           "type": "string",
           "format": "date-time"
         },
-        "shipment": {
-          "$ref": "#/definitions/Shipment"
+        "order": {
+          "$ref": "#/definitions/Order"
         },
-        "shipmentId": {
+        "orderId": {
           "type": "string"
         },
         "shippingOption": {
@@ -2433,6 +2482,9 @@
     },
     "shippingMethod": {
       "$ref": "#/definitions/ShippingMethod"
+    },
+    "parcel": {
+      "$ref": "#/definitions/Parcel"
     },
     "shippingOption": {
       "$ref": "#/definitions/ShippingOption"
@@ -2491,8 +2543,8 @@
     "shipment": {
       "$ref": "#/definitions/Shipment"
     },
-    "shipmentShippingOption": {
-      "$ref": "#/definitions/ShipmentShippingOption"
+    "orderShippingOption": {
+      "$ref": "#/definitions/OrderShippingOption"
     }
   }
 }

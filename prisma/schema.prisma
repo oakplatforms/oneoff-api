@@ -91,21 +91,20 @@ enum ShippingCarrierType {
   DHL
 }
 
-enum ShippingPackageType {
-  ENVELOPE
-  BUBBLE_MAILER
-  BOX
-}
-
-enum ShippingServiceType {
-  STANDARD
-  GROUND
-  PRIORITY
-  EXPRESS
+enum ShippingParcelType {
+  USPS_FlatRateEnvelope
+  USPS_SoftPack
+  UPS_Box_10kg
+  UPS_Box_25kg
+  UPS_Pad_Pak
+  FedEx_Envelope
+  FedEx_Padded_Pak
+  FedEx_Box_10kg
+  FedEx_Box_25kg
 }
 
 enum ShipmentAccountType {
-  EASY_POST
+  SHIPPO
 }
 
 enum ShipmentType {
@@ -244,7 +243,8 @@ model Seller {
   paymentAccountStatus ProcessStatus?
   isPaymentAccountVerified Boolean? @default(false)
   hasPaymentMethod Boolean? @default(false)
-  sellerType SellerType?
+  sellerType    SellerType?
+  taxRate       Decimal? @db.Decimal(10, 2)
 
   firstName     String?
   lastName      String?
@@ -255,13 +255,13 @@ model Seller {
   zipCode       String?
   businessName  String?
   website       String?
+  shippingCarrierTypes ShippingCarrierType[]
 
   // relations
   account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
   sellerShippingMethods SellerShippingMethod[]
   sellerShippingOptions SellerShippingOption[]
-  shippingCarrierTypes ShippingCarrierType[]
   orders    Order[]
 }
 
@@ -344,21 +344,24 @@ model ShippingMethod {
   name             String
   displayName      String?
   description      String?
-  height           Float?
-  length           Float?
-  width            Float?
-  maxQuantity      Int?
-  shippingPackageType ShippingPackageType @default(ENVELOPE)
-  shippingServiceType ShippingServiceType @default(STANDARD)
-
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
   lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
+  orders           Order[]
+  parcels          Parcel[]
   shippingOptions  ShippingOption[]
   sellerShippingMethods SellerShippingMethod[]
-  shipments Shipment[]
+}
+
+model Parcel {
+  id               String              @id @default(cuid())
+  carrier          ShippingCarrierType
+  type             ShippingParcelType
+
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId String?
 }
 
 model ShippingOption {
@@ -383,7 +386,7 @@ model ShippingOption {
   shippingMethod    ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
   shippingMethodId  String?
   sellerShippingOptions SellerShippingOption[]
-  shipmentShippingOptions ShipmentShippingOption[]
+  orderShippingOptions  OrderShippingOption[]
 }
 
 model Tag {
@@ -608,7 +611,6 @@ model Order {
   // custom
   status           ProcessStatus
   subTotal         Decimal? @db.Decimal(10, 2)
-  taxRate          Decimal? @db.Decimal(10, 2)
   tax              Decimal? @db.Decimal(10, 2)
   total            Decimal? @db.Decimal(10, 2)
 
@@ -624,6 +626,9 @@ model Order {
   invoice          Invoice? @relation(fields: [invoiceId], references: [id])
   invoiceId        String?
   orderListings    OrderListing[]
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId String?
+  orderShippingOptions OrderShippingOption[]
 }
 
 model OrderListing {
@@ -702,31 +707,36 @@ model Shipment {
   updatedAt          DateTime  @updatedAt
 
   // custom
+  name                String?
+  displayName         String?
+  description         String?
   type                ShipmentType @default(OUTBOUND)
-  shipmentAccountType ShipmentAccountType @default(EASY_POST)
+  shipmentAccountType ShipmentAccountType @default(SHIPPO)
   status              ProcessStatus
   rate                Decimal @db.Decimal(10, 2)
+  trackingNumber      String?
+  labelUrl            String?
+
   externalShipmentId  String?
+  externalShipmentRateId String?
+  externalShipmentServiceId String?
+  externalShipmentCarrierId String?
 
   // relations
   order               Order? @relation(fields: [orderId], references: [id])
-  orderId             String?  @unique
-  shippingCarrierType ShippingCarrierType
-  shippingMethod      ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
-  shippingMethodId    String?
-  shipmentShippingOptions ShipmentShippingOption[]
+  orderId             String?
 }
 
-model ShipmentShippingOption {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+model OrderShippingOption {
+  id                 String  @unique @default(cuid()) 
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // relations
-  shipment         Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  shipmentId       String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
-  shippingOptionId String
+  order              Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId            String
+  shippingOption     ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
+  shippingOptionId   String
 
-  @@id([shipmentId, shippingOptionId])
+  @@id([orderId, shippingOptionId])
 }

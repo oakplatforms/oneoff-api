@@ -1,0 +1,350 @@
+import express from 'express'
+import { getPrismaClient } from '../utils/prismaHelpers'
+import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
+import { Prisma } from '@prisma/client'
+import { calculateOrderWeight, OrderPayload } from '../utils/order'
+
+const prisma = getPrismaClient()
+
+export const shipmentRouter = express.Router()
+
+/**
+ * @openapi
+ * /shipment/rates:
+ *   post:
+ *     tags:
+ *       - Shipments
+ *     summary: Get shipping rates for a shipment
+ *     description: Calculates available shipping rates using Shippo based on order details, shipping method, and seller-configured parcel templates.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *                 description: The ID of the order associated with the shipment.
+ *               shippingMethodId:
+ *                 type: string
+ *                 description: The ID of the shipping method selected for this shipment.
+ *             required:
+ *               - orderId
+ *               - shippingMethodId
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved shipping rates from Shippo.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 rates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       objectId:
+ *                         type: string
+ *                         description: The Shippo object ID for the rate.
+ *                       provider:
+ *                         type: string
+ *                         description: The shipping carrier (e.g., USPS, FedEx, UPS).
+ *                       serviceLevel:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             description: The name of the shipping service.
+ *                           token:
+ *                             type: string
+ *                             description: The service-level token identifier.
+ *                       amount:
+ *                         type: string
+ *                         description: The rate cost in USD.
+ *                       estimatedDays:
+ *                         type: integer
+ *                         description: Estimated delivery time in business days.
+ *       '400':
+ *         description: Invalid request payload or missing data required for rate calculation.
+ *       '500':
+ *         description: Failed to fetch rates from Shippo or internal server error.
+ */
+shipmentRouter.post('/shipment/rates', async (req, res) => {
+  try {
+    const { orderId } = req.body
+
+    if (!orderId) {
+      return res.status(400).json({ errorMessage: 'Missing orderId in request body.' })
+    }
+
+    const result = await prisma.$transaction(async (prisma) => {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          customer: {
+            include: {
+              account: { include: { profile: true } },
+            }
+          },
+          seller: {
+            include: {
+              account: { include: { profile: true } },
+              sellerShippingMethods: { include: { shippingMethod: true } },
+            },
+          },
+          orderListings: {
+            include: {
+              listing: {
+                include: {
+                  entity: {
+                    include: {
+                      product: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderShippingOptions: {
+            include: {
+              shippingOption: true,
+            },
+          },
+          shippingMethod: {
+            include: {
+              parcels: true,
+            },
+          },
+        },
+      })
+
+      if (!order || !order.customer || !order.seller) {
+        return res.status(404).json({ errorMessage: 'Order or participants not found.' })
+      }
+
+      const fromAddress = {
+        name: `${order.seller.firstName} ${order.seller.lastName}`,
+        street1: order.seller.address ?? undefined,
+        city: order.seller.city ?? undefined,
+        state: order.seller.state ?? undefined,
+        zip: order.seller.zipCode ?? undefined,
+        country: 'US',
+        phone: order.seller.phone ?? undefined,
+        email: order.seller.account.email ?? undefined,
+      }
+
+      const toAddress = {
+        name: `${order.customer.firstName} ${order.customer.lastName}`,
+        street1: order.customer.address ?? undefined,
+        city: order.customer.city ?? undefined,
+        state: order.customer.state ?? undefined,
+        zip: order.customer.zipCode ?? undefined,
+        country: 'US',
+        phone: order.customer.phone ?? undefined,
+        email: order.customer.account.email ?? undefined,
+      }
+
+      const supportedCarriers = order.seller?.shippingCarrierTypes || []
+      const allShipments = []
+      const orderWeight = calculateOrderWeight(order as OrderPayload)
+
+      for (const carrier of supportedCarriers) {
+        const shippingParcel = order.shippingMethod?.parcels.find(
+          parcel => parcel.carrier === carrier
+        )
+
+        if (shippingParcel) {
+          const shippoShipment = await shippo.shipments.create({
+            addressFrom: fromAddress,
+            addressTo: toAddress,
+            parcels: [
+              {
+                template: shippingParcel.type,
+                weight: orderWeight?.toString(),
+                massUnit: 'lb',
+              }
+            ],
+            carrierAccounts: [carrierAccounts[carrier]],
+            metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}}`,
+            async: false,
+          })
+
+          if (Array.isArray(shippoShipment?.rates)) {
+            allShipments.push(shippoShipment)
+          }
+        }
+      }
+
+      return {
+        rates: allShipments.flatMap(s => s.rates || []),
+        errors: allShipments.flatMap(s => s.messages || []),
+        metadata: allShipments[0]?.metadata || null,
+      }
+    }, { timeout: 60000 })
+
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ errorMessage: 'Failed to fetch rates from Shippo.' })
+  }
+})
+
+/**
+ * @openapi
+ * /shipment:
+ *   post:
+ *     tags:
+ *       - Shipments
+ *     summary: Create a shipment using a selected Shippo rate
+ *     description: Stores a new shipment in the database using a selected rate retrieved from Shippo by its rate ID.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *                 description: The ID of the order the shipment is for.
+ *               rateId:
+ *                 type: string
+ *                 description: The Shippo rate object ID selected by the user.
+ *             required:
+ *               - orderId
+ *               - rateId
+ *     responses:
+ *       '200':
+ *         description: Successfully created shipment and stored rate details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 shipment:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Internal shipment ID.
+ *                     orderId:
+ *                       type: string
+ *                     externalShipmentId:
+ *                       type: string
+ *                       description: ID of the Shippo shipment associated with the selected rate.
+ *                     externalShipmentRateId:
+ *                       type: string
+ *                       description: The Shippo rate object ID used to create the shipment.
+ *                     rate:
+ *                       type: string
+ *                       description: Cost of the selected rate in USD.
+ *                     status:
+ *                       type: string
+ *                       enum: [CREATED, PROCESSING, FAILED]
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *       '400':
+ *         description: Missing or invalid orderId or rateId.
+ *       '404':
+ *         description: Order not found.
+ *       '500':
+ *         description: Failed to create shipment due to Shippo error or database failure.
+ */
+shipmentRouter.post('/shipment', async (req, res) => {
+  try {
+    const { orderId, rateId } = req.body
+
+    if (!orderId || !rateId) {
+      return res.status(400).json({ errorMessage: 'Missing orderId or rateId.' })
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
+
+    if (!order) {
+      return res.status(404).json({ errorMessage: 'Order not found.' })
+    }
+
+    const rate = await fetchRateById(rateId)
+
+    if (!rate || !rate.amount || !rate.shipment) {
+      return res.status(400).json({ errorMessage: 'Invalid or incomplete rate.' })
+    }
+
+    const newShipment = await prisma.shipment.create({
+      data: {
+        displayName: `${rate.provider} ${rate.servicelevel.name}`,
+        name: rate.servicelevel.token,
+        description: `${rate?.estimated_days} business ${rate?.estimated_days === 1 ? 'day' : 'days'}`,
+        orderId: order.id,
+        type: 'OUTBOUND',
+        shipmentAccountType: 'SHIPPO',
+        status: 'CREATED',
+        rate: new Prisma.Decimal(rate.amount),
+        externalShipmentId: rate.shipment,
+        externalShipmentRateId: rate.object_id,
+      },
+    })
+
+    return res.json({ shipment: newShipment })
+  } catch (err) {
+    console.error('Create Shipment Error:', err)
+    return res.status(500).json({ errorMessage: 'Failed to create shipment.' })
+  }
+})
+
+/**
+ * @openapi
+ * /shipment/{id}:
+ *   delete:
+ *     tags:
+ *       - Shipments
+ *     summary: Soft delete a shipment by marking its status as 'DELETED'
+ *     description: Updates the status of the specified shipment to 'DELETED' instead of removing it from the database.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the shipment to mark as deleted.
+ *     responses:
+ *       '200':
+ *         description: Shipment status successfully updated to DELETED.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 shipment:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       enum: [DELETED]
+ *       '404':
+ *         description: Shipment not found.
+ *       '500':
+ *         description: Failed to update shipment status.
+ */
+shipmentRouter.delete('/shipment/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const shipment = await prisma.shipment.findUnique({ where: { id } })
+    if (!shipment) {
+      return res.status(404).json({ errorMessage: 'Shipment not found.' })
+    }
+
+    await prisma.shipment.delete({ where: { id } })
+
+    return res.json({ message: 'Shipment deleted successfully.' })
+  } catch (err) {
+    console.error('Delete Shipment Error:', err)
+    return res.status(500).json({ errorMessage: 'Failed to delete shipment.' })
+  }
+})

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, ShippingCarrierType, ShippingParcelType } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -131,12 +131,7 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
     description,
     shippingOptions,
     createdById,
-    shippingServiceType,
-    shippingPackageType,
-    height,
-    length,
-    width,
-    maxQuantity
+    parcels
   } = req.body
 
   try {
@@ -144,14 +139,16 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
       data: {
         name,
         displayName,
-        shippingServiceType,
-        shippingPackageType,
         description,
-        height,
-        length,
-        width,
-        maxQuantity,
         createdBy: { connect: { id: createdById } },
+        parcels: parcels?.create?.length
+          ? {
+            create: parcels.create.map((parcel: { carrier: ShippingCarrierType; type: ShippingParcelType }) => ({
+              carrier: parcel.carrier,
+              type: parcel.type,
+            })),
+          }
+          : undefined,
         shippingOptions: shippingOptions?.create?.length
           ? {
             create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
@@ -246,13 +243,29 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
  */
 shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
   const { id } = req.params
-  const { shippingOptions } = req.body
+  const { shippingOptions, parcels } = req.body
 
   try {
     const shippingMethod = await prisma.shippingMethod.update({
       where: { id },
       data: {
         ...req.body,
+        parcels: parcels
+          ? {
+            create: parcels.create?.map((parcel: { carrier: ShippingCarrierType; type: ShippingParcelType }) => ({
+              carrier: parcel.carrier,
+              type: parcel.type,
+            })),
+            updateMany: parcels.update?.map((parcel: { id: string; carrier: ShippingCarrierType; type: ShippingParcelType }) => ({
+              where: { id: parcel.id },
+              data: {
+                carrier: parcel.carrier,
+                type: parcel.type,
+              },
+            })),
+            deleteMany: parcels.delete?.map((id: string) => ({ id })),
+          }
+          : undefined,
         shippingOptions: shippingOptions
           ? {
             create: shippingOptions.create?.map((shippingOption: Prisma.ShippingOptionCreateInput) => ({
