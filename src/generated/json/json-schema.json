@@ -539,6 +539,12 @@
             "BUSINESS"
           ]
         },
+        "taxRate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "firstName": {
           "type": [
             "string",
@@ -994,7 +1000,7 @@
             "DHL"
           ]
         },
-        "parcelType": {
+        "type": {
           "type": "string",
           "enum": [
             "USPS_FlatRateEnvelope",
@@ -1971,12 +1977,6 @@
             "null"
           ]
         },
-        "taxRate": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "tax": {
           "type": [
             "number",
@@ -2364,6 +2364,18 @@
         },
         "rate": {
           "type": "number"
+        },
+        "trackingNumber": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "labelUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "externalShipmentId": {
           "type": [

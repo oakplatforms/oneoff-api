@@ -243,7 +243,8 @@ model Seller {
   paymentAccountStatus ProcessStatus?
   isPaymentAccountVerified Boolean? @default(false)
   hasPaymentMethod Boolean? @default(false)
-  sellerType SellerType?
+  sellerType    SellerType?
+  taxRate       Decimal? @db.Decimal(10, 2)
 
   firstName     String?
   lastName      String?
@@ -357,7 +358,7 @@ model ShippingMethod {
 model Parcel {
   id               String              @id @default(cuid())
   carrier          ShippingCarrierType
-  parcelType       ShippingParcelType
+  type             ShippingParcelType
 
   shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
   shippingMethodId String?
@@ -610,7 +611,6 @@ model Order {
   // custom
   status           ProcessStatus
   subTotal         Decimal? @db.Decimal(10, 2)
-  taxRate          Decimal? @db.Decimal(10, 2)
   tax              Decimal? @db.Decimal(10, 2)
   total            Decimal? @db.Decimal(10, 2)
 
@@ -714,6 +714,8 @@ model Shipment {
   shipmentAccountType ShipmentAccountType @default(SHIPPO)
   status              ProcessStatus
   rate                Decimal @db.Decimal(10, 2)
+  trackingNumber      String?
+  labelUrl            String?
 
   externalShipmentId  String?
   externalShipmentRateId String?
@@ -726,15 +728,15 @@ model Shipment {
 }
 
 model OrderShippingOption {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String  @unique @default(cuid()) 
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // relations
-  order            Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId          String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
-  shippingOptionId String
+  order              Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId            String
+  shippingOption     ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
+  shippingOptionId   String
 
   @@id([orderId, shippingOptionId])
 }

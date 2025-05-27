@@ -2,6 +2,8 @@ import { Order } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
+import { calculateOrderAmount, OrderPayload } from '../utils/order'
+import shippo from '../utils/shippo'
 const prisma = getPrismaClient()
 
 export type OrderDetails = {
@@ -73,7 +75,23 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         orderListings: {
           include: {
             listing: true,
+            order: {
+              include: {
+                shippingMethod: {
+                  include: { shippingOptions: true },
+                },
+                orderShippingOptions: {
+                  include: { shippingOption: true },
+                },
+              },
+            },
           },
+        },
+        shippingMethod: {
+          include: { shippingOptions: true },
+        },
+        orderShippingOptions: {
+          include: { shippingOption: true },
         },
       },
     })
@@ -83,7 +101,10 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         throw new Error(`Order data missing required fields.`)
       }
 
-      for (const orderListing of order.orderListings) {
+      const orderListings = order.orderListings
+      const amount = calculateOrderAmount(order as OrderPayload, orderListings as OrderPayload['orderListings'])
+
+      for (const orderListing of orderListings) {
         const listing = orderListing.listing
         const quantityInOrder = orderListing.quantity || 0
 
@@ -113,14 +134,48 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           invoiceId: invoice.id,
           transactions: {
             create: [{
-              amount: Number(order.subTotal) + Number(order.shipments[0]?.rate),
+              amount,
               accountId: order?.customer?.accountId
             }],
           },
         },
         include: {
           customer: true,
+          shipments: true,
           seller: true,
+        },
+      })
+
+      const shipmentRecord = pendingOrder.shipments.find(
+        (s) => s.status === 'CREATED'
+      )
+
+      if (
+        !shipmentRecord ||
+        !shipmentRecord.externalShipmentId ||
+        !shipmentRecord.externalShipmentRateId
+      ) {
+        throw new Error('Valid CREATED shipment with external rate not found')
+      }
+
+      const transaction = await shippo.transactions.create({
+        rate: shipmentRecord.externalShipmentRateId,
+        labelFileType: 'PDF',
+        async: false,
+      })
+
+      const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+
+      if (transactionStatus !== 'SUCCESS') {
+        throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
+      }
+
+      await prisma.shipment.update({
+        where: { id: shipmentRecord.id },
+        data: {
+          status: 'PENDING',
+          trackingNumber,
+          labelUrl,
         },
       })
 
@@ -135,5 +190,5 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
     })
 
     return invoice
-  })
+  }, { timeout: 60000 })
 }

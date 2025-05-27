@@ -401,12 +401,14 @@ orderRouter.put('/order/:id', async (req, res) => {
     customerId,
     sellerId,
     cartId,
+    shippingMethodId,
     listingsInOrder,
     orderShippingOptions,
   }: {
     customerId?: string
     sellerId?: string
     cartId?: string
+    shippingMethodId?: string
     listingsInOrder?: ListingsInOrder
     orderShippingOptions?: OrderShippingOptionsPayload
   } = req.body
@@ -491,6 +493,9 @@ orderRouter.put('/order/:id', async (req, res) => {
           ...(customerId && { customerId }),
           ...(sellerId && { sellerId }),
           ...(cartId && { cartId }),
+          ...(shippingMethodId && {
+            shippingMethod: { connect: { id: shippingMethodId } }
+          }),
           ...(isDeleted && { status: 'DELETED' }),
           ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
             subTotal,
@@ -523,15 +528,26 @@ orderRouter.put('/order/:id', async (req, res) => {
                 : {}),
             }
           } : {})
-
+        } as Prisma.OrderUpdateInput,
+        include: {
+          shipments: true,
         },
       })
 
-      if (isDeleted) {
-        await prisma.shipment.updateMany({
-          where: { orderId: id },
-          data: { status: 'DELETED' },
-        })
+      if (!updatedOrder) {
+        throw new Error('Order update failed — no order returned.')
+      }
+
+      if (updatedOrder.shipments?.length) {
+        const shipmentRecord = updatedOrder.shipments.find(
+          (s) => s.status === 'CREATED'
+        )
+
+        if (shipmentRecord) {
+          await prisma.shipment.delete({
+            where: { id: shipmentRecord.id },
+          })
+        }
       }
 
       return updatedOrder

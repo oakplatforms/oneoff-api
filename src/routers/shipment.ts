@@ -2,7 +2,7 @@ import express from 'express'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
 import { Prisma } from '@prisma/client'
-import { calculateOrderWeight } from '../utils/order'
+import { calculateOrderWeight, OrderPayload } from '../utils/order'
 
 const prisma = getPrismaClient()
 
@@ -148,38 +148,40 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
       const supportedCarriers = order.seller?.shippingCarrierTypes || []
       const allShipments = []
-      const orderWeight = calculateOrderWeight(order)
+      const orderWeight = calculateOrderWeight(order as OrderPayload)
 
       for (const carrier of supportedCarriers) {
         const shippingParcel = order.shippingMethod?.parcels.find(
           parcel => parcel.carrier === carrier
         )
 
-        if (!shippingParcel) {
-          throw new Error(`No parcel template found for carrier: ${carrier}`)
-        }
+        if (shippingParcel) {
+          const shippoShipment = await shippo.shipments.create({
+            addressFrom: fromAddress,
+            addressTo: toAddress,
+            parcels: [
+              {
+                template: shippingParcel.type,
+                weight: orderWeight?.toString(),
+                massUnit: 'lb',
+              }
+            ],
+            carrierAccounts: [carrierAccounts[carrier]],
+            metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}}`,
+            async: false,
+          })
 
-        const shippoShipment = await shippo.shipments.create({
-          addressFrom: fromAddress,
-          addressTo: toAddress,
-          parcels: [
-            {
-              template: shippingParcel.parcelType,
-              weight: orderWeight?.toString(),
-              massUnit: 'lb',
-            }
-          ],
-          carrierAccounts: [carrierAccounts[carrier]],
-          metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}}`,
-          async: false,
-        })
-
-        if (Array.isArray(shippoShipment?.rates)) {
-          allShipments.push(shippoShipment)
+          if (Array.isArray(shippoShipment?.rates)) {
+            allShipments.push(shippoShipment)
+          }
         }
       }
 
-      return { shipments: allShipments }
+      return {
+        rates: allShipments.flatMap(s => s.rates || []),
+        errors: allShipments.flatMap(s => s.messages || []),
+        metadata: allShipments[0]?.metadata || null,
+      }
     }, { timeout: 60000 })
 
     res.json(result)
@@ -338,15 +340,11 @@ shipmentRouter.delete('/shipment/:id', async (req, res) => {
       return res.status(404).json({ errorMessage: 'Shipment not found.' })
     }
 
-    const updatedShipment = await prisma.shipment.update({
-      where: { id },
-      data: { status: 'DELETED' },
-    })
+    await prisma.shipment.delete({ where: { id } })
 
-    return res.json({ shipment: updatedShipment })
+    return res.json({ message: 'Shipment deleted successfully.' })
   } catch (err) {
     console.error('Delete Shipment Error:', err)
     return res.status(500).json({ errorMessage: 'Failed to delete shipment.' })
   }
 })
-
