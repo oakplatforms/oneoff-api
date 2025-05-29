@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const entityRouter = express.Router()
@@ -82,7 +83,7 @@ export const entityRouter = express.Router()
  *                   example: Unexpected error occurred
  */
 entityRouter.get('/entities', async (req, res) => {
-  const { include, entityTags, categoryId, brandId, search } = req.query
+  const { include, entityTags, categoryId, brandId, search, limit, page, usePagination } = req.query
 
   try {
     const entityTagFilters = Array.isArray(entityTags)
@@ -136,12 +137,19 @@ entityRouter.get('/entities', async (req, res) => {
       ]
     }
 
-    const entities = await prisma.entity.findMany({
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.entity,
       where: whereClause,
-      include: generateIncludes(include)
+      include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
 
-    res.json(entities)
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
