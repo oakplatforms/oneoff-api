@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const userRouter = express.Router()
@@ -51,13 +52,22 @@ export const userRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 userRouter.get('/users', async (req, res) => {
-  const { include } = req.query
+  const { include, usePagination, page, limit } = req.query
 
   try {
-    const users = await prisma.user.findMany({
-      include: generateIncludes(include)
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.user,
+      where: {},
+      include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
-    res.json(users)
+
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

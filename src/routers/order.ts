@@ -2,6 +2,7 @@ import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
@@ -83,29 +84,39 @@ type OrderShippingOptionsPayload = {
  *                   description: Description of the error that occurred.
  */
 orderRouter.get('/orders', async (req, res) => {
-  const { include, status, sellerId, customerId, cartId } = req.query
+  const { include, status, sellerId, customerId, cartId, usePagination, page, limit } = req.query
 
   try {
-    const orders = await prisma.order.findMany({
-      where: {
-        AND: [
-          status
-            ? { status: status as ProcessStatus }
-            : { status: { notIn: ['DELETED', 'CREATED'] } },
-          sellerId && customerId && cartId
-            ? { sellerId: sellerId as string, customerId: customerId as string, cartId: cartId as string }
-            : sellerId
-              ? { sellerId: sellerId as string }
-              : customerId
-                ? { customerId: customerId as string }
-                : cartId
-                  ? { cartId: cartId as string }
-                  : {}
-        ]
-      },
-      include: generateIncludes(include)
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const where = {
+      AND: [
+        status
+          ? { status: status as ProcessStatus }
+          : { status: { notIn: ['DELETED', 'CREATED'] as ProcessStatus[] } },
+        ...(sellerId || customerId || cartId
+          ? [
+            {
+              ...(sellerId ? { sellerId: sellerId as string } : {}),
+              ...(customerId ? { customerId: customerId as string } : {}),
+              ...(cartId ? { cartId: cartId as string } : {}),
+            },
+          ]
+          : []),
+      ],
+    }
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.order,
+      where,
+      include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
-    res.json(orders)
+
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
