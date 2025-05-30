@@ -5,6 +5,7 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
 import { validateCustomer } from '../validation/customer'
 import { validateExistingBid } from '../validation/bid'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -62,24 +63,35 @@ export const bidRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 bidRouter.get('/bids', async (req, res) => {
-  const { include, entityId, accountId, status } = req.query
+  const { include, entityId, accountId, status, usePagination, page, limit } = req.query
+
   try {
-    const bids = await prisma.bid.findMany({
-      where: {
-        AND: [
-          status ? { status: status as Status } : {},
-          entityId && accountId
-            ? { entityId: entityId as string, accountId: accountId as string }
-            : entityId
-              ? { entityId: entityId as string }
-              : accountId
-                ? { accountId: accountId as string }
-                : {}
-        ]
-      },
-      include: generateIncludes(include)
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const where = {
+      AND: [
+        status ? { status: status as Status } : {},
+        entityId && accountId
+          ? { entityId: entityId as string, accountId: accountId as string }
+          : entityId
+            ? { entityId: entityId as string }
+            : accountId
+              ? { accountId: accountId as string }
+              : {}
+      ]
+    }
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.bid,
+      where,
+      include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
-    res.json(bids)
+
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

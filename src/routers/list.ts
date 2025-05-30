@@ -2,6 +2,7 @@ import { ListType, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
@@ -59,17 +60,26 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.get('/lists', async (req, res) => {
-  const { include, type } = req.query
+  const { include, type, usePagination, page, limit } = req.query
 
   try {
-    const lists = await prisma.list.findMany({
-      where: {
-        ...(type ? { type: type as ListType } : {}),
-      },
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const where = {
+      ...(type ? { type: type as ListType } : {}),
+    }
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.list,
+      where,
       include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
 
-    res.json(lists)
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

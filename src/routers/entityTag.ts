@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const entityTagRouter = express.Router()
@@ -60,16 +61,27 @@ export const entityTagRouter = express.Router()
  *                   type: string
  */
 entityTagRouter.get('/entity-tags', async (req, res) => {
-  const { include, entityId, tagId } = req.query
+  const { include, entityId, tagId, usePagination, page, limit } = req.query
+
   try {
-    const entityTags = await prisma.entityTag.findMany({
-      where: {
-        ...(entityId ? { entityId: entityId as string } : {}),
-        ...(tagId ? { tagId: tagId as string } : {})
-      },
-      include: generateIncludes(include)
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const where = {
+      ...(entityId ? { entityId: entityId as string } : {}),
+      ...(tagId ? { tagId: tagId as string } : {}),
+    }
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.entityTag,
+      where,
+      include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
-    res.json(entityTags)
+
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })

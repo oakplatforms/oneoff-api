@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 
 const prisma = getPrismaClient()
 export const shippingOptionRouter = express.Router()
@@ -37,14 +38,22 @@ export const shippingOptionRouter = express.Router()
  *                 $ref: '#/components/schemas/ShippingOption'
  */
 shippingOptionRouter.get('/shipping-options', async (req, res) => {
-  const { include, isStandalone } = req.query
+  const { include, isStandalone, usePagination, page, limit } = req.query
 
   try {
-    const shippingOptions = await prisma.shippingOption.findMany({
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.shippingOption,
       where: isStandalone !== undefined ? { isStandalone: isStandalone === 'true' } : undefined,
       include: generateIncludes(include),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
     })
-    res.json(shippingOptions)
+
+    res.json(result)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
