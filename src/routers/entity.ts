@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { uploadImage, uploadConfig } from '../utils/uploadImage'
 
 const prisma = getPrismaClient()
 export const entityRouter = express.Router()
@@ -546,6 +547,89 @@ entityRouter.put('/entity/:id', async (req, res) => {
     } else {
       throw new Error('Cannot update entity by id')
     }
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
+
+/**
+ * @openapi
+ * /entity/upload-image:
+ *   put:
+ *     tags:
+ *       - Entity
+ *     summary: Upload an image and update the entity
+ *     description: Uploads an image file for an entity and updates the entity's `image` field with the stored S3 path. Supports JPEG, PNG, and WEBP. Image is resized before upload.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityId
+ *               - file
+ *             properties:
+ *               entityId:
+ *                 type: string
+ *                 description: ID of the entity to update
+ *               marketId:
+ *                 type: string
+ *                 default: tcgx
+ *                 description: Optional system namespace (e.g., tcgx, animart)
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file to upload (JPEG, PNG, or WEBP)
+ *     responses:
+ *       '200':
+ *         description: Successfully uploaded the image and updated the entity
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 entity:
+ *                   $ref: '#/components/schemas/Entity'
+ *       '400':
+ *         description: Missing file or invalid request body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Missing image file
+ *       '500':
+ *         description: Internal server error during image processing or DB update
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Unexpected error occurred
+ */
+entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
+  const { id } = req.params
+
+  try {
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Missing image file' })
+    }
+
+    const key = await uploadImage(req.file, 'entity')
+
+    const updatedEntity = await prisma.entity.update({
+      where: { id },
+      data: { image: key },
+    })
+
+    res.json(updatedEntity)
   } catch (error) {
     const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     res.status(statusCode).send({ errorMessage })
