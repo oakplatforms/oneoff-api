@@ -4,6 +4,9 @@ import stripe from '../utils/stripe'
 import Stripe from 'stripe'
 import { calculateOrderAmount, OrderPayload } from '../utils/order'
 import shippo from '../utils/shippo'
+import eventBridge from '../utils/eventBridge'
+import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+
 const prisma = getPrismaClient()
 
 export type OrderDetails = {
@@ -180,6 +183,33 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       })
 
       await createPaymentIntent(pendingOrder as OrderWithRelations)
+
+      try {
+        await eventBridge.send(new PutEventsCommand({
+          Entries: [
+            {
+              Source: 'tcgx.api',
+              DetailType: 'order.confirmation.customer',
+              Detail: JSON.stringify({
+                orderId: pendingOrder.id,
+                type: 'order.confirmation.customer',
+              }),
+              EventBusName: 'default',
+            },
+            {
+              Source: 'tcgx.api',
+              DetailType: 'order.confirmation.seller',
+              Detail: JSON.stringify({
+                orderId: pendingOrder.id,
+                type: 'order.confirmation.seller',
+              }),
+              EventBusName: 'default',
+            },
+          ],
+        }))
+      } catch (err) {
+        throw new Error( `Email notification failed: ${err}`)
+      }
     }
 
     await prisma.invoice.deleteMany({
