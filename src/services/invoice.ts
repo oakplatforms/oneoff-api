@@ -183,21 +183,11 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       })
 
       await createPaymentIntent(pendingOrder as OrderWithRelations)
-
       try {
         await eventBridge.send(new PutEventsCommand({
           Entries: [
             {
-              Source: 'tcgx.api',
-              DetailType: 'order.confirmation.customer',
-              Detail: JSON.stringify({
-                orderId: pendingOrder.id,
-                type: 'order.confirmation.customer',
-              }),
-              EventBusName: 'default',
-            },
-            {
-              Source: 'tcgx.api',
+              Source: 'tcgx',
               DetailType: 'order.confirmation.seller',
               Detail: JSON.stringify({
                 orderId: pendingOrder.id,
@@ -208,7 +198,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           ],
         }))
       } catch (err) {
-        throw new Error( `Email notification failed: ${err}`)
+        throw new Error( `Seller email notification(s) failed: ${err}`)
       }
     }
 
@@ -218,6 +208,24 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         orders: { none: {} },
       },
     })
+
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'invoice.confirmation.customer',
+            Detail: JSON.stringify({
+              invoiceId: invoice.id,
+              type: 'invoice.confirmation.customer',
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (err) {
+      throw new Error( `Customer Invoice notification failed: ${err}`)
+    }
 
     return invoice
   }, { timeout: 60000 })

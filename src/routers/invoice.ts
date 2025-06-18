@@ -1,9 +1,71 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
-import { generatePrismaError } from '../utils/prismaHelpers'
+import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
 import { validateOrdersForInvoice } from '../validation/invoice'
+import { generateIncludes } from '../utils/generateIncludes'
 export const invoiceRouter = express.Router()
+
+const prisma = getPrismaClient()
+/**
+ * @openapi
+ * /invoice/{id}:
+ *   get:
+ *     tags:
+ *       - Invoice
+ *     summary: Get invoice by ID
+ *     description: Retrieves an invoice by its unique identifier.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the invoice.
+ *       - in: query
+ *         name: include
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include in the response.
+ *     responses:
+ *       '200':
+ *         description: Invoice successfully retrieved.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Invoice'
+ *       '404':
+ *         description: Invoice not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: No invoice ID found
+ */
+invoiceRouter.get('/invoice/:id', async (req, res) => {
+  const { id } = req.params
+  const { include } = req.query
+
+  try {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      include: generateIncludes(include),
+    })
+
+    if (invoice) {
+      res.json(invoice)
+    } else {
+      throw new Error('No invoice ID found')
+    }
+  } catch (error) {
+    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    res.status(statusCode).send({ errorMessage })
+  }
+})
 
 /**
  * @openapi
@@ -13,13 +75,6 @@ export const invoiceRouter = express.Router()
  *       - Invoice
  *     summary: Create invoice for Buy Now listings
  *     description: Creates an invoice based on the listings in the order summary (Buy Now flow).
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The name of the marketplace where the purchase is being made.
  *     requestBody:
  *       required: true
  *       content:
