@@ -190,8 +190,8 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
     agreedToTerms
   } = req.body
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedAccount = await prisma.account.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedAccount = await tx.account.update({
         where: { id: accountId },
         data: { type: 'SELLER' },
       })
@@ -199,22 +199,6 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
       if (!updatedAccount) {
         throw new Error('Account not found.')
       }
-
-      await prisma.seller.create({
-        data: {
-          accountId,
-          sellerType,
-          firstName,
-          lastName,
-          phone,
-          address,
-          zipCode,
-          city,
-          state,
-          businessName,
-          website,
-        }
-      })
 
       const stripeAccountData: Stripe.AccountCreateParams = {
         type: 'custom',
@@ -263,15 +247,25 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
 
       const stripeAccount = await stripe.accounts.create(stripeAccountData)
 
-      const updatedSeller = await prisma.seller.update({
-        where: { accountId },
+      const newSeller = await tx.seller.create({
         data: {
+          accountId,
+          sellerType,
+          firstName,
+          lastName,
+          phone,
+          address,
+          zipCode,
+          city,
+          state,
+          businessName,
+          website,
           paymentAccountId: stripeAccount.id,
           paymentAccountStatus: 'PENDING',
-        },
+        }
       })
 
-      return updatedSeller
+      return newSeller
     }, { timeout: 60000 })
 
     res.json(result)
@@ -366,8 +360,8 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   } = req.body
 
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedSeller = await prisma.seller.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedSeller = await tx.seller.update({
         where: { accountId },
         data: {
           sellerType,
@@ -384,6 +378,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
       })
 
       const stripeUpdatedAccountData: Stripe.AccountUpdateParams = {
+        metadata: { testKey: Date.now().toString() },
         ...(firstName || lastName || phone || address || zipCode || city || state
           ? {
             individual: {
@@ -673,8 +668,8 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
   }
 
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedSeller = await prisma.seller.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedSeller = await tx.seller.update({
         where: { accountId },
         data: {
           hasPaymentMethod: true,
@@ -796,8 +791,8 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
   }
 
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedSeller = await prisma.seller.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedSeller = await tx.seller.update({
         where: { accountId },
         data: {
           isPaymentAccountVerified: true,
@@ -915,7 +910,7 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
   try {
     await validateSeller(accountId)
     await validatePayoutAmount(accountId, sellerId, amount)
-    const result = await prisma.$transaction(async (prisma) => {
+    const result = await prisma.$transaction(async (tx) => {
       const stripeAccount = await stripe.accounts.retrieve(sellerId, {
         expand: ['external_accounts'],
       }) as Stripe.Account & {
@@ -932,7 +927,7 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
         throw new Error('Seller does not have a valid default external account set.')
       }
 
-      const payout = await prisma.payout.create({
+      const payout = await tx.payout.create({
         data: {
           status: 'COMPLETED',
           total: amount,

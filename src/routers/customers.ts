@@ -82,8 +82,8 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
   const { firstName, lastName, phone, address, city, state, zipCode } = req.body
 
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const existingAccount = await prisma.account.findUnique({
+    const result = await prisma.$transaction(async (tx) => {
+      const existingAccount = await tx.account.findUnique({
         where: { id: accountId },
       })
 
@@ -92,7 +92,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
       }
 
       if (existingAccount.type !== 'SELLER') {
-        await prisma.account.update({
+        await tx.account.update({
           where: { id: accountId },
           data: { type: 'CUSTOMER' },
         })
@@ -110,23 +110,23 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
         },
       })
 
-      const updatedCustomer = await prisma.customer.create({
+      const newCustomer = await tx.customer.create({
         data: {
           accountId,
-          paymentAccountId: stripeCustomer.id,
-          paymentAccountStatus: 'COMPLETED',
           firstName,
           lastName,
           phone,
           address,
           city,
           state,
-          zipCode
+          zipCode,
+          paymentAccountId: stripeCustomer.id,
+          paymentAccountStatus: 'COMPLETED',
         },
       })
 
-      return updatedCustomer
-    })
+      return newCustomer
+    }, { timeout: 60000 })
 
     res.json(result)
   } catch (error) {
@@ -213,8 +213,8 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
   } = req.body
 
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedCustomer = await prisma.customer.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedCustomer = await tx.customer.update({
         where: { accountId },
         data: {
           firstName,
@@ -398,8 +398,8 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
   }
 
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const updatedCustomer = await prisma.customer.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedCustomer = await tx.customer.update({
         where: { accountId },
         data: {
           hasPaymentMethod: true,

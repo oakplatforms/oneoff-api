@@ -4,6 +4,7 @@ import swaggerUi from 'swagger-ui-express'
 import swaggerJSDoc from 'swagger-jsdoc'
 import dto from './generated/json/json-schema.json'
 import { replaceDTORefs, alphaSortDTO } from './utils/dtoHelpers'
+import { webhookRouter } from './webhooks'
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Promise Rejection:', reason)
@@ -11,6 +12,7 @@ process.on('unhandledRejection', (reason) => {
 
 const app = express()
 app.use(express.json())
+app.use('/api/v1/webhook', webhookRouter)
 
 const updatedDto = replaceDTORefs(dto)
 const sortedDto = alphaSortDTO(updatedDto)

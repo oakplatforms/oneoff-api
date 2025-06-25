@@ -10,6 +10,70 @@ export const shipmentRouter = express.Router()
 
 /**
  * @openapi
+ * /shipment/{id}:
+ *   get:
+ *     tags:
+ *       - Shipments
+ *     summary: Retrieve a shipment by ID
+ *     description: Fetch a specific shipment by its ID, including metadata such as tracking number, status, and label URL.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the shipment to retrieve.
+ *     responses:
+ *       '200':
+ *         description: Shipment found and returned successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 shipment:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     trackingNumber:
+ *                       type: string
+ *                     labelUrl:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       '404':
+ *         description: Shipment not found.
+ *       '500':
+ *         description: Failed to retrieve shipment.
+ */
+shipmentRouter.get('/shipment/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const shipment = await prisma.shipment.findUnique({
+      where: { id },
+    })
+
+    if (!shipment) {
+      return res.status(404).json({ errorMessage: 'Shipment not found.' })
+    }
+
+    return res.json({ shipment })
+  } catch (err) {
+    console.error('Get Shipment Error:', err)
+    return res.status(500).json({ errorMessage: 'Failed to retrieve shipment.' })
+  }
+})
+
+/**
+ * @openapi
  * /shipment/rates:
  *   post:
  *     tags:
@@ -79,8 +143,8 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
       return res.status(400).json({ errorMessage: 'Missing orderId in request body.' })
     }
 
-    const result = await prisma.$transaction(async (prisma) => {
-      const order = await prisma.order.findUnique({
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
         where: { id: orderId },
         include: {
           customer: {
