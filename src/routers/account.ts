@@ -59,8 +59,9 @@ accountRouter.get('/accounts', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ACCOUNTS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve accounts.' })
   }
 })
 

@@ -12,16 +12,33 @@ export const getPrismaClient = (): PrismaClient => {
 export const generatePrismaError = (err: Prisma.PrismaClientKnownRequestError) => {
   switch (err.code) {
   case 'P2002':
-    //handling duplicate key errors
-    return { statusCode: 400, errorMessage: `Duplicate field value: ${err.meta?.target}`}
+    return {
+      statusCode: 400,
+      prismaError: `Duplicate field value: ${err.meta?.target}`,
+    }
+
   case 'P2014':
-    //handling invalid id errors
-    return { statusCode: 400, errorMessage: `Invalid ID: ${err.meta?.target}`}
+    return {
+      statusCode: 400,
+      prismaError: `Invalid ID or relational constraint: ${err.meta?.target}`,
+    }
+
   case 'P2003':
-    //handling invalid data errors
-    return { statusCode: 400, errorMessage: `Prisma data relationship error`}
+    return {
+      statusCode: 400,
+      prismaError: `Invalid relationship reference (foreign key error)`,
+    }
+
+  case 'P2021':
+    return {
+      statusCode: 500,
+      prismaError: `Database schema mismatch or missing table/column: ${err.meta?.message || err.message}`,
+    }
+
   default:
-    //handling all other errors
-    return { statusCode: 400, errorMessage: `${err.message}`}
+    return {
+      statusCode: 500,
+      prismaError: `Unexpected database error: ${err.message}`,
+    }
   }
 }

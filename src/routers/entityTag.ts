@@ -83,8 +83,9 @@ entityTagRouter.get('/entity-tags', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_TAGS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve entity tags.' })
   }
 })
 
@@ -192,8 +193,9 @@ entityTagRouter.post('/entity-tag', async (req, res) => {
     }
 
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_ENTITY_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create entity tag.' })
   }
 })
 
@@ -317,8 +319,9 @@ entityTagRouter.put('/entity-tag', async (req, res) => {
       res.json(entityTag)
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_ENTITY_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update entity tag.' })
   }
 })
 
@@ -392,8 +395,9 @@ entityTagRouter.get('/entity-tag/:id', async (req, res) => {
       throw new Error('No entity tag ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve entity tag.' })
   }
 })
 
@@ -460,7 +464,8 @@ entityTagRouter.delete('/entity-tag/:id', async (req, res) => {
       throw new Error('No entity tag ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_ENTITY_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete entity tag.' })
   }
 })

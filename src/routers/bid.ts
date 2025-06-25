@@ -93,8 +93,9 @@ bidRouter.get('/bids', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_BIDS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve bids.' })
   }
 })
 
@@ -171,8 +172,9 @@ bidRouter.get('/bid/highest-bid', async (req, res) => {
 
     res.json(bid)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_HIGHEST_BID_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve highest bid.' })
   }
 })
 
@@ -338,8 +340,9 @@ bidRouter.post(`/bid`, async (req, res) => {
       res.json(bid)
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_BID_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create bid.' })
   }
 })
 
@@ -447,8 +450,9 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
       throw new Error('Cannot update Bid by id')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_BID_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update bid.' })
   }
 })
 
@@ -526,8 +530,9 @@ bidRouter.get('/bid/:id', async (req, res) => {
       throw new Error('No bid ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_BID_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve bid.' })
   }
 })
 
@@ -598,7 +603,8 @@ bidRouter.delete(`/bid/:id`, async (req, res) => {
       throw new Error('No bid ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_BID_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete bid.' })
   }
 })

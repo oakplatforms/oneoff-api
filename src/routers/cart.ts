@@ -44,8 +44,9 @@ cartRouter.post('/cart', async (req, res) => {
     })
     res.json(cart)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CART_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create cart.' })
   }
 })
 
@@ -100,8 +101,9 @@ cartRouter.put('/cart/:id', async (req, res) => {
     })
     res.json(cart)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_CART_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update cart.' })
   }
 })
 
@@ -143,8 +145,9 @@ cartRouter.get('/cart/:id', async (req, res) => {
     if (cart) res.json(cart)
     else res.status(404).send({ errorMessage: 'Cart not found' })
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CART_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve cart.' })
   }
 })
 
@@ -178,7 +181,8 @@ cartRouter.delete('/cart/:id', async (req, res) => {
     const cart = await prisma.cart.delete({ where: { id } })
     res.json(cart)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_CART_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete cart.' })
   }
 })

@@ -68,8 +68,9 @@ categoryRouter.get('/categories', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CATEGORIES_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve categories.' })
   }
 })
 
@@ -136,8 +137,9 @@ categoryRouter.post(`/category`, async (req, res) => {
     })
     res.json(category)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CATEGORY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create category.' })
   }
 })
 
@@ -226,8 +228,9 @@ categoryRouter.put(`/category/:id`, async (req, res) => {
       throw new Error('Cannot update category by ID')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_CATEGORY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update category.' })
   }
 })
 
@@ -306,8 +309,9 @@ categoryRouter.get('/category/:id', async (req, res) => {
       throw new Error('No category ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CATEGORY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve category.' })
   }
 })
 
@@ -379,7 +383,8 @@ categoryRouter.delete(`/category/:id`, async (req, res) => {
       throw new Error('No category ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_CATEGORY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete category.' })
   }
 })

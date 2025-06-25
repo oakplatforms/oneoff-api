@@ -118,8 +118,9 @@ orderRouter.get('/orders', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ORDERS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve orders.' })
   }
 })
 
@@ -187,8 +188,9 @@ orderRouter.get('/order/:id', async (req, res) => {
       throw new Error('No order ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ORDER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve order.' })
   }
 })
 
@@ -325,10 +327,9 @@ orderRouter.post('/order', async (req, res) => {
 
     res.json(newOrder)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(
-      error as Prisma.PrismaClientKnownRequestError
-    )
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_ORDER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create order.' })
   }
 })
 
@@ -566,9 +567,8 @@ orderRouter.put('/order/:id', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(
-      error as Prisma.PrismaClientKnownRequestError
-    )
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_ORDER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update order.' })
   }
 })
