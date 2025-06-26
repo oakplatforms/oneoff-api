@@ -66,8 +66,9 @@ tagRouter.get('/tags', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TAGS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve tags.' })
   }
 })
 
@@ -168,10 +169,9 @@ tagRouter.post(`/tag`, async (req, res) => {
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(
-      error as Prisma.PrismaClientKnownRequestError
-    )
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create tag.' })
   }
 })
 
@@ -292,10 +292,9 @@ tagRouter.put('/tag/:id', async (req, res) => {
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(
-      error as Prisma.PrismaClientKnownRequestError
-    )
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update tag.' })
   }
 })
 
@@ -374,8 +373,9 @@ tagRouter.get('/tag/:id', async (req, res) => {
       throw new Error('No tag ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve tag.' })
   }
 })
 
@@ -447,7 +447,8 @@ tagRouter.delete(`/tag/:id`, async (req, res) => {
       throw new Error('No tag ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_TAG_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete tag.' })
   }
 })

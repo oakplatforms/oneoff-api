@@ -152,8 +152,9 @@ entityRouter.get('/entities', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITIES_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve entities.' })
   }
 })
 
@@ -326,8 +327,9 @@ entityRouter.post('/entity', async (req, res) => {
 
     res.json(entity)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_ENTITY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create entity.' })
   }
 })
 
@@ -548,8 +550,9 @@ entityRouter.put('/entity/:id', async (req, res) => {
       throw new Error('Cannot update entity by id')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_ENTITY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update entity.' })
   }
 })
 
@@ -631,8 +634,9 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
 
     res.json(updatedEntity)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPLOAD_ENTITY_IMAGE_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to upload entity image.' })
   }
 })
 
@@ -701,8 +705,9 @@ entityRouter.get('/entity/:id', async (req, res) => {
       throw new Error('No entity ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve entity.' })
   }
 })
 
@@ -769,8 +774,8 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
       throw new Error('No entity ID found')
     }
   } catch (error) {
-    console.error('error', error)
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_ENTITY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete entity.' })
   }
 })

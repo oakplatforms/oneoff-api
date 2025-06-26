@@ -1387,6 +1387,12 @@
             "null"
           ]
         },
+        "secondaryImage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "createdBy": {
           "anyOf": [
             {
@@ -1983,6 +1989,12 @@
             "null"
           ]
         },
+        "shipping": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "total": {
           "type": [
             "number",
@@ -2369,6 +2381,22 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "trackingStatus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "UNKNOWN",
+          "enum": [
+            "UNKNOWN",
+            "PRE_TRANSIT",
+            "TRANSIT",
+            "OUT_FOR_DELIVERY",
+            "DELIVERED",
+            "RETURNED",
+            "FAILURE"
           ]
         },
         "labelUrl": {

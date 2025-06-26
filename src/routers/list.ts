@@ -81,8 +81,9 @@ listRouter.get('/lists', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LISTS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve lists.' })
   }
 })
 
@@ -171,10 +172,9 @@ listRouter.post('/list', async (req, res) => {
 
     res.json(list)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(
-      error as Prisma.PrismaClientKnownRequestError
-    )
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_LIST_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create list.' })
   }
 })
 
@@ -286,10 +286,9 @@ listRouter.put('/list/:id', async (req, res) => {
       throw new Error('Cannot update list by id')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(
-      error as Prisma.PrismaClientKnownRequestError
-    )
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_LIST_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update list.' })
   }
 })
 
@@ -379,8 +378,9 @@ listRouter.get('/list/:id', async (req, res) => {
       throw new Error('No list ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LIST_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve list.' })
   }
 })
 
@@ -463,7 +463,8 @@ listRouter.delete(`/list/:id`, async (req, res) => {
       throw new Error('No list ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_LIST_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete list.' })
   }
 })

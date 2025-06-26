@@ -75,8 +75,9 @@ supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
     })
     res.json(supportedTagValue)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SUPPORTED_TAG_VALUE_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create supported tag value.' })
   }
 })
 
@@ -138,7 +139,8 @@ supportedTagValueRouter.delete(`/supported-tag-value/:id`, async (req, res) => {
       throw new Error('No supported tag value ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SUPPORTED_TAG_VALUE_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete supported tag value.' })
   }
 })

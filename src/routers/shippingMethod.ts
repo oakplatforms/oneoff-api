@@ -69,8 +69,9 @@ shippingMethodRouter.get('/shipping-methods', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SHIPPING_METHODS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve shipping methods.' })
   }
 })
 
@@ -171,8 +172,9 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
     })
     res.json(shippingMethod)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPPING_METHOD_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create shipping method.' })
   }
 })
 
@@ -301,8 +303,9 @@ shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
       throw new Error('Cannot update shipping category by id')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SHIPPING_METHOD_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update shipping method.' })
   }
 })
 
@@ -381,8 +384,9 @@ shippingMethodRouter.get('/shipping-method/:id', async (req, res) => {
       throw new Error('Cannot update shipping category by id')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('RETRIEVE_SHIPPING_METHOD_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve shipping method.' })
   }
 })
 
@@ -460,7 +464,8 @@ shippingMethodRouter.delete(`/shipping-method/:id`, async (req, res) => {
       throw new Error('No shipping category ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SHIPPING_METHOD_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete shipping method.' })
   }
 })
