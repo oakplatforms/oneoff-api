@@ -315,7 +315,6 @@ orderRouter.post('/order', async (req, res) => {
         cartId,
         status: 'CREATED',
         subTotal,
-        total: subTotal,
         orderListings: {
           create: listingsInOrder.create.map(({ listingId, quantityInOrder }) => ({
             listingId,
@@ -511,7 +510,6 @@ orderRouter.put('/order/:id', async (req, res) => {
           ...(isDeleted && { status: 'DELETED' }),
           ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
             subTotal,
-            total: subTotal,
             orderListings: listingsInOrder
               ? {
                 create: listingsInOrder.create?.map(({ listingId, quantityInOrder }) => ({

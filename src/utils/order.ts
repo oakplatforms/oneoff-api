@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client'
-import { generateShippingMethodRate, generateShippingOptionsRate, generateShippingRate } from './shipping'
+import { calculateShippingMethodRate, calculateShippingOptionsRate, calculateShippingRate } from './shipping'
 
 export type OrderPayload = Prisma.OrderGetPayload<{
   include: {
@@ -75,16 +75,14 @@ export const calculateOrderWeight = (order: OrderPayload) => {
   return parseFloat(total.toFixed(2))
 }
 
-export const generateShippingTax = (order: OrderPayload) => {
+export const calculateOrderTax = (order: OrderPayload) => {
   return Number(order.subTotal || 0) * Number(order.seller?.taxRate || 0)
 }
 
-export const calculateOrderAmount = (order: OrderPayload, orderListings: OrderPayload['orderListings']) => {
+export const calculateOrderShipping = (order: OrderPayload, orderListings: OrderPayload['orderListings']) => {
   return (
-    Number(order.subTotal || 0) +
-    generateShippingTax(order) +
-    generateShippingRate(order.shipments) +
-    generateShippingMethodRate(order) +
-    generateShippingOptionsRate(orderListings)
+    calculateShippingRate(order.shipments) +
+    calculateShippingMethodRate(order) +
+    calculateShippingOptionsRate(orderListings)
   )
 }

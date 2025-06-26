@@ -2,7 +2,7 @@ import { Order } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
-import { calculateOrderAmount, OrderPayload } from '../utils/order'
+import { calculateOrderTax, calculateOrderShipping, OrderPayload } from '../utils/order'
 import shippo from '../utils/shippo'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
@@ -64,12 +64,10 @@ const createPaymentIntent = async (
 }
 
 export const createInvoiceWithTransactions = async (orderIds: string[]) => {
-  return prisma.$transaction(async (prisma) => {
-    const invoice = await prisma.invoice.create({
-      data: {},
-    })
+  const { invoice, orders } = await prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.create({ data: {} })
 
-    const orders = await prisma.order.findMany({
+    const orders = await tx.order.findMany({
       where: { id: { in: orderIds } },
       include: {
         customer: { include: { account: true } },
@@ -80,22 +78,14 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
             listing: true,
             order: {
               include: {
-                shippingMethod: {
-                  include: { shippingOptions: true },
-                },
-                orderShippingOptions: {
-                  include: { shippingOption: true },
-                },
+                shippingMethod: { include: { shippingOptions: true } },
+                orderShippingOptions: { include: { shippingOption: true } },
               },
             },
           },
         },
-        shippingMethod: {
-          include: { shippingOptions: true },
-        },
-        orderShippingOptions: {
-          include: { shippingOption: true },
-        },
+        shippingMethod: { include: { shippingOptions: true } },
+        orderShippingOptions: { include: { shippingOption: true } },
       },
     })
 
@@ -105,7 +95,9 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       }
 
       const orderListings = order.orderListings
-      const amount = calculateOrderAmount(order as OrderPayload, orderListings as OrderPayload['orderListings'])
+      const tax = calculateOrderTax(order as OrderPayload)
+      const shipping = calculateOrderShipping(order as OrderPayload, orderListings as OrderPayload['orderListings'])
+      const total = Number(order.subTotal || 0) + tax + shipping
 
       for (const orderListing of orderListings) {
         const listing = orderListing.listing
@@ -121,7 +113,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           throw new Error(`Insufficient quantity for listing ${listing.id}.`)
         }
 
-        await prisma.listing.update({
+        await tx.listing.update({
           where: { id: listing.id },
           data: {
             quantity: newQuantity,
@@ -130,14 +122,17 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         })
       }
 
-      const pendingOrder = await prisma.order.update({
+      const pendingOrder = await tx.order.update({
         where: { id: order.id },
         data: {
           status: 'PENDING',
           invoiceId: invoice.id,
+          tax,
+          shipping,
+          total,
           transactions: {
             create: [{
-              amount,
+              amount: total,
               accountId: order?.customer?.accountId
             }],
           },
@@ -149,15 +144,8 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         },
       })
 
-      const shipmentRecord = pendingOrder.shipments.find(
-        (s) => s.status === 'CREATED'
-      )
-
-      if (
-        !shipmentRecord ||
-        !shipmentRecord.externalShipmentId ||
-        !shipmentRecord.externalShipmentRateId
-      ) {
+      const shipmentRecord = pendingOrder.shipments.find(s => s.status === 'CREATED')
+      if (!shipmentRecord || !shipmentRecord.externalShipmentRateId) {
         throw new Error('Valid CREATED shipment with external rate not found')
       }
 
@@ -168,65 +156,62 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       })
 
       const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
-
       if (transactionStatus !== 'SUCCESS') {
         throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
       }
 
-      await prisma.shipment.update({
+      await tx.shipment.update({
         where: { id: shipmentRecord.id },
         data: {
           status: 'PENDING',
+          trackingStatus: 'PRE_TRANSIT',
           trackingNumber,
           labelUrl,
         },
       })
 
       await createPaymentIntent(pendingOrder as OrderWithRelations)
-      try {
-        await eventBridge.send(new PutEventsCommand({
-          Entries: [
-            {
-              Source: 'tcgx',
-              DetailType: 'order.confirmation.seller',
-              Detail: JSON.stringify({
-                orderId: pendingOrder.id,
-                type: 'order.confirmation.seller',
-              }),
-              EventBusName: 'default',
-            },
-          ],
-        }))
-      } catch (err) {
-        throw new Error( `Seller email notification(s) failed: ${err}`)
-      }
     }
 
-    await prisma.invoice.deleteMany({
-      where: {
-        id: invoice.id,
-        orders: { none: {} },
-      },
+    await tx.invoice.deleteMany({
+      where: { id: invoice.id, orders: { none: {} } },
     })
 
+    return { invoice, orders }
+  }, { timeout: 60000 })
+
+  for (const order of orders) {
     try {
       await eventBridge.send(new PutEventsCommand({
         Entries: [
           {
             Source: 'tcgx',
-            DetailType: 'invoice.confirmation.customer',
-            Detail: JSON.stringify({
-              invoiceId: invoice.id,
-              type: 'invoice.confirmation.customer',
-            }),
+            DetailType: 'order.confirmation.seller',
+            Detail: JSON.stringify({ orderId: order.id, type: 'order.confirmation.seller' }),
             EventBusName: 'default',
           },
         ],
       }))
     } catch (err) {
-      throw new Error( `Customer Invoice notification failed: ${err}`)
+      console.warn(`Failed to notify seller for order ${order.id}:`, err)
     }
+  }
 
-    return invoice
-  }, { timeout: 60000 })
+  try {
+    await eventBridge.send(new PutEventsCommand({
+      Entries: [
+        {
+          Source: 'tcgx',
+          DetailType: 'invoice.confirmation.customer',
+          Detail: JSON.stringify({ invoiceId: invoice.id, type: 'invoice.confirmation.customer' }),
+          EventBusName: 'default',
+        },
+      ],
+    }))
+  } catch (err) {
+    console.warn(`Failed to notify customer about invoice ${invoice.id}:`, err)
+  }
+
+  return invoice
 }
+
