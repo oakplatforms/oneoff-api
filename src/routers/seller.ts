@@ -75,8 +75,9 @@ sellerRouter.get('/seller/:id', async (req, res) => {
       throw new Error('No seller ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller.' })
   }
 })
 
@@ -270,9 +271,9 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    console.error('Error setting up seller account:', error)
-    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage: 'There was an error while creating your seller account' })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create seller.' })
   }
 })
 
@@ -425,8 +426,9 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SELLER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update seller.' })
   }
 })
 
@@ -526,8 +528,9 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
     })
     res.json(updatedSeller)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SELLER_SHIPPING_PREFERENCES_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update seller shipping preferences.' })
   }
 })
 
@@ -595,8 +598,9 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
 
     return res.status(200).json(externalAccounts)
   } catch (error) {
-    console.error('Error fetching external accounts:', error)
-    return res.status(500).json({ errorMessage: 'Failed to retrieve external accounts' })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_PAYMENT_METHODS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller payment methods.' })
   }
 })
 
@@ -686,8 +690,9 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
     }, { timeout: 60000 })
     res.json(result)
   } catch (error) {
-    const { statusCode } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage: 'There was an error while confirming setup intent' })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_PAYMENT_METHOD_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create seller payment method.' })
   }
 })
 
@@ -832,8 +837,9 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     }, { timeout: 60000 })
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create seller upload verification.' })
   }
 })
 
@@ -962,8 +968,9 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_PAYOUT_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create seller payout.' })
   }
 })
 
@@ -1018,8 +1025,9 @@ sellerRouter.get('/seller/payout-history/:accountId', async (req, res) => {
 
     return res.status(200).json(payouts)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    return res.status(statusCode).json({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_PAYOUT_HISTORY_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller payout history.' })
   }
 })
 
@@ -1098,8 +1106,9 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
     const wallet = await calculateWalletBalance(accountId, account.seller.id)
     return res.json(wallet)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_WALLET_BALANCE_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller wallet balance.' })
   }
 })
 
@@ -1157,7 +1166,8 @@ sellerRouter.delete('/seller/:sellerId', async (req, res) => {
     return res.json({ success: 'Seller account id was successfully deleted' })
 
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SELLER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete seller.' })
   }
 })

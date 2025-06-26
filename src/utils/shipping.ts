@@ -1,18 +1,18 @@
 import { Shipment, ShippingOption } from '@prisma/client'
 import { OrderPayload } from './order'
 
-export const generateShippingRate = (shipments: Shipment[]) => {
+export const calculateShippingRate = (shipments: Shipment[]) => {
   if (!shipments?.length) return 0
   return Number(shipments.find(s => s.status === 'CREATED')?.rate || 0)
 }
 
-export const generateShippingMethodRate = (order: OrderPayload) => {
+export const calculateShippingMethodRate = (order: OrderPayload) => {
   return order?.shippingMethod?.shippingOptions?.reduce((total: number, option: ShippingOption) => {
     return total + Number(option?.rate || 0)
   }, 0) || 0
 }
 
-export const generateShippingOptionsRate = (orderListings: OrderPayload['orderListings']) => {
+export const calculateShippingOptionsRate = (orderListings: OrderPayload['orderListings']) => {
   if (!orderListings?.length) return 0
 
   const order = orderListings[0].order

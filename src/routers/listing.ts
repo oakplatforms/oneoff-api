@@ -95,8 +95,9 @@ listingRouter.get('/listings', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LISTINGS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve listings.' })
   }
 })
 
@@ -170,8 +171,9 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
 
       res.json(listing)
     } catch (error) {
-      const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-      res.status(statusCode).send({ errorMessage })
+      const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+      console.error('GET_LISTING_LOWEST_ASK_ERROR:', prismaError)
+      res.status(statusCode).send({ errorMessage: 'Failed to retrieve listing lowest ask.' })
     }
   }
 })
@@ -341,8 +343,9 @@ listingRouter.post(`/listing`, async (req, res) => {
       res.json(listing)
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_LISTING_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create listing.' })
   }
 })
 
@@ -507,8 +510,9 @@ listingRouter.put(`/listing/:id`, async (req, res) => {
       throw new Error('Cannot update listing by id')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_LISTING_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update listing.' })
   }
 })
 
@@ -576,8 +580,9 @@ listingRouter.get('/listing/:id', async (req, res) => {
       throw new Error('No listing ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LISTING_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve listing.' })
   }
 })
 
@@ -638,7 +643,8 @@ listingRouter.delete(`/listing/:id`, async (req, res) => {
       throw new Error('No listing ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_LISTING_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete listing.' })
   }
 })

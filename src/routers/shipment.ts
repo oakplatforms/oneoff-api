@@ -1,5 +1,5 @@
 import express from 'express'
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
 import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
 import { Prisma } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
@@ -66,9 +66,10 @@ shipmentRouter.get('/shipment/:id', async (req, res) => {
     }
 
     return res.json({ shipment })
-  } catch (err) {
-    console.error('Get Shipment Error:', err)
-    return res.status(500).json({ errorMessage: 'Failed to retrieve shipment.' })
+  } catch (error) {
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SHIPMENT_ERROR:', prismaError)
+    return res.status(statusCode).json({ errorMessage: 'Failed to retrieve shipment.' })
   }
 })
 
@@ -250,8 +251,9 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    console.error(error)
-    return res.status(500).json({ errorMessage: 'Failed to fetch rates from Shippo.' })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPMENT_RATE_ERROR:', prismaError)
+    return res.status(statusCode).json({ errorMessage: 'Failed to fetch rates from Shippo.' })
   }
 })
 
@@ -353,9 +355,10 @@ shipmentRouter.post('/shipment', async (req, res) => {
     })
 
     return res.json({ shipment: newShipment })
-  } catch (err) {
-    console.error('Create Shipment Error:', err)
-    return res.status(500).json({ errorMessage: 'Failed to create shipment.' })
+  } catch (error) {
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPMENT_ERROR:', prismaError)
+    return res.status(statusCode).json({ errorMessage:' Failed to create shipment.' })
   }
 })
 
@@ -407,8 +410,9 @@ shipmentRouter.delete('/shipment/:id', async (req, res) => {
     await prisma.shipment.delete({ where: { id } })
 
     return res.json({ message: 'Shipment deleted successfully.' })
-  } catch (err) {
-    console.error('Delete Shipment Error:', err)
-    return res.status(500).json({ errorMessage: 'Failed to delete shipment.' })
+  } catch (error) {
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SHIPMENT_ERROR:', prismaError)
+    return res.status(statusCode).json({ errorMessage: 'Failed to delete shipment.' })
   }
 })

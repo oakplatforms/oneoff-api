@@ -69,8 +69,9 @@ userRouter.get('/users', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_USERS_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve users.' })
   }
 })
 
@@ -169,8 +170,9 @@ userRouter.post(`/user`, async (req, res) => {
     })
     res.json(user)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_USER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create user.' })
   }
 })
 
@@ -266,8 +268,9 @@ userRouter.put(`/user/:id`, async (req, res) => {
       }})
     res.json(user)
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_USER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to update user.' })
   }
 })
 
@@ -338,11 +341,65 @@ userRouter.get('/user/:authId', async (req, res) => {
       throw new Error('No auth ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_USER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve user.' })
   }
 })
 
+/**
+ * @openapi
+ * /user/{id}:
+ *   delete:
+ *     tags:
+ *       - User
+ *     summary: Delete a specific user by their ID.
+ *     description: Deletes the user associated with the given ID. If the user does not exist or deletion fails, an error will be returned.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: The ID of the user to delete.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Successfully deleted the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       '400':
+ *         description: Bad request or invalid user ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
 userRouter.delete(`/user/:id`, async (req, res) => {
   const { id } = req.params
 
@@ -358,7 +415,8 @@ userRouter.delete(`/user/:id`, async (req, res) => {
       throw new Error('No user ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_USER_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete user.' })
   }
 })

@@ -62,8 +62,9 @@ invoiceRouter.get('/invoice/:id', async (req, res) => {
       throw new Error('No invoice ID found')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_INVOICE_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to retrieve invoice.' })
   }
 })
 
@@ -134,7 +135,8 @@ invoiceRouter.post('/invoice', async (req, res) => {
       throw new Error('There was an error while creating your invoice')
     }
   } catch (error) {
-    const { statusCode, errorMessage } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    res.status(statusCode).send({ errorMessage })
+    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_INVOICE_ERROR:', prismaError)
+    res.status(statusCode).send({ errorMessage: 'Failed to create invoice.' })
   }
 })
