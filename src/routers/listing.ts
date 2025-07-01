@@ -80,7 +80,13 @@ listingRouter.get('/listings', async (req, res) => {
             ? { entityId: entityId as string }
             : accountId
               ? { accountId: accountId as string }
-              : {}
+              : {},
+        {
+          OR: [
+            { isOffer: false },
+            { isOffer: null }
+          ]
+        }
       ]
     }
 
@@ -160,13 +166,19 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
           AND: [
             { status: 'ACTIVE' },
             { entityId: entityId as string },
-          ],
+            {
+              OR: [
+                { isOffer: false },
+                { isOffer: null }
+              ]
+            }
+          ]
         },
         orderBy: [
           { price: 'asc' },
           { createdAt: 'asc' }
         ],
-        include: generateIncludes(include)
+        include: generateIncludes(include),
       })
 
       res.json(listing)
@@ -343,9 +355,9 @@ listingRouter.post(`/listing`, async (req, res) => {
       res.json(listing)
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_LISTING_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create listing.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_LISTING_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create listing.' })
   }
 })
 
@@ -510,9 +522,9 @@ listingRouter.put(`/listing/:id`, async (req, res) => {
       throw new Error('Cannot update listing by id')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_LISTING_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update listing.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_LISTING_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update listing.' })
   }
 })
 

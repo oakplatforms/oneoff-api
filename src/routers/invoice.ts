@@ -135,8 +135,8 @@ invoiceRouter.post('/invoice', async (req, res) => {
       throw new Error('There was an error while creating your invoice')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_INVOICE_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create invoice.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_INVOICE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create invoice.' })
   }
 })

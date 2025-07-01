@@ -72,6 +72,13 @@ enum TrackingStatus {
   FAILURE
 }
 
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELED
+}
+
 enum TransactionType {
   PAYMENT
   REFUND
@@ -464,6 +471,7 @@ model Entity {
   type             EntityType @default(PRODUCT)
   image            String?
   secondaryImage   String?
+
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
@@ -573,6 +581,7 @@ model Listing {
   multiTransactionsEnabled Boolean @default(false) 
   condition        Condition @default(MINT)
   isPrimary        Boolean? @default(false)
+  isOffer          Boolean? @default(false)
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -580,6 +589,7 @@ model Listing {
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   orderListings    OrderListing[]
+  offer            Offer?
 }
 
 model Bid {
@@ -599,6 +609,23 @@ model Bid {
   accountId        String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
+  offers           Offer[]
+}
+
+model Offer {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // custom
+  status           OfferStatus  @default(PENDING)
+
+  // relations
+  bid              Bid? @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  bidId            String?
+  listing          Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId        String? @unique
+  order            Order?
 }
 
 model Invoice {
@@ -640,6 +667,8 @@ model Order {
   shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
   shippingMethodId String?
   orderShippingOptions OrderShippingOption[]
+  offer            Offer? @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  offerId          String? @unique
 }
 
 model OrderListing {

@@ -340,9 +340,9 @@ bidRouter.post(`/bid`, async (req, res) => {
       res.json(bid)
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CREATE_BID_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create bid.' })
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create bid.' })
   }
 })
 
@@ -450,9 +450,9 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
       throw new Error('Cannot update Bid by id')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_BID_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update bid.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_BID_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update bid.' })
   }
 })
 
