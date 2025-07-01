@@ -20,6 +20,7 @@ import { invoiceRouter } from './invoice'
 import { sellerRouter } from './seller'
 import { customerRouter } from './customers'
 import { shipmentRouter } from './shipment'
+import { offerRouter } from './offer'
 
 router.use(userRouter)
 router.use(accountRouter)
@@ -41,6 +42,6 @@ router.use(transactionRouter)
 router.use(orderRouter)
 router.use(invoiceRouter)
 router.use(shipmentRouter)
+router.use(offerRouter)
 
 export default router
-

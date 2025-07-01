@@ -270,11 +270,13 @@ orderRouter.post('/order', async (req, res) => {
     sellerId,
     cartId,
     listingsInOrder,
+    offerId
   }: {
     customerId?: string
     sellerId?: string
     cartId?: string
     listingsInOrder?: ListingsInOrder
+    offerId?: string
   } = req.body
 
   if (!customerId || !sellerId || !listingsInOrder) {
@@ -315,6 +317,7 @@ orderRouter.post('/order', async (req, res) => {
         cartId,
         status: 'CREATED',
         subTotal,
+        offerId,
         orderListings: {
           create: listingsInOrder.create.map(({ listingId, quantityInOrder }) => ({
             listingId,
@@ -326,9 +329,9 @@ orderRouter.post('/order', async (req, res) => {
 
     res.json(newOrder)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_ORDER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create order.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_ORDER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create order.' })
   }
 })
 
@@ -565,8 +568,8 @@ orderRouter.put('/order/:id', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_ORDER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update order.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_ORDER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update order.' })
   }
 })

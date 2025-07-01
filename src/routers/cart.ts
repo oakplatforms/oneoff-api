@@ -44,9 +44,9 @@ cartRouter.post('/cart', async (req, res) => {
     })
     res.json(cart)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_CART_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create cart.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CART_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create cart.' })
   }
 })
 
@@ -101,9 +101,9 @@ cartRouter.put('/cart/:id', async (req, res) => {
     })
     res.json(cart)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_CART_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update cart.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_CART_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update cart.' })
   }
 })
 

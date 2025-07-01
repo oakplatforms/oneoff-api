@@ -271,9 +271,9 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SELLER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create seller.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create seller.' })
   }
 })
 
@@ -426,9 +426,9 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_SELLER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update seller.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SELLER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update seller.' })
   }
 })
 
@@ -528,9 +528,9 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
     })
     res.json(updatedSeller)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_SELLER_SHIPPING_PREFERENCES_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update seller shipping preferences.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SELLER_SHIPPING_PREFERENCES_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update seller shipping preferences.' })
   }
 })
 
@@ -592,7 +592,16 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
   }
 
   try {
-    const externalAccounts = await stripe.accounts.listExternalAccounts(sellerId, {
+    const seller = await prisma.seller.findUnique({
+      where: { id: sellerId },
+      select: { paymentAccountId: true },
+    })
+
+    if (!seller?.paymentAccountId) {
+      return res.status(404).json({ errorMessage: 'Seller payment account not found.' })
+    }
+
+    const externalAccounts = await stripe.accounts.listExternalAccounts(seller.paymentAccountId, {
       limit: 100,
     })
 
@@ -916,8 +925,18 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
   try {
     await validateSeller(accountId)
     await validatePayoutAmount(accountId, sellerId, amount)
+
     const result = await prisma.$transaction(async (tx) => {
-      const stripeAccount = await stripe.accounts.retrieve(sellerId, {
+      const seller = await tx.seller.findUnique({
+        where: { accountId },
+        select: { paymentAccountId: true },
+      })
+
+      if (!seller?.paymentAccountId) {
+        throw new Error('Seller paymentAccountId not found.')
+      }
+
+      const stripeAccount = await stripe.accounts.retrieve(seller.paymentAccountId, {
         expand: ['external_accounts'],
       }) as Stripe.Account & {
         external_accounts: {
@@ -959,7 +978,7 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
           method: 'instant'
         },
         {
-          stripeAccount: sellerId,
+          stripeAccount: seller?.paymentAccountId,
         }
       )
 
@@ -968,9 +987,9 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SELLER_PAYOUT_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create seller payout.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_PAYOUT_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create seller payout.' })
   }
 })
 

@@ -1799,6 +1799,13 @@
           ],
           "default": false
         },
+        "isOffer": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "account": {
           "anyOf": [
             {
@@ -1836,6 +1843,16 @@
           "items": {
             "$ref": "#/definitions/OrderListing"
           }
+        },
+        "offer": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Offer"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1917,6 +1934,80 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "offers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Offer"
+          }
+        }
+      }
+    },
+    "Offer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "PENDING",
+          "enum": [
+            "PENDING",
+            "ACCEPTED",
+            "DECLINED",
+            "CANCELED"
+          ]
+        },
+        "bid": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Bid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bidId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "listing": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Listing"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "listingId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "order": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Order"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -2104,6 +2195,22 @@
           "items": {
             "$ref": "#/definitions/OrderShippingOption"
           }
+        },
+        "offer": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Offer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offerId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -2549,6 +2656,9 @@
     },
     "bid": {
       "$ref": "#/definitions/Bid"
+    },
+    "offer": {
+      "$ref": "#/definitions/Offer"
     },
     "invoice": {
       "$ref": "#/definitions/Invoice"
