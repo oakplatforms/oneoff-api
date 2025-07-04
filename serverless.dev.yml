@@ -1,0 +1,117 @@
+org: opsgamingcorp
+app: tcgx-api
+service: tcgx-api
+
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-esbuild
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  httpApi:
+    payload: '2.0'
+
+  # Environment variables for all functions
+  environment:
+    NODE_ENV: ${sls:stage}
+    STAGE: ${sls:stage}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource: arn:aws:events:us-east-1:*:event-bus/default
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+          Resource: arn:aws:s3:::tcgx/entity/*
+
+functions:
+  api:
+    name: tcgx-api-${sls:stage}
+    handler: lambda/apiHandler.handler
+    layers:
+      - arn:aws:lambda:us-east-1:992382609315:layer:sharp-aws-layer:1
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+
+    environment:
+      # Environment variables - will be loaded from .env.{stage} file
+      DATABASE_URL: ${env:DATABASE_URL}
+      S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
+      SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
+      SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
+      SHIPPO_CARRIER_ACCOUNT_USPS: ${env:SHIPPO_CARRIER_ACCOUNT_USPS}
+      SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
+      SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
+      SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
+
+  swagger:
+    name: tcgx-swagger-docs
+    handler: lambda/swaggerHandler.handler
+    events:
+      - httpApi:
+          path: /swagger-ui/{proxy+}
+          method: ANY
+      - httpApi:
+          path: /open-api
+          method: GET
+    package:
+      individually: true
+      patterns:
+        - lambda/swaggerHandler.ts
+        - src/routers/**
+        - node_modules/swagger-ui-express/**
+        - node_modules/swagger-jsdoc/**
+        - '!**/*.test.ts'
+        - '!node_modules/@prisma/client/**'
+        - '!node_modules/.prisma/**'
+        - '!node_modules/sharp/**'
+
+custom:
+  dotenv:
+    path: .env.${opt:stage, 'dev'}
+    logging: false
+  
+  isProd: ${opt:stage, 'dev'} == 'prod'
+  
+  s3Bucket:
+    dev: tcgx-dev
+    stage: tcgx-stage
+    prod: tcgx-prod
+  
+
+  
+  logLevel:
+    dev: debug
+    stage: info
+    prod: warn
+  
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: false
+    target: node20
+    platform: node
+    concurrency: 10
+    exclude:
+      - '@prisma/client'
+      - sharp
+
+package:
+  individually: true
+  patterns:
+    - node_modules/@prisma/client/**
+    - node_modules/.prisma/client/**
+    - '!node_modules/.prisma/client/libquery_engine-*'
+    - 'node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node'
+    - '!**/*.test.ts' 
