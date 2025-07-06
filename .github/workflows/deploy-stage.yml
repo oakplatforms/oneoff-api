@@ -1,0 +1,50 @@
+name: Deploy to Stage
+
+on:
+  push:
+    branches: [ stage ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Generate Prisma client
+      run: npx prisma generate
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Setup AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Install Serverless Framework
+      run: npm install -g serverless
+    
+    - name: Deploy to Stage
+      run: serverless deploy --stage stage --verbose
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL_STAGE }}
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_STAGE }}
+        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_STAGE }}
+        SHIPPO_SECRET_KEY: ${{ secrets.SHIPPO_SECRET_KEY_STAGE }}
+        SHIPPO_WEBHOOK_SECRET: ${{ secrets.SHIPPO_WEBHOOK_SECRET_STAGE }}
+        SHIPPO_CARRIER_ACCOUNT_USPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_USPS_STAGE }}
+        SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS_STAGE }}
+        SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX_STAGE }}
+        SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_STAGE }} 

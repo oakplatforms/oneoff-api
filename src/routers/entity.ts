@@ -634,8 +634,8 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
 
     res.json(updatedEntity)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPLOAD_ENTITY_IMAGE_ERROR:', prismaError)
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPLOAD_ENTITY_IMAGE_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: 'Failed to upload entity image.' })
   }
 })
