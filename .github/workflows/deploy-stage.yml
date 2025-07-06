@@ -37,7 +37,7 @@ jobs:
       run: npm install -g serverless
     
     - name: Deploy to Stage
-      run: serverless deploy --stage stage --verbose
+      run: serverless deploy --stage stage --verbose --disable-telemetry
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_STAGE }}
         STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_STAGE }}
@@ -50,4 +50,5 @@ jobs:
         SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_STAGE }}
         # Disable Serverless Dashboard authentication
         SLS_ORG: ""
-        SLS_APP: "" 
+        SLS_APP: ""
+        SERVERLESS_ACCESS_KEY: "" 
