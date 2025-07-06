@@ -1,4 +1,4 @@
-org: opsgamingcorp
+org: oakplatforms
 app: tcgx-api
 service: tcgx-api
 
@@ -29,7 +29,12 @@ provider:
         - Effect: Allow
           Action:
             - s3:PutObject
-          Resource: arn:aws:s3:::tcgx/entity/*
+            - s3:PutObjectAcl
+            - s3:GetObject
+            - s3:DeleteObject
+          Resource: 
+            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}/*
+            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}
 
 functions:
   api:
@@ -88,9 +93,7 @@ custom:
     dev: tcgx-dev
     stage: tcgx-stage
     prod: tcgx-prod
-  
 
-  
   logLevel:
     dev: debug
     stage: info

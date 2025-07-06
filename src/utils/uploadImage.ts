@@ -17,8 +17,8 @@ export type ResizeImageOptions = {
 }
 
 const defaultResizeOptions: ResizeImageOptions = {
-  width: 500,
-  quality: 60,
+  width: 750,
+  quality: 75,
   format: 'jpeg',
   fit: 'inside',
 }
@@ -56,11 +56,11 @@ export async function uploadImage(
     })
 
     if (ext === 'jpeg' || ext === 'jpg') {
-      pipeline.jpeg({ quality: resizeOptions.quality ?? 60 })
+      pipeline.jpeg({ quality: resizeOptions.quality ?? 75 })
     } else if (ext === 'png') {
       pipeline.png({ compressionLevel: 9 })
     } else if (ext === 'webp') {
-      pipeline.webp({ quality: resizeOptions.quality ?? 60 })
+      pipeline.webp({ quality: resizeOptions.quality ?? 75 })
     }
 
     buffer = await pipeline.toBuffer()
@@ -72,6 +72,7 @@ export async function uploadImage(
       Key: key,
       Body: buffer,
       ContentType: mime,
+      ACL: 'public-read',
     })
   )
 

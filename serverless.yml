@@ -1,4 +1,4 @@
-org: opsgamingcorp
+org: oakplatforms
 app: tcgx-api
 service: tcgx-api
 
@@ -33,7 +33,12 @@ provider:
         - Effect: Allow
           Action:
             - s3:PutObject
-          Resource: arn:aws:s3:::tcgx/entity/*
+            - s3:PutObjectAcl
+            - s3:GetObject
+            - s3:DeleteObject
+          Resource: 
+            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}/*
+            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}
 
 functions:
   api:
@@ -58,8 +63,6 @@ functions:
       SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
       SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
       SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
-
-
 
 custom:
   dotenv:
