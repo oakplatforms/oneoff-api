@@ -48,6 +48,7 @@ jobs:
         SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS_PROD }}
         SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX_PROD }}
         SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_PROD }}
-        SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
-        SLS_ORG: ${{ secrets.SLS_ORG }}
-        SLS_APP: ${{ secrets.SLS_APP }} 
+        # Skip Serverless Dashboard authentication
+        SLS_ORG: ""
+        SLS_APP: ""
+        SERVERLESS_ACCESS_KEY: "" 
