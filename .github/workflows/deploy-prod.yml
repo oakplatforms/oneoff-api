@@ -37,7 +37,7 @@ jobs:
       run: npm install -g serverless
     
     - name: Deploy to Production
-      run: serverless deploy --stage prod --verbose --disable-telemetry
+      run: serverless deploy --stage prod --verbose
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
         STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_PROD }}
@@ -48,7 +48,4 @@ jobs:
         SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS_PROD }}
         SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX_PROD }}
         SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_PROD }}
-        # Disable Serverless Dashboard authentication
-        SLS_ORG: ""
-        SLS_APP: ""
-        SERVERLESS_ACCESS_KEY: "" 
+        SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }} 
