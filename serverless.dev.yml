@@ -1,5 +1,3 @@
-org: oakplatforms
-app: tcgx-api
 service: tcgx-api
 
 plugins:

@@ -7,6 +7,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SLS_DISABLE_DASHBOARD: "true"
+      SLS_TELEMETRY_DISABLED: "true"
+      SLS_ORG: ""
+      SLS_APP: ""
     
     steps:
     - uses: actions/checkout@v4
@@ -49,6 +54,4 @@ jobs:
         SHIPPO_CARRIER_ACCOUNT_USPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_USPS_DEV }}
         SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS_DEV }}
         SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX_DEV }}
-        SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_DEV }}
-        # Disable Serverless Dashboard
-        SLS_DISABLE_DASHBOARD: "true" 
+        SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_DEV }} 
