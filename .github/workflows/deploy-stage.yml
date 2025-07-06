@@ -36,6 +36,11 @@ jobs:
     - name: Install Serverless Framework
       run: npm install -g serverless
     
+    - name: Configure Serverless Framework
+      run: |
+        mkdir -p ~/.serverless
+        echo '{"frameworkVersion": "3", "telemetryDisabled": true, "dashboard": {"enabled": false}}' > ~/.serverless/config.json
+    
     - name: Deploy to Stage
       run: serverless deploy --stage stage --verbose
       env:
