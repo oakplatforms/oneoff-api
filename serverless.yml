@@ -8,7 +8,7 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
-  stage: ${opt:stage, 'dev'}
+  stage: ${opt:stage, 'stage'}
   httpApi:
     payload: '2.0'
 
@@ -64,23 +64,20 @@ functions:
 
 custom:
   dotenv:
-    path: .env.${opt:stage, 'dev'}
+    path: .env.${opt:stage, 'stage'}
     logging: false
   
-  isProd: ${opt:stage, 'dev'} == 'prod'
+  isProd: ${opt:stage, 'stage'} == 'prod'
   
   s3Bucket:
-    dev: tcgx-dev
     stage: tcgx-stage
     prod: tcgx-prod
   
   provisionedConcurrency:
-    dev: 0
     stage: 0
-    prod: 1
+    prod: 0
   
   logLevel:
-    dev: debug
     stage: info
     prod: warn
   
