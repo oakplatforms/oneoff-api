@@ -10,7 +10,7 @@ export const entityRouter = express.Router()
 
 /**
  * @openapi
- * /public/entities:
+ * /entities:
  *   get:
  *     tags:
  *       - Entity
@@ -83,7 +83,7 @@ export const entityRouter = express.Router()
  *                   type: string
  *                   example: Unexpected error occurred
  */
-entityRouter.get('/public/entities', async (req, res) => {
+entityRouter.get('/entities', async (req, res) => {
   const { include, entityTags, categoryId, brandId, search, limit, page, usePagination } = req.query
 
   try {
@@ -642,7 +642,7 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
 
 /**
  * @openapi
- * /public/entity/{id}:
+ * /entity/{id}:
  *   get:
  *     tags:
  *       - Entity
@@ -687,7 +687,7 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *                 errorMessage:
  *                   type: string
  */
-entityRouter.get('/public/entity/:id', async (req, res) => {
+entityRouter.get('/entity/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 

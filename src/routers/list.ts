@@ -9,7 +9,7 @@ export const listRouter = express.Router()
 
 /**
  * @openapi
- * /public/lists:
+ * /lists:
  *   get:
  *     tags:
  *       - List
@@ -59,7 +59,7 @@ export const listRouter = express.Router()
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listRouter.get('/public/lists', async (req, res) => {
+listRouter.get('/lists', async (req, res) => {
   const { include, type, usePagination, page, limit } = req.query
 
   try {
@@ -294,7 +294,7 @@ listRouter.put('/list/:id', async (req, res) => {
 
 /**
  * @openapi
- * /public/list/{id}:
+ * /list/{id}:
  *   get:
  *     tags:
  *       - List
@@ -362,7 +362,7 @@ listRouter.put('/list/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listRouter.get('/public/list/:id', async (req, res) => {
+listRouter.get('/list/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
