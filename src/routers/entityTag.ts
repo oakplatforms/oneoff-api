@@ -9,7 +9,7 @@ export const entityTagRouter = express.Router()
 
 /**
  * @openapi
- * /entity-tags:
+ * /public/entity-tags:
  *   get:
  *     tags:
  *       - Entity Tag
@@ -60,7 +60,7 @@ export const entityTagRouter = express.Router()
  *                 errorMessage:
  *                   type: string
  */
-entityTagRouter.get('/entity-tags', async (req, res) => {
+entityTagRouter.get('/public/entity-tags', async (req, res) => {
   const { include, entityId, tagId, usePagination, page, limit } = req.query
 
   try {
@@ -327,7 +327,7 @@ entityTagRouter.put('/entity-tag', async (req, res) => {
 
 /**
  * @openapi
- * /entity-tag/{id}:
+ * /public/entity-tag/{id}:
  *   get:
  *     tags:
  *       - Entity Tag
@@ -378,7 +378,7 @@ entityTagRouter.put('/entity-tag', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-entityTagRouter.get('/entity-tag/:id', async (req, res) => {
+entityTagRouter.get('/public/entity-tag/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
 
