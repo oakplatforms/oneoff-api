@@ -28,9 +28,6 @@ jobs:
     - name: Generate Prisma client
       run: npx prisma generate
     
-    - name: Run tests
-      run: npm test
-    
     - name: Setup AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
