@@ -86,8 +86,7 @@ functions:
     events:
       - http:
           path: user/guest-token
-          method: get
-          authorizer: none
+          method: GET
 
 custom:
   dotenv:
