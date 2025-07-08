@@ -80,6 +80,15 @@ functions:
         - '!node_modules/.prisma/**'
         - '!node_modules/sharp/**'
 
+  guestToken:
+    name: tcgx-guest-token
+    handler: lambda/guestTokenHandler.handler
+    events:
+      - http:
+          path: user/guest-token
+          method: get
+          authorizer: none
+
 custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}

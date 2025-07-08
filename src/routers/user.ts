@@ -3,10 +3,8 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import jwt from 'jsonwebtoken'
 const prisma = getPrismaClient()
 export const userRouter = express.Router()
-const TEMP_JWT_SECRET = process.env.TEMP_JWT_SECRET
 
 /**
  * @openapi
@@ -422,55 +420,3 @@ userRouter.delete(`/user/:id`, async (req, res) => {
   }
 })
 
-/**
- * @openapi
- * /user/guest-token:
- *   get:
- *     tags:
- *       - User
- *     summary: Generate a temporary guest token.
- *     description: Returns a short-lived guest JWT token for unauthenticated access. This token grants limited read-only permissions and expires after 15 minutes.
- *     responses:
- *       '200':
- *         description: Successfully generated a guest token.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: A short-lived JWT guest token.
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- *       '500':
- *         description: Failed to generate guest token.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message describing the failure reason.
- *                   example: Could not generate guest token
- */
-userRouter.get('/user/guest-token', (req, res) => {
-  try {
-    if (!TEMP_JWT_SECRET) {
-      return res.status(500).json({ error: 'TEMP_JWT_SECRET not configured' })
-    }
-
-    const payload = {
-      role: 'guest',
-      permissions: ['read-only'],
-      exp: Math.floor(Date.now() / 1000) + 900,
-    }
-
-    const token = jwt.sign(payload, TEMP_JWT_SECRET, { algorithm: 'HS256' })
-
-    return res.json({ token })
-  } catch (err) {
-    console.error('Failed to generate guest token', err)
-    res.status(500).json({ error: 'Could not generate guest token' })
-  }
-})
