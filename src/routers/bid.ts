@@ -101,7 +101,7 @@ bidRouter.get('/bids', async (req, res) => {
 
 /**
  * @openapi
- * /public/bid/highest-bid:
+ * /bid/highest-bid:
  *   get:
  *     tags:
  *       - Bid
@@ -147,7 +147,7 @@ bidRouter.get('/bids', async (req, res) => {
  *                   type: string
  *                   description: Detailed error message for debugging.
  */
-bidRouter.get('/public/bid/highest-bid', async (req, res) => {
+bidRouter.get('/bid/highest-bid', async (req, res) => {
   const { include, entityId } = req.query
 
   if (!entityId) {

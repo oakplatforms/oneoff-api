@@ -109,7 +109,7 @@ listingRouter.get('/listings', async (req, res) => {
 
 /**
  * @openapi
- * /public/listing/lowest-ask:
+ * /listing/lowest-ask:
  *   get:
  *     tags:
  *       - Listing
@@ -154,7 +154,7 @@ listingRouter.get('/listings', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.get('/public/listing/lowest-ask', async (req, res) => {
+listingRouter.get('/listing/lowest-ask', async (req, res) => {
   const { include, entityId } = req.query
 
   if (!entityId) {
