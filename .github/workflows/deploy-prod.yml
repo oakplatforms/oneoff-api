@@ -43,7 +43,7 @@ jobs:
         mkdir -p ~/.serverless
         echo '{"frameworkVersion": "3", "telemetryDisabled": true, "dashboard": {"enabled": false}}' > ~/.serverless/config.json
     
-    - name: Deploy to Production
+    - name: Deploy Main API to Production
       run: serverless deploy --stage prod --verbose
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
@@ -55,4 +55,7 @@ jobs:
         SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS_PROD }}
         SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX_PROD }}
         SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL_PROD }}
-        TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET_PROD }} 
+        TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET_PROD }}
+    
+    - name: Deploy Swagger to Production
+      run: serverless deploy --config serverless.swagger.yml --stage prod --verbose 
