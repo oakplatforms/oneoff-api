@@ -1,4 +1,4 @@
-service: tcgx-api
+service: tcgx-api-swagger
 
 plugins:
   - serverless-dotenv-plugin
