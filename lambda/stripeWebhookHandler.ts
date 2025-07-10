@@ -1,8 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import Stripe from 'stripe'
-import { handleSellerAccountUpdated } from '../src/webhooks/providers/stripe'
+import stripe from '../src/utils/stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-02-24.acacia' })
+import { handleSellerAccountUpdated } from '../src/webhooks/providers/stripe'
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const sig = event.headers['stripe-signature']

@@ -56,6 +56,7 @@ functions:
       SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
       SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
       SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
+
   guestToken:
     name: tcgx-api-guest-token-${sls:stage}
     handler: lambda/guestTokenHandler.handler
