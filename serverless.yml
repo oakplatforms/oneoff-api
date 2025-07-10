@@ -79,6 +79,18 @@ functions:
           path: /webhook/stripe
           method: POST
 
+  shippoWebhook:
+    name: tcgx-api-shippo-webhook-${sls:stage}
+    handler: lambda/shippoWebhookHandler.handler
+    environment:
+      DATABASE_URL: ${env:DATABASE_URL}
+      SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
+      SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
+    events:
+      - httpApi:
+          path: /webhook/shippo
+          method: POST
+
 custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}
