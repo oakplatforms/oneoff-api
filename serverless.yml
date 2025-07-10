@@ -63,7 +63,7 @@ functions:
     environment:
       TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
     events:
-      - http:
+      - httpApi:
           path: user/guest-token
           method: GET
 
