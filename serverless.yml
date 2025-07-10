@@ -74,8 +74,8 @@ functions:
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
     events:
-      - http:
-          path: webhook/stripe
+      - httpApi:
+          path: /webhook/stripe
           method: POST
 
 custom:

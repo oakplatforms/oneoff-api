@@ -4,11 +4,13 @@ import stripe from '../src/utils/stripe'
 import { handleSellerAccountUpdated } from '../src/webhooks/providers/stripe'
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const sig = event.headers['stripe-signature']
+  console.log('Received webhook event:', JSON.stringify(event, null, 2))
+
+  const sig = event.headers['stripe-signature'] || event.headers['Stripe-Signature']
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
   if (!sig) {
-    console.error('Missing Stripe signature header')
+    console.error('Missing Stripe signature header. Available headers:', Object.keys(event.headers))
     return {
       statusCode: 400,
       headers: {
