@@ -44,7 +44,7 @@ jobs:
         echo '{"frameworkVersion": "3", "telemetryDisabled": true, "dashboard": {"enabled": false}}' > ~/.serverless/config.json
     
     - name: Deploy to Dev
-      run: serverless deploy --stage dev --config serverless.dev.yml --verbose
+      run: serverless deploy --stage dev --verbose
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
         STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_DEV }}
