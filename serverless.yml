@@ -64,7 +64,7 @@ functions:
       TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
     events:
       - httpApi:
-          path: user/guest-token
+          path: /user/guest-token
           method: GET
 
   stripeWebhook:
