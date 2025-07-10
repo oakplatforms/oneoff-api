@@ -1,0 +1,61 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+import Stripe from 'stripe'
+import { handleSellerAccountUpdated } from '../src/webhooks/providers/stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-02-24.acacia' })
+
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  const sig = event.headers['stripe-signature']
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+  if (!sig) {
+    console.error('Missing Stripe signature header')
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: JSON.stringify({ error: 'Missing Stripe signature' })
+    }
+  }
+
+  try {
+    const eventObj = stripe.webhooks.constructEvent(event.body!, sig, webhookSecret)
+    console.log('✅ Verified Stripe event:', eventObj.type)
+
+    switch (eventObj.type) {
+    case 'account.updated':
+      await handleSellerAccountUpdated(eventObj)
+      console.log('account.updated event processed')
+      break
+    default:
+      console.log(`Unhandled event type: ${eventObj.type}`)
+    }
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: JSON.stringify({ received: true })
+    }
+  } catch (err) {
+    console.error('❌ Stripe webhook verification failed:', err)
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: JSON.stringify({ error: `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}` })
+    }
+  }
+}

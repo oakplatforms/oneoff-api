@@ -66,6 +66,17 @@ functions:
           path: user/guest-token
           method: GET
 
+  stripeWebhook:
+    name: tcgx-api-stripe-webhook-${sls:stage}
+    handler: lambda/stripeWebhookHandler.handler
+    environment:
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
+    events:
+      - http:
+          path: webhook/stripe
+          method: POST
+
 custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}
