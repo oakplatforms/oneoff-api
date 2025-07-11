@@ -1,4 +1,4 @@
-service: tcgx-api
+service: tcgx-api-swagger
 
 plugins:
   - serverless-dotenv-plugin
@@ -24,42 +24,10 @@ provider:
           Action:
             - events:PutEvents
           Resource: arn:aws:events:us-east-1:*:event-bus/default
-        - Effect: Allow
-          Action:
-            - s3:PutObject
-            - s3:PutObjectAcl
-            - s3:GetObject
-            - s3:DeleteObject
-          Resource: 
-            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}/*
-            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}
 
 functions:
-  api:
-    name: tcgx-api-${sls:stage}
-    handler: lambda/apiHandler.handler
-    layers:
-      - arn:aws:lambda:us-east-1:992382609315:layer:sharp-aws-layer:1
-    events:
-      - httpApi:
-          path: /{proxy+}
-          method: ANY
-
-    environment:
-      # Environment variables - will be loaded from .env.{stage} file
-      DATABASE_URL: ${env:DATABASE_URL}
-      S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
-      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
-      SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
-      SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
-      SHIPPO_CARRIER_ACCOUNT_USPS: ${env:SHIPPO_CARRIER_ACCOUNT_USPS}
-      SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
-      SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
-      SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
-
   swagger:
-    name: tcgx-swagger-docs
+    name: tcgx-api-swagger-docs
     handler: lambda/swaggerHandler.handler
     events:
       - httpApi:
