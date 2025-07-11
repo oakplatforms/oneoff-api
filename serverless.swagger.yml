@@ -27,7 +27,7 @@ provider:
 
 functions:
   swagger:
-    name: tcgx-api-swagger-docs-${sls:stage}
+    name: tcgx-api-swagger-docs
     handler: lambda/swaggerHandler.handler
     events:
       - httpApi:
