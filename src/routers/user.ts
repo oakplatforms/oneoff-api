@@ -3,7 +3,6 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-
 const prisma = getPrismaClient()
 export const userRouter = express.Router()
 
@@ -420,3 +419,4 @@ userRouter.delete(`/user/:id`, async (req, res) => {
     res.status(statusCode).send({ errorMessage: 'Failed to delete user.' })
   }
 })
+

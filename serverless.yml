@@ -8,7 +8,7 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
-  stage: ${opt:stage, 'stage'}
+  stage: ${opt:stage, 'dev'}
   httpApi:
     payload: '2.0'
 
@@ -16,10 +16,6 @@ provider:
   environment:
     NODE_ENV: ${sls:stage}
     STAGE: ${sls:stage}
-    # Add your common environment variables here
-    # Example:
-    # API_VERSION: v1
-    # LOG_LEVEL: ${self:custom.logLevel.${sls:stage}}
 
   iam:
     role:
@@ -50,7 +46,6 @@ functions:
           method: ANY
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
-      # Environment variables - will be loaded from .env.{stage} file
       DATABASE_URL: ${env:DATABASE_URL}
       S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
@@ -62,22 +57,59 @@ functions:
       SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
       SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
 
+  guestToken:
+    name: tcgx-api-guest-token-${sls:stage}
+    handler: lambda/guestTokenHandler.handler
+    environment:
+      TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
+    events:
+      - httpApi:
+          path: /user/guest-token
+          method: GET
+
+  stripeWebhook:
+    name: tcgx-api-stripe-webhook-${sls:stage}
+    handler: lambda/stripeWebhookHandler.handler
+    environment:
+      DATABASE_URL: ${env:DATABASE_URL}
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
+    events:
+      - httpApi:
+          path: /webhook/stripe
+          method: POST
+
+  shippoWebhook:
+    name: tcgx-api-shippo-webhook-${sls:stage}
+    handler: lambda/shippoWebhookHandler.handler
+    environment:
+      DATABASE_URL: ${env:DATABASE_URL}
+      SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
+      SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
+    events:
+      - httpApi:
+          path: /webhook/shippo
+          method: POST
+
 custom:
   dotenv:
-    path: .env.${opt:stage, 'stage'}
+    path: .env.${opt:stage, 'dev'}
     logging: false
   
-  isProd: ${opt:stage, 'stage'} == 'prod'
+  isProd: ${opt:stage, 'dev'} == 'prod'
   
   s3Bucket:
+    dev: tcgx-dev
     stage: tcgx-stage
     prod: tcgx-prod
   
   provisionedConcurrency:
+    dev: 0
     stage: 0
     prod: 0
   
   logLevel:
+    dev: debug
     stage: info
     prod: warn
   
