@@ -11,6 +11,11 @@ provider:
   stage: ${opt:stage, 'dev'}
   httpApi:
     payload: '2.0'
+    authorizers:
+      customAuthorizer:
+        type: lambda
+        functionName: tcgx-api-authorizer-${sls:stage}
+        enableSimpleResponses: true
 
   # Environment variables for all functions
   environment:
@@ -37,13 +42,15 @@ provider:
 functions:
   api:
     name: tcgx-api-${sls:stage}
-    handler: lambda/apiHandler.handler
+    handler: lambdas/apiHandler.handler
     layers:
       - arn:aws:lambda:us-east-1:992382609315:layer:sharp-aws-layer:1
     events:
       - httpApi:
           path: /{proxy+}
           method: ANY
+          authorizer:
+            name: customAuthorizer
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
@@ -59,7 +66,7 @@ functions:
 
   guestToken:
     name: tcgx-api-guest-token-${sls:stage}
-    handler: lambda/guestTokenHandler.handler
+    handler: lambdas/guestTokenHandler.handler
     environment:
       TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
     events:
@@ -69,7 +76,7 @@ functions:
 
   stripeWebhook:
     name: tcgx-api-stripe-webhook-${sls:stage}
-    handler: lambda/stripeWebhookHandler.handler
+    handler: lambdas/stripeWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
@@ -81,7 +88,7 @@ functions:
 
   shippoWebhook:
     name: tcgx-api-shippo-webhook-${sls:stage}
-    handler: lambda/shippoWebhookHandler.handler
+    handler: lambdas/shippoWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
       SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
@@ -90,6 +97,14 @@ functions:
       - httpApi:
           path: /webhook/shippo
           method: POST
+
+  authorizer:
+    name: tcgx-api-authorizer-${sls:stage}
+    handler: lambdas/authorizerHandler.handler
+    environment:
+      ADMIN_USER_POOL_ID: ${env:ADMIN_USER_POOL_ID}
+      CLIENT_APPS_USER_POOL_ID: ${env:CLIENT_APPS_USER_POOL_ID}
+      TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
 
 custom:
   dotenv:

@@ -28,7 +28,7 @@ provider:
 functions:
   swagger:
     name: tcgx-api-swagger-docs
-    handler: lambda/swaggerHandler.handler
+    handler: lambdas/swaggerHandler.handler
     events:
       - httpApi:
           path: /swagger-ui/{proxy+}
@@ -39,7 +39,7 @@ functions:
     package:
       individually: true
       patterns:
-        - lambda/swaggerHandler.ts
+        - lambdas/swaggerHandler.ts
         - src/routers/**
         - node_modules/swagger-ui-express/**
         - node_modules/swagger-jsdoc/**
