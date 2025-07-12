@@ -15,7 +15,6 @@ provider:
       customAuthorizer:
         type: lambda
         functionName: tcgx-api-authorizer-${sls:stage}
-        enableSimpleResponses: true
         identitySource: $request.header.Authorization
 
   # Environment variables for all functions
