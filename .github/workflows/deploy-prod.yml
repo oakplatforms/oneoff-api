@@ -56,6 +56,8 @@ jobs:
         SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX }}
         SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL }}
         TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET_PROD }}
+        ADMIN_USER_POOL_ID: ${{ secrets.ADMIN_USER_POOL_ID_PROD }}
+        CLIENT_APPS_USER_POOL_ID: ${{ secrets.CLIENT_APPS_USER_POOL_ID_PROD }}
     
     - name: Deploy Swagger to Production
       run: serverless deploy --config serverless.swagger.yml --stage prod --verbose 
