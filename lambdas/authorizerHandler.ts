@@ -61,6 +61,19 @@ export async function handler(event) {
       : event.headers?.Authorization?.split(' ')[1] || event.headers?.authorization?.split(' ')[1]
 
     const routeArn = event.methodArn || event.routeArn
+    const path = event.requestContext?.http?.path || event.rawPath || event.path || ''
+    const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
+
+    console.log('method:', method, 'path:', path)
+
+    //✅ Allow webhooks without a token
+    const isWebhook = method === 'POST' && path.startsWith('/api/v1/webhook')
+    if (!token && isWebhook) {
+      return generatePolicy('webhook', 'Allow', routeArn, {
+        role: 'webhook',
+        userPool: 'none',
+      })
+    }
 
     if (!token) {
       console.warn('Missing token')
@@ -80,6 +93,30 @@ export async function handler(event) {
         if (!TEMP_JWT_SECRET) throw new Error('TEMP_JWT_SECRET not configured')
         const decodedGuest = jwt.verify(token, TEMP_JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload
         if (decodedGuest?.role === 'guest') {
+          //Guest users can only make GET requests to read-only endpoints
+          if (method !== 'GET') {
+            console.warn(`Guest user attempted ${method} request - denied`)
+            return deny(routeArn)
+          }
+
+          //Optional: Restrict guest access to specific read-only paths
+          const guestAllowedPaths = [
+            '/api/v1/categories',
+            '/api/v1/brands',
+            '/api/v1/listings',
+            '/api/v1/products',
+            '/api/v1/tags'
+          ]
+
+          const isAllowedPath = guestAllowedPaths.some(allowedPath =>
+            path.startsWith(allowedPath)
+          )
+
+          if (!isAllowedPath) {
+            console.warn(`Guest user attempted access to restricted path: ${path}`)
+            return deny(routeArn)
+          }
+          
           return generatePolicy('guest', 'Allow', routeArn, {
             role: 'guest',
             userPool: 'temporary',
