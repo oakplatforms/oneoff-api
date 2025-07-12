@@ -61,19 +61,6 @@ export async function handler(event) {
       : event.headers?.Authorization?.split(' ')[1] || event.headers?.authorization?.split(' ')[1]
 
     const routeArn = event.methodArn || event.routeArn
-    const path = event.requestContext?.http?.path || event.rawPath || event.path || ''
-    const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
-
-    console.log('method:', method, 'path:', path)
-
-    //✅ Allow webhooks without a token
-    const isWebhook = method === 'POST' && path.startsWith('/api/v1/webhook')
-    if (!token && isWebhook) {
-      return generatePolicy('webhook', 'Allow', routeArn, {
-        role: 'webhook',
-        userPool: 'none',
-      })
-    }
 
     if (!token) {
       console.warn('Missing token')
