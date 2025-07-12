@@ -11,11 +11,6 @@ provider:
   stage: ${opt:stage, 'dev'}
   httpApi:
     payload: '2.0'
-    authorizers:
-      customAuthorizer:
-        type: lambda
-        functionName: tcgx-api-authorizer-${sls:stage}
-        identitySource: $request.header.Authorization
 
   # Environment variables for all functions
   environment:
@@ -50,7 +45,9 @@ functions:
           path: /{proxy+}
           method: ANY
           authorizer:
-            name: customAuthorizer
+            type: lambda
+            functionName: tcgx-api-authorizer-${sls:stage}
+            identitySource: $request.header.Authorization
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
