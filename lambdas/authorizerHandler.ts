@@ -61,7 +61,6 @@ export async function handler(event) {
       : event.headers?.Authorization?.split(' ')[1] || event.headers?.authorization?.split(' ')[1]
 
     const routeArn = event.methodArn || event.routeArn
-    const path = event.requestContext?.http?.path || event.rawPath || event.path || ''
     const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
 
     if (!token) {
