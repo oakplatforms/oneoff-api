@@ -1,4 +1,4 @@
-import { getPrismaClient } from '../../utils/prismaHelpers'
+import { getPrismaClient } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
 
@@ -29,7 +29,7 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
   const trackingStatus = tracking.tracking_status?.status?.toLowerCase()
 
   if (!trackingNumber || !trackingStatus) {
-    console.warn('⚠️ Missing tracking number or status from Shippo webhook')
+    console.warn('Missing tracking number or status from Shippo webhook')
     return
   }
 
