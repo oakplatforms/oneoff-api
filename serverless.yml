@@ -11,6 +11,10 @@ provider:
   stage: ${opt:stage, 'dev'}
   httpApi:
     payload: '2.0'
+    authorizers:
+      lambdaAuth:
+        type: request
+        functionName: authorizer
 
   # Environment variables for all functions
   environment:
@@ -43,7 +47,23 @@ functions:
     events:
       - httpApi:
           path: /{proxy+}
-          method: ANY
+          method: GET
+          authorizer: lambdaAuth
+      - httpApi:
+          path: /{proxy+}
+          method: POST
+          authorizer: lambdaAuth
+      - httpApi:
+          path: /{proxy+}
+          method: PUT
+          authorizer: lambdaAuth
+      - httpApi:
+          path: /{proxy+}
+          method: DELETE
+          authorizer: lambdaAuth
+      - httpApi:
+          path: /{proxy+}
+          method: OPTIONS
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
