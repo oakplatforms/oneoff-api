@@ -53,6 +53,13 @@ function generatePolicy(principalId, effect, resource, context = {}) {
 }
 
 export async function handler(event) {
+  if (
+    (event.routeArn && event.routeArn.includes('OPTIONS')) ||
+    event.httpMethod === 'OPTIONS'
+  ) {
+    return generatePolicy('anonymous', 'Allow', event.methodArn || event.routeArn)
+  }
+
   try {
     const isTokenEvent = event.type === 'TOKEN'
 
