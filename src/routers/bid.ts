@@ -149,7 +149,7 @@ bidRouter.get('/bids', async (req, res) => {
  */
 bidRouter.get('/bid/highest-bid', async (req, res) => {
   const { include, entityId } = req.query
-
+  console.log('entityId', entityId)
   if (!entityId) {
     res.status(400).send({ errorMessage: 'Entity ID is required to retrieve highest bid' })
     return
