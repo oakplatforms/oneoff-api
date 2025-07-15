@@ -62,16 +62,7 @@ export async function handler(event) {
 
     const routeArn = event.methodArn || event.routeArn
     const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
-    console.log('event', JSON.stringify(event, null, 2))
-    if (
-      (routeArn && routeArn.includes('OPTIONS')) ||
-      method === 'OPTIONS'
-    ) {
-      return generatePolicy('cors-preflight', 'Allow', routeArn, {
-        role: 'cors-preflight',
-        userPool: 'temporary',
-      })
-    }
+
     if (!token) {
       console.warn('Missing token')
       return deny(routeArn)

@@ -1,23 +1,11 @@
 import express, { Request, Response } from 'express'
 import router from './routers/all_routes'
-import cors from 'cors'
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Promise Rejection:', reason)
 })
 
 const app = express()
-
-const corsOptions = {
-  origin: 'https://tcgx-admin-dev.s3.us-east-1.amazonaws.com',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}
-
-app.use(cors(corsOptions))
-app.options('*', cors(corsOptions))
 
 app.use(express.json({ limit: '10mb' }))
 app.use('/api/v1', router)
