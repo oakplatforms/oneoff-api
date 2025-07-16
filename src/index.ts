@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express'
 import router from './routers/all_routes'
-import { webhookRouter } from './webhooks'
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Promise Rejection:', reason)
@@ -9,7 +8,6 @@ process.on('unhandledRejection', (reason) => {
 const app = express()
 
 app.use(express.json({ limit: '10mb' }))
-app.use('/api/v1/webhook', webhookRouter)
 app.use('/api/v1', router)
 
 app.use((err: Error, req: Request, res: Response) => {

@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import { handleShippoTrackingUpdated } from '../src/webhooks/providers/shippo'
+import { handleShippoTrackingUpdated } from '../src/webhooks/shippo'
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Received Shippo webhook event:', JSON.stringify(event, null, 2))

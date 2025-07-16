@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import stripe from '../src/utils/stripe'
 
-import { handleSellerAccountUpdated } from '../src/webhooks/providers/stripe'
+import { handleSellerAccountUpdated } from '../src/webhooks/stripe'
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Received webhook event:', JSON.stringify(event, null, 2))

@@ -1,4 +1,4 @@
-import { getPrismaClient } from '../../utils/prismaHelpers'
+import { getPrismaClient } from '../utils/prismaHelpers'
 import Stripe from 'stripe'
 
 const prisma = getPrismaClient()
