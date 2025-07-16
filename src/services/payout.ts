@@ -3,6 +3,7 @@ import { getPrismaClient } from '../utils/prismaHelpers'
 const prisma = getPrismaClient()
 
 export const calculateWalletBalance = async (accountId?: string, sellerId?: string) => {
+  console.log('calculateWalletBalance', accountId, sellerId)
   if (!accountId) {
     throw new Error('Account ID is required')
   }
