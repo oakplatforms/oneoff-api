@@ -14,7 +14,7 @@ provider:
     authorizers:
       lambdaAuth:
         type: request
-        functionName: tcgx-auth-authorizer-${sls:stage}
+        functionName: tcgx-authorizer-${sls:stage}
 
   environment:
     NODE_ENV: ${sls:stage}
