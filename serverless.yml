@@ -14,7 +14,9 @@ provider:
     authorizers:
       lambdaAuth:
         type: request
-        functionName: tcgx-authorizer-dev
+        authorizerUri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:tcgx-authorizer-${sls:stage}/invocations
+        identitySource: $request.header.Authorization
 
   environment:
     NODE_ENV: ${sls:stage}
