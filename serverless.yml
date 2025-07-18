@@ -14,9 +14,8 @@ provider:
     authorizers:
       lambdaAuth:
         type: request
-        functionName: authorizer
+        functionName: tcgx-auth-authorizer-${sls:stage}
 
-  # Environment variables for all functions
   environment:
     NODE_ENV: ${sls:stage}
     STAGE: ${sls:stage}
@@ -110,14 +109,6 @@ functions:
       - httpApi:
           path: /webhook/shippo
           method: POST
-
-  authorizer:
-    name: tcgx-api-authorizer-${sls:stage}
-    handler: lambdas/authorizerHandler.handler
-    environment:
-      ADMIN_USER_POOL_ID: ${env:ADMIN_USER_POOL_ID}
-      CLIENT_APPS_USER_POOL_ID: ${env:CLIENT_APPS_USER_POOL_ID}
-      TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
 
 custom:
   dotenv:
