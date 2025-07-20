@@ -5,7 +5,7 @@ import type { APIGatewayAuthorizerEvent } from 'aws-lambda'
 const COGNITO_REGION = 'us-east-1'
 const USER_POOLS = {
   admin: process.env.ADMIN_USER_POOL_ID,
-  clientApps: process.env.CLIENT_APPS_USER_POOL_ID,
+  clientApps: process.env.CONSUMER_USER_POOL_ID,
 }
 const TEMP_JWT_SECRET = process.env.TEMP_JWT_SECRET
 
