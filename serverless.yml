@@ -81,7 +81,7 @@ functions:
     handler: lambdas/authorizerHandler.handler
     environment:
       ADMIN_USER_POOL_ID: ${env:ADMIN_USER_POOL_ID}
-      CLIENT_APPS_USER_POOL_ID: ${env:CLIENT_APPS_USER_POOL_ID}
+      CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
       TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
 
   guestToken:
