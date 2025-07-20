@@ -76,7 +76,7 @@ The TCGX API is a serverless application built with AWS Lambda and API Gateway, 
 - `DATABASE_URL`: Prisma database connection string
 - `TEMP_JWT_SECRET`: Secret for guest token generation
 - `ADMIN_USER_POOL_ID`: Cognito Admin User Pool ID
-- `CLIENT_APPS_USER_POOL_ID`: Cognito Client Apps User Pool ID
+- `CONSUMER_USER_POOL_ID`: Cognito Client Apps User Pool ID
 
 ### Payment Processing
 - `STRIPE_SECRET_KEY`: Stripe API secret key
