@@ -169,9 +169,9 @@ userRouter.post(`/user`, async (req, res) => {
     })
     res.json(user)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_USER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create user.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_USER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create user.' })
   }
 })
 
@@ -267,9 +267,9 @@ userRouter.put(`/user/:id`, async (req, res) => {
       }})
     res.json(user)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_USER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update user.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_USER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update user.' })
   }
 })
 
@@ -340,9 +340,9 @@ userRouter.get('/user/:authId', async (req, res) => {
       throw new Error('No auth ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_USER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve user.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_USER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve user.' })
   }
 })
 
