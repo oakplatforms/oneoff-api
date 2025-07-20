@@ -5,7 +5,7 @@ import type { APIGatewayAuthorizerEvent } from 'aws-lambda'
 const COGNITO_REGION = 'us-east-1'
 const USER_POOLS = {
   admin: process.env.ADMIN_USER_POOL_ID,
-  clientApps: process.env.CONSUMER_USER_POOL_ID,
+  consumer: process.env.CONSUMER_USER_POOL_ID,
 }
 const TEMP_JWT_SECRET = process.env.TEMP_JWT_SECRET
 
@@ -118,8 +118,8 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
     let userPoolId: string | undefined
     if (issuer === `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${USER_POOLS.admin}`) {
       userPoolId = USER_POOLS.admin
-    } else if (issuer === `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${USER_POOLS.clientApps}`) {
-      userPoolId = USER_POOLS.clientApps
+    } else if (issuer === `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${USER_POOLS.consumer}`) {
+      userPoolId = USER_POOLS.consumer
     } else {
       throw new Error('Unknown issuer')
     }
@@ -130,7 +130,7 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
 
     let role = (decodedUser['custom:role'] as string) || 'user'
     if (userPoolId === USER_POOLS.admin) role = 'admin'
-    if (userPoolId === USER_POOLS.clientApps) role = 'customer'
+    if (userPoolId === USER_POOLS.consumer) role = 'customer'
 
     return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, { role, userPool: userPoolId })
   } catch (error) {
