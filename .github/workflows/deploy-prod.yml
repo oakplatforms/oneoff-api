@@ -24,7 +24,10 @@ jobs:
     
     - name: Install dependencies
       run: npm ci
-    
+
+    - name: Deploy Prisma migrations
+      run: npx prisma migrate deploy
+
     - name: Generate Prisma client
       run: npx prisma generate
     

@@ -654,7 +654,19 @@
             "null"
           ]
         },
-        "image": {
+        "avatar": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "banner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
           "type": [
             "string",
             "null"
@@ -702,6 +714,12 @@
           "type": "string"
         },
         "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "logo": {
           "type": [
             "string",
             "null"
@@ -1634,6 +1652,9 @@
             "null"
           ]
         },
+        "price": {
+          "type": "number"
+        },
         "entity": {
           "$ref": "#/definitions/Entity"
         },
@@ -1805,6 +1826,18 @@
             "null"
           ],
           "default": false
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "imageCaption": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "account": {
           "anyOf": [
