@@ -15,7 +15,7 @@ export const generatePrismaError = (err: unknown) => {
     case 'P2002':
       return {
         statusCode: 400,
-        customError: `This field already exist: ${err.meta?.target}`,
+        customError: `This value already exist: ${err.meta?.target}. Please try another value.`,
       }
 
     case 'P2014':

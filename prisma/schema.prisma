@@ -160,7 +160,7 @@ model Admin {
   status        Status @default(ACTIVE)
 
   // custom
-  email         String?
+  email         String? @unique
 
   // relations
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -193,7 +193,7 @@ model Account {
 
   // custom
   type          AccountType @default(REGISTERED)
-  email         String? 
+  email         String? @unique
 
   // relations
   carts         Cart[]
@@ -288,7 +288,9 @@ model Profile {
 
   // custom
   username      String? @unique
-  image         String?
+  avatar        String?
+  banner        String?
+  description   String?
   qrCode        String?
 
   // relations
@@ -304,6 +306,7 @@ model Brand {
   // custom
   name             String  @unique
   displayName      String?
+  logo             String?
 
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -530,6 +533,7 @@ model Product {
   height           Float?
   sku              String?
   number           String?
+  price            Decimal? @db.Decimal(10, 2)
 
   // relations
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
@@ -581,6 +585,8 @@ model Listing {
   condition        Condition @default(MINT)
   isPrimary        Boolean? @default(false)
   isOffer          Boolean? @default(false)
+  image            String?
+  imageCaption     String?
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
