@@ -15,7 +15,7 @@ ALTER TABLE "Listing" ADD COLUMN     "image" TEXT,
 ADD COLUMN     "imageCaption" TEXT;
 
 -- AlterTable
-ALTER TABLE "Product" ADD COLUMN     "price" DECIMAL(10,2) NOT NULL;
+ALTER TABLE "Product" ADD COLUMN     "price" DECIMAL(10,2);
 
 -- AlterTable
 ALTER TABLE "Profile" DROP COLUMN "image",
