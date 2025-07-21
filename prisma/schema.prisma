@@ -533,7 +533,7 @@ model Product {
   height           Float?
   sku              String?
   number           String?
-  price            Decimal @db.Decimal(10, 2)
+  price            Decimal? @db.Decimal(10, 2)
 
   // relations
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)

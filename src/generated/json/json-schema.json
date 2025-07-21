@@ -1653,7 +1653,10 @@
           ]
         },
         "price": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "entity": {
           "$ref": "#/definitions/Entity"
