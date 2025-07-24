@@ -5,7 +5,11 @@ export const replaceDTORefs = (obj: JSONSchema): JSONSchema => {
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
   function traverse(value: any): any {
     if (typeof value === 'string') {
-      return value.replace(/#\/definitions\//g, '#/components/schemas/')
+      //Replace all possible JSON Schema reference patterns
+      return value
+        .replace(/#\/definitions\//g, '#/components/schemas/')
+        .replace(/#\/\$defs\//g, '#/components/schemas/')
+        .replace(/#\/components\/definitions\//g, '#/components/schemas/')
     } else if (Array.isArray(value)) {
       return value.map(traverse)
     } else if (typeof value === 'object' && value !== null) {
