@@ -648,7 +648,7 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPLOAD_ENTITY_IMAGE_ERROR:', prismaError, customError)
-    res.status(statusCode).send({ errorMessage: 'Failed to upload entity image.' })
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload entity image.' })
   }
 })
 
@@ -659,7 +659,7 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *     tags:
  *       - Entity
  *     summary: Delete an entity's image
- *     description: Deletes the image file associated with an entity from S3 and clears the entity's `image` field in the database.
+ *     description: Deletes the image file associated with an entity from S3 and clears the entity's `image` or `secondaryImage` field in the database.
  *     parameters:
  *       - in: path
  *         name: id
@@ -667,6 +667,14 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *         schema:
  *           type: string
  *         description: ID of the entity whose image should be deleted.
+ *       - in: query
+ *         name: field
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [image, secondaryImage]
+ *           default: image
+ *         description: The image field to delete (image or secondaryImage)
  *     responses:
  *       '200':
  *         description: Successfully deleted the image and updated the entity
@@ -680,6 +688,16 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *                 message:
  *                   type: string
  *                   example: Image deleted successfully
+ *       '400':
+ *         description: Invalid field parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid field parameter. Must be "image" or "secondaryImage"
  *       '404':
  *         description: Entity not found or entity has no image
  *         content:
@@ -703,31 +721,38 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  */
 entityRouter.delete('/entity/delete-image/:id', async (req, res) => {
   const { id } = req.params
+  const { field = 'image' } = req.query
 
   try {
+    if (field !== 'image' && field !== 'secondaryImage') {
+      return res.status(400).json({ error: 'Invalid field parameter. Must be "image" or "secondaryImage"' })
+    }
+
     const entity = await prisma.entity.findUnique({
       where: { id },
-      select: { image: true }
+      select: { image: true, secondaryImage: true }
     })
 
     if (!entity) {
       return res.status(404).json({ errorMessage: 'Entity not found' })
     }
 
-    if (!entity.image) {
-      return res.status(404).json({ errorMessage: 'Entity has no image to delete' })
+    const imageToDelete = field === 'image' ? entity.image : entity.secondaryImage
+
+    if (!imageToDelete) {
+      return res.status(404).json({ errorMessage: `Entity has no ${field} to delete` })
     }
 
-    await deleteImage(entity.image)
+    await deleteImage(imageToDelete)
 
     const updatedEntity = await prisma.entity.update({
       where: { id },
-      data: { image: null },
+      data: { [field]: null },
     })
 
     res.json({
       entity: updatedEntity,
-      message: 'Image deleted successfully'
+      message: `${field} deleted successfully`
     })
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
