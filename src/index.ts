@@ -3,13 +3,24 @@ import router from './routers/all_routes'
 
 interface LambdaRequestContext {
   authorizer?: {
-    principalId: string
+    principalId?: string
     role: string
     userPool: string
+    sub?: string
+    context?: {
+      role: string
+      userPool: string
+      principalId?: string
+      sub?: string
+    }
   }
 }
 
 interface LambdaRequest extends Request {
+  requestContext?: LambdaRequestContext
+}
+
+interface ExtendedRequest extends Request {
   requestContext?: LambdaRequestContext
 }
 
@@ -41,19 +52,29 @@ app.use((req, res, next) => {
   console.log('Request context keys:', Object.keys((req as LambdaRequest).requestContext || {}))
 
   const requestContext = (req as LambdaRequest).requestContext
-  const authorizer = requestContext?.authorizer
 
-  console.log('Authorizer:', authorizer)
-  console.log('Authorizer keys:', authorizer ? Object.keys(authorizer) : 'No authorizer')
+  //For API Gateway v2 (HTTP API), the authorizer context is in requestContext.authorizer
+  //but the structure might be different than v1
   console.log('Raw request context:', JSON.stringify(requestContext, null, 2))
-  console.log('Request context authorizer:', requestContext?.authorizer)
-  console.log('Request context authorizer type:', typeof requestContext?.authorizer)
+
+  //Try different possible locations for authorizer data in v2
+  const authorizerV1 = requestContext?.authorizer
+  const authorizerV2 = (req as ExtendedRequest).requestContext?.authorizer
+  const authorizerContext = requestContext?.authorizer?.context
+
+  console.log('Authorizer V1:', authorizerV1)
+  console.log('Authorizer V2:', authorizerV2)
+  console.log('Authorizer Context:', authorizerContext)
+
+  //Try to find the authorizer data in the correct location
+  const authorizer = authorizerV1 || authorizerV2 || authorizerContext
 
   if (authorizer) {
-    //The authorizer context only contains role and userPool
-    //The principalId should be available in requestContext.authorizer.principalId
+    console.log('Found authorizer:', authorizer)
+    console.log('Authorizer keys:', Object.keys(authorizer))
+
     req.user = {
-      principalId: authorizer.principalId,
+      principalId: authorizer.principalId || authorizer.sub || 'unknown',
       role: authorizer.role,
       userPool: authorizer.userPool
     }
