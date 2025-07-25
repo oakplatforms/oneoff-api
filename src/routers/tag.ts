@@ -50,6 +50,9 @@ export const tagRouter = express.Router()
 tagRouter.get('/tags', async (req, res) => {
   const { include, usePagination, page, limit } = req.query
 
+  //Log authorizer middleware test
+  console.log('=== AUTHORIZER MIDDLEWARE TEST ===', JSON.stringify(req.user, null, 2))
+
   try {
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
