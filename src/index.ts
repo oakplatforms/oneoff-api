@@ -32,15 +32,34 @@ const app = express()
 app.use(express.json({ limit: '10mb' }))
 
 app.use((req, res, next) => {
+  console.log('🔍 MIDDLEWARE CALLED for:', req.method, req.path)
+  console.log('=== MIDDLEWARE DEBUG ===')
+  console.log('Request headers:', req.headers)
+  console.log('Request body:', req.body)
+  console.log('Request context:', (req as LambdaRequest).requestContext)
+  console.log('Full request object keys:', Object.keys(req))
+  console.log('Request context keys:', Object.keys((req as LambdaRequest).requestContext || {}))
+
   const requestContext = (req as LambdaRequest).requestContext
   const authorizer = requestContext?.authorizer
 
+  console.log('Authorizer:', authorizer)
+  console.log('Authorizer keys:', authorizer ? Object.keys(authorizer) : 'No authorizer')
+  console.log('Raw request context:', JSON.stringify(requestContext, null, 2))
+  console.log('Request context authorizer:', requestContext?.authorizer)
+  console.log('Request context authorizer type:', typeof requestContext?.authorizer)
+
   if (authorizer) {
+    //The authorizer context only contains role and userPool
+    //The principalId should be available in requestContext.authorizer.principalId
     req.user = {
       principalId: authorizer.principalId,
       role: authorizer.role,
       userPool: authorizer.userPool
     }
+    console.log('Set req.user:', req.user)
+  } else {
+    console.log('No authorizer found - req.user will be undefined')
   }
 
   next()
