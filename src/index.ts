@@ -77,6 +77,15 @@ app.use((req, res, next) => {
   //Try to find the authorizer data in the correct location
   const authorizer = authorizerV1 || authorizerV2 || authorizerContext || authorizerLambda
 
+  //Also check for authorizer data in custom headers (for HTTP API v2)
+  const headerRole = req.headers['x-authorizer-role'] as string
+  const headerUserPool = req.headers['x-authorizer-userpool'] as string
+  const headerPrincipalId = req.headers['x-authorizer-principalid'] as string
+
+  console.log('Header Role:', headerRole)
+  console.log('Header UserPool:', headerUserPool)
+  console.log('Header PrincipalId:', headerPrincipalId)
+
   if (authorizer) {
     console.log('Found authorizer:', authorizer)
     console.log('Authorizer keys:', Object.keys(authorizer))
@@ -87,6 +96,14 @@ app.use((req, res, next) => {
       userPool: authorizer.userPool
     }
     console.log('Set req.user:', req.user)
+  } else if (headerRole && headerUserPool) {
+    console.log('Found authorizer data in headers')
+    req.user = {
+      principalId: headerPrincipalId || 'unknown',
+      role: headerRole,
+      userPool: headerUserPool
+    }
+    console.log('Set req.user from headers:', req.user)
   } else {
     console.log('No authorizer found - req.user will be undefined')
   }
