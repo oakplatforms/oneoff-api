@@ -15,6 +15,8 @@ interface ExtendedRequest extends Request {
       }
     }
   }
+  event?: unknown
+  lambdaEvent?: unknown
 }
 
 declare module 'express-serve-static-core' {
@@ -37,6 +39,12 @@ app.use(express.json({ limit: '10mb' }))
 
 app.use((req, res, next) => {
   console.log('🔍 MIDDLEWARE CALLED for:', req.method, req.path)
+
+  //Debug what's available on the request object
+  console.log('Full req keys:', Object.keys(req))
+  console.log('Request apiGateway:', (req as ExtendedRequest).apiGateway)
+  console.log('Request event:', (req as ExtendedRequest).event)
+  console.log('Request lambdaEvent:', (req as ExtendedRequest).lambdaEvent)
 
   const rawEvent = (req as ExtendedRequest).apiGateway?.event
   const lambdaContext = rawEvent?.requestContext?.authorizer?.lambda
