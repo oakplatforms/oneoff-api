@@ -13,6 +13,12 @@ interface LambdaRequestContext {
       principalId?: string
       sub?: string
     }
+    lambda?: {
+      role: string
+      userPool: string
+      principalId?: string
+      sub?: string
+    }
   }
 }
 
@@ -61,13 +67,15 @@ app.use((req, res, next) => {
   const authorizerV1 = requestContext?.authorizer
   const authorizerV2 = (req as ExtendedRequest).requestContext?.authorizer
   const authorizerContext = requestContext?.authorizer?.context
+  const authorizerLambda = requestContext?.authorizer?.lambda
 
   console.log('Authorizer V1:', authorizerV1)
   console.log('Authorizer V2:', authorizerV2)
   console.log('Authorizer Context:', authorizerContext)
+  console.log('Authorizer Lambda:', authorizerLambda)
 
   //Try to find the authorizer data in the correct location
-  const authorizer = authorizerV1 || authorizerV2 || authorizerContext
+  const authorizer = authorizerV1 || authorizerV2 || authorizerContext || authorizerLambda
 
   if (authorizer) {
     console.log('Found authorizer:', authorizer)
