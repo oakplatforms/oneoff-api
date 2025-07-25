@@ -98,6 +98,7 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
           return generatePolicy('guest', 'Allow', routeArn, {
             role: 'guest',
             userPool: 'temporary',
+            principalId: 'guest',
           })
         } else {
           console.warn('Invalid guest token role')
@@ -132,7 +133,11 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
     if (userPoolId === USER_POOLS.admin) role = 'admin'
     if (userPoolId === USER_POOLS.consumer) role = 'customer'
 
-    return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, { role, userPool: userPoolId })
+    return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
+      role,
+      userPool: userPoolId,
+      principalId: decodedUser.sub as string
+    })
   } catch (error) {
     const err = error as Error
     console.error('Authorization Error:', err.message)
