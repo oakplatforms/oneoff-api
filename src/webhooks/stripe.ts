@@ -52,11 +52,7 @@ export const handleSellerAccountUpdated = async (event: Stripe.Event) => {
     })
 
     if (account?.type !== 'SELLER') {
-      await promoteUserToSeller(
-        seller.account.user.authId,
-        seller.accountId,
-        seller.id
-      )
+      await promoteUserToSeller(seller.account.user.authId)
       console.log('Automatically promoted user to seller via webhook:', seller.account.user.authId)
     } else {
       console.log('User already has seller role:', seller.account.user.authId)

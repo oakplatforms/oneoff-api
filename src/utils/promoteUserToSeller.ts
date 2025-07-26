@@ -2,7 +2,7 @@ import { CognitoIdentityProviderClient, AdminAddUserToGroupCommand } from '@aws-
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' })
 
-export const promoteUserToSeller = async (authId: string, accountId: string, sellerId: string) => {
+export const promoteUserToSeller = async (authId: string) => {
   try {
     const userPoolId = process.env.CONSUMER_USER_POOL_ID
     console.log('USER POOL ID:', userPoolId)
@@ -15,7 +15,7 @@ export const promoteUserToSeller = async (authId: string, accountId: string, sel
       })
     )
 
-    return { success: true, accountId, sellerId }
+    return { success: true }
   } catch (error) {
     console.error('Failed to promote user to seller:', error)
     throw new Error('Failed to promote user to seller role')

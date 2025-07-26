@@ -132,11 +132,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
       })
 
       if (accountWithUser?.user) {
-        await promoteUserToCustomer(
-          accountWithUser.user.authId,
-          accountId,
-          newCustomer.id
-        )
+        await promoteUserToCustomer(accountWithUser.user.authId)
       }
 
       return newCustomer
