@@ -75,7 +75,8 @@ functions:
       SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
       SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
       SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
-  
+      CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
+
   authorizer:
     name: tcgx-api-authorizer-${sls:stage}
     handler: lambdas/authorizerHandler.handler
