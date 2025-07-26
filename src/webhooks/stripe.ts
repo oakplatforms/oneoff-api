@@ -44,19 +44,8 @@ export const handleSellerAccountUpdated = async (event: Stripe.Event) => {
     }
   })
 
-  console.log(`Updated seller ${seller.id}: paymentAccountStatus → COMPLETED`)
-
   try {
-    const account = await prisma.account.findUnique({
-      where: { id: seller.accountId }
-    })
-
-    if (account?.type !== 'SELLER') {
-      await promoteUserToSeller(seller.account.user.authId)
-      console.log('Automatically promoted user to seller via webhook:', seller.account.user.authId)
-    } else {
-      console.log('User already has seller role:', seller.account.user.authId)
-    }
+    await promoteUserToSeller(seller.account.user.authId)
   } catch (error) {
     console.error('Failed to promote user to seller via webhook:', error)
   }

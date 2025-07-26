@@ -86,6 +86,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const existingAccount = await tx.account.findUnique({
         where: { id: accountId },
+        include: { user: true }
       })
 
       if (!existingAccount) {
@@ -126,19 +127,18 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
         },
       })
 
-      const accountWithUser = await tx.account.findUnique({
-        where: { id: accountId },
-        include: { user: true }
-      })
-
-      if (accountWithUser?.user) {
-        await promoteUserToCustomer(accountWithUser.user.authId)
-      }
-
-      return newCustomer
+      return { newCustomer, existingAccount }
     }, { timeout: 60000 })
 
-    res.json(result)
+    if (result.existingAccount.user) {
+      try {
+        await promoteUserToCustomer(result.existingAccount.user.authId)
+      } catch (error) {
+        console.error('Failed to promote user to customer role:', error)
+      }
+    }
+
+    res.json(result.newCustomer)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CREATE_CUSTOMER_ERROR:', prismaError || customError)
