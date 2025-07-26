@@ -144,9 +144,9 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_CUSTOMER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create customer.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CUSTOMER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create customer.' })
   }
 })
 

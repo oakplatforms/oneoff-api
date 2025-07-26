@@ -6,6 +6,7 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' })
 
 export const promoteUserToCustomer = async (authId: string, accountId: string, customerId: string) => {
   try {
+    console.log('USER POOL ID:', process.env.CONSUMER_USER_POOL_ID!)
     await cognitoClient.send(
       new AdminAddUserToGroupCommand({
         GroupName: 'customer',
