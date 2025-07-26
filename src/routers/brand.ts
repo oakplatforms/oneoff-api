@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateAdmin, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const brandRouter = express.Router()
@@ -64,6 +65,7 @@ brandRouter.post(`/brand`, async (req, res) => {
   const { name, displayName, createdById } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const brand = await prisma.brand.create({
       data: {
         name,
@@ -140,6 +142,7 @@ brandRouter.put('/brand/:id', async (req, res) => {
   const { lastModifiedById, ...rest } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const brand = await prisma.brand.update({
       where: { id },
       data: {

@@ -8,6 +8,18 @@ export interface AuthenticatedUser {
   userPool: string
 }
 
+export const validateRole = (reqUser: AuthenticatedUser, requiredRole: string) => {
+  if (!reqUser) {
+    throw new Error('User authentication required')
+  }
+
+  if (reqUser.role !== requiredRole) {
+    throw new Error(`User role '${reqUser.role}' does not match required role '${requiredRole}'`)
+  }
+
+  return true
+}
+
 export const validateAdmin = async (reqUser: AuthenticatedUser, adminId: string, requiredRole: string) => {
   if (!reqUser) {
     throw new Error('User authentication required')
@@ -111,11 +123,14 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
     }
     break
   case 'customer':
-    if (account.type !== 'CUSTOMER') {
-      throw new Error('Account type must be CUSTOMER')
+    if (account.type !== 'CUSTOMER' && account.type !== 'SELLER') {
+      throw new Error('Account type must be CUSTOMER or SELLER')
     }
-    if (!account.customer) {
+    if (account.type === 'CUSTOMER' && !account.customer) {
       throw new Error('Customer profile not found')
+    }
+    if (account.type === 'SELLER' && !account.customer) {
+      throw new Error('Seller must have customer profile to access customer functionality')
     }
     break
   default:

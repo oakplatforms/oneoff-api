@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateRole, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const accountRouter = express.Router()
@@ -45,6 +46,7 @@ accountRouter.get('/accounts', async (req, res) => {
   const { include, usePagination, page, limit } = req.query
 
   try {
+    await validateRole(req.user as AuthenticatedUser, 'admin')
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
@@ -59,9 +61,9 @@ accountRouter.get('/accounts', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_ACCOUNTS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve accounts.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ACCOUNTS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve accounts.' })
   }
 })
 
