@@ -18,7 +18,7 @@ import { orderRouter } from './order'
 import { transactionRouter } from './transaction'
 import { invoiceRouter } from './invoice'
 import { sellerRouter } from './seller'
-import { customerRouter } from './customers'
+import { customerRouter } from './customer'
 import { shipmentRouter } from './shipment'
 import { offerRouter } from './offer'
 

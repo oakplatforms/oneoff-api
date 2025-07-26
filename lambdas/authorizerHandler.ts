@@ -129,9 +129,20 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
     const publicKey = await getPublicKey(decodedHeader.header.kid as string, jwksUrl)
     const decodedUser = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as jwt.JwtPayload
 
-    let role = (decodedUser['custom:role'] as string) || 'user'
-    if (userPoolId === USER_POOLS.admin) role = 'admin'
-    if (userPoolId === USER_POOLS.consumer) role = 'customer'
+    //Get the user's Cognito groups to determine their actual role
+    const cognitoGroups = decodedUser['cognito:groups'] as string[] || []
+    console.log('Cognito groups:', cognitoGroups)
+
+    let role = 'registered'
+    if (cognitoGroups.includes('admin')) {
+      role = 'admin'
+    } else if (cognitoGroups.includes('seller')) {
+      role = 'seller'
+    } else if (cognitoGroups.includes('customer')) {
+      role = 'customer'
+    } else if (cognitoGroups.includes('registered')) {
+      role = 'registered'
+    }
 
     return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
       role,

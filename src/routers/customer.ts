@@ -1,6 +1,7 @@
 import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
+import { promoteUserToCustomer } from '../utils/promoteUserToCustomer'
 import { Prisma } from '@prisma/client'
 import Stripe from 'stripe'
 
@@ -124,6 +125,19 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
           paymentAccountStatus: 'COMPLETED',
         },
       })
+
+      const accountWithUser = await tx.account.findUnique({
+        where: { id: accountId },
+        include: { user: true }
+      })
+
+      if (accountWithUser?.user) {
+        await promoteUserToCustomer(
+          accountWithUser.user.authId,
+          accountId,
+          newCustomer.id
+        )
+      }
 
       return newCustomer
     }, { timeout: 60000 })

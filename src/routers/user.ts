@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
-import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { generateIncludes } from '../utils/generateIncludes'
 import { paginatePrisma } from '../utils/paginatePrisma'
+
 const prisma = getPrismaClient()
 export const userRouter = express.Router()
 
