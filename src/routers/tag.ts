@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateUser, AuthenticatedUser } from '../validation/user'
+import { validateAccount, AuthenticatedUser } from '../validation/account'
 
 const prisma = getPrismaClient()
 export const tagRouter = express.Router()
@@ -51,11 +51,7 @@ export const tagRouter = express.Router()
 tagRouter.get('/tags', async (req, res) => {
   const { include, usePagination, page, limit } = req.query
 
-  //Log authorizer middleware test
-  console.log('=== AUTHORIZER MIDDLEWARE TEST ===', JSON.stringify(req.user, null, 2))
-
   try {
-    await validateUser(req.user as AuthenticatedUser, 'admin')
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
     const parsedUsePagination = usePagination === 'false' ? false : true
@@ -154,6 +150,7 @@ tagRouter.get('/tags', async (req, res) => {
 tagRouter.post(`/tag`, async (req, res) => {
   const { name, displayName, supportedTagValues, createdById } = req.body
   try {
+    await validateAccount(req.user as AuthenticatedUser, createdById, 'admin')
     const tag = await prisma.tag.create({
       data: {
         name,
@@ -266,6 +263,7 @@ tagRouter.put('/tag/:id', async (req, res) => {
   const { supportedTagValues, lastModifiedById, ...rest } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, lastModifiedById, 'customer')
     const tag = await prisma.tag.update({
       where: { id },
       data: {
