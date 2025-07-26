@@ -8,6 +8,58 @@ export interface AuthenticatedUser {
   userPool: string
 }
 
+export const validateAdmin = async (reqUser: AuthenticatedUser, adminId: string, requiredRole: string) => {
+  if (!reqUser) {
+    throw new Error('User authentication required')
+  }
+
+  if (!reqUser.principalId) {
+    throw new Error('User principalId is required')
+  }
+
+  if (!adminId) {
+    throw new Error('AdminId is required')
+  }
+
+  //Fetch admin and verify the principalId matches the admin.user.authId
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    include: {
+      user: true,
+    },
+  })
+
+  if (!admin) {
+    throw new Error('Admin not found')
+  }
+
+  if (!admin.user) {
+    throw new Error('Admin does not have an associated user')
+  }
+
+  if (admin.user.authId !== reqUser.principalId) {
+    throw new Error('User principalId does not match admin user authId')
+  }
+
+  //Validate the role matches the required role
+  if (reqUser.role !== requiredRole) {
+    throw new Error(`User role '${reqUser.role}' does not match required role '${requiredRole}'`)
+  }
+
+  //Additional role-specific validations
+  switch (requiredRole) {
+  case 'admin':
+    if (!admin.user.isAdmin) {
+      throw new Error('User is not an admin')
+    }
+    break
+  default:
+    throw new Error(`Invalid required admin role: ${requiredRole}`)
+  }
+
+  return admin
+}
+
 export const validateAccount = async (reqUser: AuthenticatedUser, accountId: string, requiredRole: string) => {
   if (!reqUser) {
     throw new Error('User authentication required')
@@ -50,11 +102,6 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
 
   //Additional role-specific validations
   switch (requiredRole) {
-  case 'admin':
-    if (!account.user.isAdmin) {
-      throw new Error('User is not an admin')
-    }
-    break
   case 'seller':
     if (account.type !== 'SELLER') {
       throw new Error('Account type must be SELLER')
@@ -72,7 +119,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
     }
     break
   default:
-    throw new Error(`Invalid required role: ${requiredRole}`)
+    throw new Error(`Invalid required account role: ${requiredRole}`)
   }
 
   return account

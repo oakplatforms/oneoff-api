@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateAccount, AuthenticatedUser } from '../validation/account'
+import { validateAdmin, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const tagRouter = express.Router()
@@ -150,7 +150,7 @@ tagRouter.get('/tags', async (req, res) => {
 tagRouter.post(`/tag`, async (req, res) => {
   const { name, displayName, supportedTagValues, createdById } = req.body
   try {
-    await validateAccount(req.user as AuthenticatedUser, createdById, 'admin')
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const tag = await prisma.tag.create({
       data: {
         name,
@@ -171,9 +171,9 @@ tagRouter.post(`/tag`, async (req, res) => {
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_TAG_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create tag.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_TAG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create tag.' })
   }
 })
 
@@ -263,7 +263,7 @@ tagRouter.put('/tag/:id', async (req, res) => {
   const { supportedTagValues, lastModifiedById, ...rest } = req.body
 
   try {
-    await validateAccount(req.user as AuthenticatedUser, lastModifiedById, 'customer')
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'customer')
     const tag = await prisma.tag.update({
       where: { id },
       data: {
@@ -295,9 +295,9 @@ tagRouter.put('/tag/:id', async (req, res) => {
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_TAG_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update tag.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_TAG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update tag.' })
   }
 })
 
