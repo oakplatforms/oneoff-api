@@ -263,7 +263,7 @@ tagRouter.put('/tag/:id', async (req, res) => {
   const { supportedTagValues, lastModifiedById, ...rest } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin  ')
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const tag = await prisma.tag.update({
       where: { id },
       data: {
