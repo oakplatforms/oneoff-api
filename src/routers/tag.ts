@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateUser, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const tagRouter = express.Router()
@@ -54,6 +55,7 @@ tagRouter.get('/tags', async (req, res) => {
   console.log('=== AUTHORIZER MIDDLEWARE TEST ===', JSON.stringify(req.user, null, 2))
 
   try {
+    await validateUser(req.user as AuthenticatedUser, 'admin')
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
     const parsedUsePagination = usePagination === 'false' ? false : true
@@ -69,9 +71,9 @@ tagRouter.get('/tags', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_TAGS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve tags.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TAGS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve tags.' })
   }
 })
 
