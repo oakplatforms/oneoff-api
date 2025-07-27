@@ -85,7 +85,6 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
     throw new Error('AccountId is required')
   }
 
-  //Fetch account and verify the principalId matches the account.user.authId
   const account = await prisma.account.findUnique({
     where: { id: accountId },
     include: {
@@ -104,12 +103,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
   }
 
   if (account.user.authId !== reqUser.principalId) {
-    throw new Error('User principalId does not match account user authId')
-  }
-
-  //Validate the role matches the required role
-  if (reqUser.role !== requiredRole) {
-    throw new Error(`User role '${reqUser.role}' does not match required role '${requiredRole}'`)
+    throw new Error('User cannot access this action')
   }
 
   //Additional role-specific validations
