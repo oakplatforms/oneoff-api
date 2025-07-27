@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { AuthenticatedUser, validateAdmin, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const shippingMethodRouter = express.Router()
@@ -69,9 +70,9 @@ shippingMethodRouter.get('/shipping-methods', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SHIPPING_METHODS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve shipping methods.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SHIPPING_METHODS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve shipping methods.' })
   }
 })
 
@@ -147,6 +148,7 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
   } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const shippingMethod = await prisma.shippingMethod.create({
       data: {
         name,
@@ -172,9 +174,9 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
     })
     res.json(shippingMethod)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SHIPPING_METHOD_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create shipping method.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPPING_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create shipping method.' })
   }
 })
 
@@ -256,9 +258,10 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
  */
 shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
   const { id } = req.params
-  const { shippingOptions, parcels } = req.body
+  const { shippingOptions, parcels, lastModifiedById } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const shippingMethod = await prisma.shippingMethod.update({
       where: { id },
       data: {
@@ -303,9 +306,9 @@ shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
       throw new Error('Cannot update shipping category by id')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_SHIPPING_METHOD_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update shipping method.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SHIPPING_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update shipping method.' })
   }
 })
 
@@ -372,6 +375,9 @@ shippingMethodRouter.get('/shipping-method/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Shipping method ID is required')
+    }
     const shippingMethod = await prisma.shippingMethod.findUnique({
       where: {
         id,
@@ -384,9 +390,9 @@ shippingMethodRouter.get('/shipping-method/:id', async (req, res) => {
       throw new Error('Cannot update shipping category by id')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('RETRIEVE_SHIPPING_METHOD_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve shipping method.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('RETRIEVE_SHIPPING_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve shipping method.' })
   }
 })
 
@@ -453,6 +459,11 @@ shippingMethodRouter.delete(`/shipping-method/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Shipping method ID is required')
+    }
+    validateRole(req.user as AuthenticatedUser, 'admin')
+
     const shippingMethod = await prisma.shippingMethod.delete({
       where: {
         id: id,

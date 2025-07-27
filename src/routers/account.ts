@@ -46,7 +46,7 @@ accountRouter.get('/accounts', async (req, res) => {
   const { include, usePagination, page, limit } = req.query
 
   try {
-    await validateRole(req.user as AuthenticatedUser, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 

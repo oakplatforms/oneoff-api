@@ -72,7 +72,7 @@ export const validateAdmin = async (reqUser: AuthenticatedUser, adminId: string,
   return admin
 }
 
-export const validateAccount = async (reqUser: AuthenticatedUser, accountId: string, requiredRole: string) => {
+export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: string, requiredRole?: string) => {
   if (!reqUser) {
     throw new Error('User authentication required')
   }
@@ -85,6 +85,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
     throw new Error('AccountId is required')
   }
 
+  //Fetch account and verify the principalId matches the account.user.authId
   const account = await prisma.account.findUnique({
     where: { id: accountId },
     include: {
@@ -103,7 +104,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
   }
 
   if (account.user.authId !== reqUser.principalId) {
-    throw new Error('User cannot access this action')
+    throw new Error('User cannot make this request')
   }
 
   //Additional role-specific validations
@@ -126,6 +127,29 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId: str
     if (account.type === 'SELLER' && !account.customer) {
       throw new Error('Seller must have customer profile to access customer functionality')
     }
+    break
+  case 'registered':
+    if (account.type !== 'REGISTERED') {
+      throw new Error('Account type must be REGISTERED')
+    }
+    break
+  case 'sellerOrRegistered':
+    if (account.type !== 'SELLER' && account.type !== 'REGISTERED') {
+      throw new Error('Account type must be SELLER or REGISTERED')
+    }
+    if (account.type === 'SELLER' && !account.seller) {
+      throw new Error('Seller profile not found')
+    }
+    break
+  case 'customerOrRegistered':
+    if (account.type !== 'CUSTOMER' && account.type !== 'REGISTERED') {
+      throw new Error('Account type must be CUSTOMER or REGISTERED')
+    }
+    if (account.type === 'CUSTOMER' && !account.customer) {
+      throw new Error('Customer profile not found')
+    }
+    break
+  case 'authenticated':
     break
   default:
     throw new Error(`Invalid required account role: ${requiredRole}`)

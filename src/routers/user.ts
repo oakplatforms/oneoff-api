@@ -69,9 +69,9 @@ userRouter.get('/users', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_USERS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve users.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_USERS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve users.' })
   }
 })
 
@@ -252,6 +252,9 @@ userRouter.put(`/user/:id`, async (req, res) => {
   const { account } = req.body
   const { profile: profileProps, ...accountProps } = account || {}
   try {
+    if (!id) {
+      throw new Error('User ID is required')
+    }
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -404,6 +407,9 @@ userRouter.delete(`/user/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    if (!id) {
+      throw new Error('User ID is required')
+    }
     const user = await prisma.user.delete({
       where: {
         id: id,
@@ -415,9 +421,9 @@ userRouter.delete(`/user/:id`, async (req, res) => {
       throw new Error('No user ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_USER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete user.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_USER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete user.' })
   }
 })
 
