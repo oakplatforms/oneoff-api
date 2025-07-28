@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateAdmin, AuthenticatedUser } from '../validation/user'
+import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const brandRouter = express.Router()
@@ -40,9 +40,9 @@ brandRouter.get('/brands', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_BRANDS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve brands.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_BRANDS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve brands.' })
   }
 })
 
@@ -75,9 +75,9 @@ brandRouter.post(`/brand`, async (req, res) => {
     })
     res.json(brand)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_BRAND_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create brand.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_BRAND_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create brand.' })
   }
 })
 
@@ -153,9 +153,9 @@ brandRouter.put('/brand/:id', async (req, res) => {
 
     res.json(brand)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_BRAND_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update brand.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_BRAND_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update brand.' })
   }
 })
 
@@ -211,6 +211,9 @@ brandRouter.get('/brand/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Brand ID is required')
+    }
     const brand = await prisma.brand.findUnique({
       where: {
         id,
@@ -224,9 +227,9 @@ brandRouter.get('/brand/:id', async (req, res) => {
       throw new Error('No brand ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_BRAND_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve brand.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_BRAND_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve brand.' })
   }
 })
 
@@ -275,6 +278,7 @@ brandRouter.delete(`/brand/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const brand = await prisma.brand.delete({
       where: {
         id: id,
@@ -286,8 +290,8 @@ brandRouter.delete(`/brand/:id`, async (req, res) => {
       throw new Error('No brand ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_BRAND_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete brand.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_BRAND_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete brand.' })
   }
 })

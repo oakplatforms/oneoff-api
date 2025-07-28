@@ -4,6 +4,7 @@ import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
 import { validateOrdersForInvoice } from '../validation/invoice'
 import { generateIncludes } from '../utils/generateIncludes'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 export const invoiceRouter = express.Router()
 
 const prisma = getPrismaClient()
@@ -51,6 +52,9 @@ invoiceRouter.get('/invoice/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Invoice ID is required')
+    }
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: generateIncludes(include),
@@ -62,9 +66,9 @@ invoiceRouter.get('/invoice/:id', async (req, res) => {
       throw new Error('No invoice ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_INVOICE_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve invoice.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_INVOICE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve invoice.' })
   }
 })
 
@@ -120,13 +124,13 @@ invoiceRouter.get('/invoice/:id', async (req, res) => {
  *                   example: There was an error while creating your invoice.
  */
 invoiceRouter.post('/invoice', async (req, res) => {
-  const { orderIds } = req.body
-
-  if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
-    return res.status(400).json({ errorMessage: 'Missing or invalid orderIds in request body.' })
-  }
+  const { orderIds, accountId } = req.body
 
   try {
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      throw new Error('Missing or invalid orderIds in request body.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateOrdersForInvoice(orderIds)
     const invoice = await createInvoiceWithTransactions(orderIds)
     if (invoice) {

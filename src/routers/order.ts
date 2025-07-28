@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { AuthenticatedUser, validateAccount } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
@@ -177,6 +178,9 @@ orderRouter.get('/order/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Order ID is required')
+    }
     const order = await prisma.order.findUnique({
       where: { id },
       include: generateIncludes(include)
@@ -188,9 +192,9 @@ orderRouter.get('/order/:id', async (req, res) => {
       throw new Error('No order ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_ORDER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve order.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ORDER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve order.' })
   }
 })
 
@@ -279,11 +283,11 @@ orderRouter.post('/order', async (req, res) => {
     offerId?: string
   } = req.body
 
-  if (!customerId || !sellerId || !listingsInOrder) {
-    return res.status(400).json({ error: 'Missing required fields in request body.' })
-  }
-
   try {
+    if (!customerId || !sellerId || !listingsInOrder) {
+      throw new Error('Missing required fields in request body.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, customerId, 'customer')
     let subTotal = 0
     const listingIds = listingsInOrder.create.map((item) => item.listingId)
     const listings = await prisma.listing.findMany({
@@ -428,6 +432,10 @@ orderRouter.put('/order/:id', async (req, res) => {
   } = req.body
 
   try {
+    if (!id) {
+      throw new Error('Order ID is required')
+    }
+    await validateAccount(req.user as AuthenticatedUser, customerId, 'customer')
     const result = await prisma.$transaction(async (prisma) => {
       const existingOrder = await prisma.order.findUnique({
         where: { id },

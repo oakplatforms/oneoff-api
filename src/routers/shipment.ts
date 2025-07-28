@@ -3,6 +3,7 @@ import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
 import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
 import { Prisma } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
+import { AuthenticatedUser, validateAccount } from '../validation/user'
 
 const prisma = getPrismaClient()
 
@@ -54,22 +55,26 @@ export const shipmentRouter = express.Router()
  *         description: Failed to retrieve shipment.
  */
 shipmentRouter.get('/shipment/:id', async (req, res) => {
+  const { id } = req.params
+
   try {
-    const { id } = req.params
+    if (!id) {
+      throw new Error('Shipment ID is required')
+    }
 
     const shipment = await prisma.shipment.findUnique({
       where: { id },
     })
 
     if (!shipment) {
-      return res.status(404).json({ errorMessage: 'Shipment not found.' })
+      throw new Error('Shipment not found.')
     }
 
     return res.json({ shipment })
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SHIPMENT_ERROR:', prismaError)
-    return res.status(statusCode).json({ errorMessage: 'Failed to retrieve shipment.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SHIPMENT_ERROR:', prismaError || customError)
+    return res.status(statusCode).json({ errorMessage: customError || 'Failed to retrieve shipment.' })
   }
 })
 
@@ -137,12 +142,13 @@ shipmentRouter.get('/shipment/:id', async (req, res) => {
  *         description: Failed to fetch rates from Shippo or internal server error.
  */
 shipmentRouter.post('/shipment/rates', async (req, res) => {
-  try {
-    const { orderId } = req.body
+  const { orderId, accountId } = req.body
 
+  try {
     if (!orderId) {
-      return res.status(400).json({ errorMessage: 'Missing orderId in request body.' })
+      throw new Error('Missing orderId in request body.')
     }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
 
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
@@ -186,7 +192,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
       })
 
       if (!order || !order.customer || !order.seller) {
-        return res.status(404).json({ errorMessage: 'Order or participants not found.' })
+        throw new Error('Order or participants not found.')
       }
 
       const fromAddress = {
@@ -251,9 +257,9 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SHIPMENT_RATE_ERROR:', prismaError)
-    return res.status(statusCode).json({ errorMessage: 'Failed to fetch rates from Shippo.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPMENT_RATE_ERROR:', prismaError || customError)
+    return res.status(statusCode).json({ errorMessage: customError || 'Failed to fetch rates from Shippo.' })
   }
 })
 
@@ -320,23 +326,24 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
  *         description: Failed to create shipment due to Shippo error or database failure.
  */
 shipmentRouter.post('/shipment', async (req, res) => {
-  try {
-    const { orderId, rateId } = req.body
+  const { orderId, rateId, accountId } = req.body
 
+  try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     if (!orderId || !rateId) {
-      return res.status(400).json({ errorMessage: 'Missing orderId or rateId.' })
+      throw new Error('Missing orderId or rateId.')
     }
 
     const order = await prisma.order.findUnique({ where: { id: orderId } })
 
     if (!order) {
-      return res.status(404).json({ errorMessage: 'Order not found.' })
+      throw new Error('Order not found.')
     }
 
     const rate = await fetchRateById(rateId)
 
     if (!rate || !rate.amount || !rate.shipment) {
-      return res.status(400).json({ errorMessage: 'Invalid or incomplete rate.' })
+      throw new Error('Invalid or incomplete rate.')
     }
 
     const newShipment = await prisma.shipment.create({
@@ -356,9 +363,9 @@ shipmentRouter.post('/shipment', async (req, res) => {
 
     return res.json({ shipment: newShipment })
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SHIPMENT_ERROR:', prismaError)
-    return res.status(statusCode).json({ errorMessage:' Failed to create shipment.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPMENT_ERROR:', prismaError || customError)
+    return res.status(statusCode).json({ errorMessage: customError || 'Failed to create shipment.' })
   }
 })
 
@@ -399,20 +406,20 @@ shipmentRouter.post('/shipment', async (req, res) => {
  *         description: Failed to update shipment status.
  */
 shipmentRouter.delete('/shipment/:id', async (req, res) => {
-  try {
-    const { id } = req.params
+  const { id } = req.params
 
+  try {
     const shipment = await prisma.shipment.findUnique({ where: { id } })
     if (!shipment) {
-      return res.status(404).json({ errorMessage: 'Shipment not found.' })
+      throw new Error('Shipment not found.')
     }
 
     await prisma.shipment.delete({ where: { id } })
 
     return res.json({ message: 'Shipment deleted successfully.' })
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_SHIPMENT_ERROR:', prismaError)
-    return res.status(statusCode).json({ errorMessage: 'Failed to delete shipment.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SHIPMENT_ERROR:', prismaError || customError)
+    return res.status(statusCode).json({ errorMessage: customError || 'Failed to delete shipment.' })
   }
 })

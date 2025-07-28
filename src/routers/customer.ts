@@ -4,6 +4,8 @@ import stripe from '../utils/stripe'
 import { promoteUserToCustomer } from '../utils/promoteUserToCustomer'
 import { Prisma } from '@prisma/client'
 import Stripe from 'stripe'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
+import { validateNewCustomer } from '../validation/customer'
 
 const prisma = getPrismaClient()
 export const customerRouter = express.Router()
@@ -83,6 +85,8 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
   const { firstName, lastName, phone, address, city, state, zipCode } = req.body
 
   try {
+    await validateNewCustomer(req.body)
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'sellerOrRegistered')
     const result = await prisma.$transaction(async (tx) => {
       const existingAccount = await tx.account.findUnique({
         where: { id: accountId },
@@ -224,6 +228,7 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
   } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const result = await prisma.$transaction(async (tx) => {
       const updatedCustomer = await tx.customer.update({
         where: { accountId },
@@ -239,7 +244,7 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
       })
 
       if (!updatedCustomer.paymentAccountId) {
-        return res.status(400).json({ errorMessage: 'Customer ID not found' })
+        throw new Error('Customer ID not found')
       }
 
       const stripeUpdatedCustomerData: Stripe.CustomerUpdateParams = {
@@ -265,9 +270,9 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_CUSTOMER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update customer.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_CUSTOMER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update customer.' })
   }
 })
 
@@ -325,11 +330,10 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
 customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => {
   const { customerId } = req.params
 
-  if (!customerId) {
-    return res.status(400).json({ errorMessage: 'Missing required parameter: customerId' })
-  }
-
   try {
+    if (!customerId) {
+      throw new Error('Missing required parameter: customerId')
+    }
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customerId,
       type: 'card',
@@ -337,8 +341,8 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
 
     return res.status(200).json(paymentMethods)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_CUSTOMER_PAYMENT_METHODS_ERROR:', prismaError)
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CUSTOMER_PAYMENT_METHODS_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: 'Failed to retrieve customer payment methods.' })
   }
 })
@@ -407,10 +411,11 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
   const { paymentMethodId } = req.body
 
   if (!accountId || !paymentMethodId) {
-    return res.status(400).json({ errorMessage: 'Missing required parameters.' })
+    throw new Error('Missing required parameters.')
   }
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const result = await prisma.$transaction(async (tx) => {
       const updatedCustomer = await tx.customer.update({
         where: { accountId },
@@ -430,9 +435,9 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
     }, { timeout: 60000 })
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_CUSTOMER_PAYMENT_METHOD_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create customer payment method.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CUSTOMER_PAYMENT_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create customer payment method.' })
   }
 })
 
@@ -483,21 +488,22 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
  *                   type: string
  *                   example: There was an error while removing your payment method
  */
-customerRouter.delete('/customer/payment-method/:paymentMethodId', async (req, res) => {
-  const { paymentMethodId } = req.params
+customerRouter.delete('/customer/payment-method/:accountId/:paymentMethodId', async (req, res) => {
+  const { accountId, paymentMethodId } = req.params
 
-  if (!paymentMethodId) {
-    return res.status(400).json({ errorMessage: 'Missing required parameter: paymentMethodId' })
+  if (!accountId || !paymentMethodId) {
+    throw new Error('Missing required parameters: accountId and paymentMethodId')
   }
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await stripe.paymentMethods.detach(paymentMethodId)
 
     return res.json({ success: 'Payment method was successfully removed' })
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_CUSTOMER_PAYMENT_METHOD_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete customer payment method.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_CUSTOMER_PAYMENT_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete customer payment method.' })
   }
 })
 

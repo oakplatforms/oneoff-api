@@ -3,6 +3,7 @@ import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { generateIncludes } from '../utils/generateIncludes'
 import { validateCart, validateCartAccount } from '../validation/cart'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const cartRouter = express.Router()
@@ -38,6 +39,7 @@ cartRouter.post('/cart', async (req, res) => {
   const { accountId, isPrimary } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCartAccount(accountId, isPrimary)
     const cart = await prisma.cart.create({
       data: { accountId, isPrimary },
@@ -91,6 +93,7 @@ cartRouter.put('/cart/:id', async (req, res) => {
   const { accountId } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCart(id)
     const cart = await prisma.cart.update({
       where: { id },
@@ -137,7 +140,11 @@ cartRouter.put('/cart/:id', async (req, res) => {
 cartRouter.get('/cart/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
+
   try {
+    if (!id) {
+      throw new Error('Cart ID is required')
+    }
     const cart = await prisma.cart.findUnique({
       where: { id },
       include: generateIncludes(include),
@@ -145,9 +152,9 @@ cartRouter.get('/cart/:id', async (req, res) => {
     if (cart) res.json(cart)
     else res.status(404).send({ errorMessage: 'Cart not found' })
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_CART_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve cart.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CART_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve cart.' })
   }
 })
 
@@ -175,14 +182,15 @@ cartRouter.get('/cart/:id', async (req, res) => {
  *       '404':
  *         description: Cart not found
  */
-cartRouter.delete('/cart/:id', async (req, res) => {
-  const { id } = req.params
+cartRouter.delete('/cart/:accountId/:id', async (req, res) => {
+  const { id, accountId } = req.params
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const cart = await prisma.cart.delete({ where: { id } })
     res.json(cart)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_CART_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete cart.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_CART_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete cart.' })
   }
 })
