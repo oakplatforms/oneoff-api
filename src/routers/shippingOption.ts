@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { AuthenticatedUser, validateAccount, validateRole } from '../validation/user'
+import { AuthenticatedUser, validateAdmin, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const shippingOptionRouter = express.Router()
@@ -114,7 +114,7 @@ shippingOptionRouter.post('/shipping-option', async (req, res) => {
   } = req.body
 
   try {
-    await validateAccount(req.user as AuthenticatedUser, createdById, 'admin')
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const shippingOption = await prisma.shippingOption.create({
       data: {
         name,
@@ -192,7 +192,7 @@ shippingOptionRouter.put('/shipping-option/:id', async (req, res) => {
   } = req.body
 
   try {
-    await validateAccount(req.user as AuthenticatedUser, lastModifiedById, 'admin')
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const shippingOption = await prisma.shippingOption.update({
       where: { id },
       data: {
