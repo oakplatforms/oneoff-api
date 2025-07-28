@@ -274,20 +274,22 @@ orderRouter.post('/order', async (req, res) => {
     sellerId,
     cartId,
     listingsInOrder,
-    offerId
+    offerId,
+    accountId
   }: {
     customerId?: string
     sellerId?: string
     cartId?: string
     listingsInOrder?: ListingsInOrder
     offerId?: string
+    accountId?: string
   } = req.body
 
   try {
     if (!customerId || !sellerId || !listingsInOrder) {
       throw new Error('Missing required fields in request body.')
     }
-    await validateAccount(req.user as AuthenticatedUser, customerId, 'customer')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     let subTotal = 0
     const listingIds = listingsInOrder.create.map((item) => item.listingId)
     const listings = await prisma.listing.findMany({
@@ -422,6 +424,7 @@ orderRouter.put('/order/:id', async (req, res) => {
     shippingMethodId,
     listingsInOrder,
     orderShippingOptions,
+    accountId
   }: {
     customerId?: string
     sellerId?: string
@@ -429,13 +432,14 @@ orderRouter.put('/order/:id', async (req, res) => {
     shippingMethodId?: string
     listingsInOrder?: ListingsInOrder
     orderShippingOptions?: OrderShippingOptionsPayload
+    accountId?: string
   } = req.body
 
   try {
     if (!id) {
       throw new Error('Order ID is required')
     }
-    await validateAccount(req.user as AuthenticatedUser, customerId, 'customer')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const result = await prisma.$transaction(async (prisma) => {
       const existingOrder = await prisma.order.findUnique({
         where: { id },

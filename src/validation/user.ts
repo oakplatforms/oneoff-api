@@ -111,7 +111,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
   switch (requiredRole) {
   case 'seller':
     if (account.type !== 'SELLER') {
-      throw new Error('Account type must be SELLER')
+      throw new Error('Account type must be seller')
     }
     if (!account.seller) {
       throw new Error('Seller profile not found')
@@ -119,7 +119,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
     break
   case 'customer':
     if (account.type !== 'CUSTOMER' && account.type !== 'SELLER') {
-      throw new Error('Account type must be CUSTOMER or SELLER')
+      throw new Error('Account type must be customer or seller')
     }
     if (account.type === 'CUSTOMER' && !account.customer) {
       throw new Error('Customer profile not found')
@@ -130,12 +130,12 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
     break
   case 'registered':
     if (account.type !== 'REGISTERED') {
-      throw new Error('Account type must be REGISTERED')
+      throw new Error('Account type must be registered')
     }
     break
   case 'sellerOrRegistered':
     if (account.type !== 'SELLER' && account.type !== 'REGISTERED') {
-      throw new Error('Account type must be SELLER or REGISTERED')
+      throw new Error('Account type must be seller or registered')
     }
     if (account.type === 'SELLER' && !account.seller) {
       throw new Error('Seller profile not found')
@@ -143,7 +143,7 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
     break
   case 'customerOrRegistered':
     if (account.type !== 'CUSTOMER' && account.type !== 'REGISTERED') {
-      throw new Error('Account type must be CUSTOMER or REGISTERED')
+      throw new Error('Account type must be customer or registered')
     }
     if (account.type === 'CUSTOMER' && !account.customer) {
       throw new Error('Customer profile not found')
