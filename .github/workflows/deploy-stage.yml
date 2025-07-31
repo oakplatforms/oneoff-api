@@ -54,8 +54,8 @@ jobs:
       run: serverless deploy --stage stage --verbose
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_STAGE }}
-        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_DEV }}
-        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_DEV }}
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_STAGE }}
+        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_STAGE }}
         SHIPPO_SECRET_KEY: ${{ secrets.SHIPPO_SECRET_KEY_DEV }}
         SHIPPO_WEBHOOK_SECRET: ${{ secrets.SHIPPO_WEBHOOK_SECRET_DEV }}
         SHIPPO_CARRIER_ACCOUNT_USPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_USPS }}
