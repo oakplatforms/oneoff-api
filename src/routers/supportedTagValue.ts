@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { AuthenticatedUser, validateAccount, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const supportedTagValueRouter = express.Router()
@@ -65,6 +66,7 @@ supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
   const { name, displayName, tagId, createdById } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, createdById, 'admin')
     const supportedTagValue = await prisma.supportedTagValue.create({
       data: {
         name,
@@ -75,9 +77,9 @@ supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
     })
     res.json(supportedTagValue)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SUPPORTED_TAG_VALUE_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create supported tag value.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SUPPORTED_TAG_VALUE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create supported tag value.' })
   }
 })
 
@@ -128,6 +130,11 @@ supportedTagValueRouter.delete(`/supported-tag-value/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Supported tag value ID is required')
+    }
+    await validateRole(req.user as AuthenticatedUser, 'admin')
+
     const supportedTagValue = await prisma.supportedTagValue.delete({
       where: {
         id: id,
@@ -139,8 +146,8 @@ supportedTagValueRouter.delete(`/supported-tag-value/:id`, async (req, res) => {
       throw new Error('No supported tag value ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_SUPPORTED_TAG_VALUE_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete supported tag value.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SUPPORTED_TAG_VALUE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete supported tag value.' })
   }
 })

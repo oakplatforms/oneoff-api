@@ -6,6 +6,7 @@ import { resolveListings } from '../services/resolver'
 import { validateCustomer } from '../validation/customer'
 import { validateExistingBid } from '../validation/bid'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -93,9 +94,9 @@ bidRouter.get('/bids', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_BIDS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve bids.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_BIDS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve bids.' })
   }
 })
 
@@ -149,12 +150,11 @@ bidRouter.get('/bids', async (req, res) => {
  */
 bidRouter.get('/bid/highest-bid', async (req, res) => {
   const { include, entityId } = req.query
-  if (!entityId) {
-    res.status(400).send({ errorMessage: 'Entity ID is required to retrieve highest bid' })
-    return
-  }
 
   try {
+    if (!entityId) {
+      throw new Error('Entity ID is required to retrieve highest bid')
+    }
     const bid = await prisma.bid.findFirst({
       where: {
         AND: [
@@ -171,9 +171,9 @@ bidRouter.get('/bid/highest-bid', async (req, res) => {
 
     res.json(bid)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_HIGHEST_BID_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve highest bid.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_HIGHEST_BID_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve highest bid.' })
   }
 })
 
@@ -298,6 +298,7 @@ bidRouter.post(`/bid`, async (req, res) => {
     entityId
   } = req.body
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCustomer(accountId)
     const userBid = await prisma.bid.findFirst({
       where: {
@@ -421,6 +422,7 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
     accountId,
   } = req.body
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCustomer(accountId)
     await validateExistingBid(id)
 
@@ -518,6 +520,9 @@ bidRouter.get('/bid/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Bid ID is required')
+    }
     const bid = await prisma.bid.findUnique({
       where: { id },
       include: generateIncludes(include)
@@ -529,9 +534,9 @@ bidRouter.get('/bid/:id', async (req, res) => {
       throw new Error('No bid ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_BID_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve bid.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_BID_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve bid.' })
   }
 })
 
@@ -588,10 +593,12 @@ bidRouter.get('/bid/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-bidRouter.delete(`/bid/:id`, async (req, res) => {
-  const { id } = req.params
+bidRouter.delete(`/bid/:accountId/:id`, async (req, res) => {
+  const { id, accountId } = req.params
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
     const bid = await prisma.bid.delete({
       where: { id },
     })
@@ -602,8 +609,8 @@ bidRouter.delete(`/bid/:id`, async (req, res) => {
       throw new Error('No bid ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_BID_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete bid.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_BID_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete bid.' })
   }
 })

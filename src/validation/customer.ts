@@ -25,3 +25,55 @@ export const validateCustomer = async (accountId?: string) => {
     throw new Error('The customer does not have an associated payment method')
   }
 }
+
+interface NewCustomerRequest {
+  firstName?: string
+  lastName?: string
+  phone?: string
+  address?: string
+  city?: string
+  state?: string
+  zipCode?: string
+}
+
+export const validateNewCustomer = (reqBody: NewCustomerRequest) => {
+  const { firstName, lastName, phone, address, city, state, zipCode } = reqBody
+
+  if (!firstName || typeof firstName !== 'string' || firstName.trim().length === 0) {
+    throw new Error('First name is required and must be a non-empty string')
+  }
+
+  if (!lastName || typeof lastName !== 'string' || lastName.trim().length === 0) {
+    throw new Error('Last name is required and must be a non-empty string')
+  }
+
+  if (!phone || typeof phone !== 'string' || phone.trim().length === 0) {
+    throw new Error('Phone number is required and must be a non-empty string')
+  }
+
+  if (!address || typeof address !== 'string' || address.trim().length === 0) {
+    throw new Error('Address is required and must be a non-empty string')
+  }
+
+  if (!city || typeof city !== 'string' || city.trim().length === 0) {
+    throw new Error('City is required and must be a non-empty string')
+  }
+
+  if (!state || typeof state !== 'string' || state.trim().length === 0) {
+    throw new Error('State is required and must be a non-empty string')
+  }
+
+  if (!zipCode || typeof zipCode !== 'string' || zipCode.trim().length === 0) {
+    throw new Error('Zip code is required and must be a non-empty string')
+  }
+
+  return {
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    phone: phone.trim(),
+    address: address.trim(),
+    city: city.trim(),
+    state: state.trim(),
+    zipCode: zipCode.trim()
+  }
+}

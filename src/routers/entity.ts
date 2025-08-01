@@ -5,6 +5,7 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
+import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const entityRouter = express.Router()
@@ -153,9 +154,9 @@ entityRouter.get('/entities', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_ENTITIES_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve entities.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITIES_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entities.' })
   }
 })
 
@@ -283,6 +284,7 @@ entityRouter.post('/entity', async (req, res) => {
   } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     if (entityTags?.create?.length) {
       for (const entityTag of entityTags.create) {
         const selectedTag = await prisma.tag.findUnique({
@@ -296,9 +298,7 @@ entityRouter.post('/entity', async (req, res) => {
           )
 
           if (!supportedTagValue) {
-            return res.status(400).send({
-              errorMessage: `Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`,
-            })
+            throw new Error(`Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
           }
         }
       }
@@ -328,9 +328,9 @@ entityRouter.post('/entity', async (req, res) => {
 
     res.json(entity)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_ENTITY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create entity.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_ENTITY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create entity.' })
   }
 })
 
@@ -490,9 +490,10 @@ entityRouter.post('/entity', async (req, res) => {
  */
 entityRouter.put('/entity/:id', async (req, res) => {
   const { id } = req.params
-  const { entityTags, categoryId, brandId, product } = req.body
+  const { entityTags, categoryId, brandId, product, lastModifiedById } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     if (entityTags?.create?.length) {
       for (const entityTag of entityTags.create) {
         const selectedTag = await prisma.tag.findUnique({
@@ -506,9 +507,7 @@ entityRouter.put('/entity/:id', async (req, res) => {
           )
 
           if (!supportedTagValue) {
-            return res.status(400).send({
-              errorMessage: `Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`,
-            })
+            throw new Error(`Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
           }
         }
       }
@@ -518,6 +517,7 @@ entityRouter.put('/entity/:id', async (req, res) => {
       where: { id },
       data: {
         ...req.body,
+        lastModifiedById,
         product: product
           ? {
             update: {
@@ -551,9 +551,9 @@ entityRouter.put('/entity/:id', async (req, res) => {
       throw new Error('Cannot update entity by id')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_ENTITY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update entity.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_ENTITY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update entity.' })
   }
 })
 
@@ -629,12 +629,13 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
   const { field = 'image' } = req.query
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
     if (!req.file) {
-      return res.status(400).json({ error: 'Missing image file' })
+      throw new Error('Missing image file')
     }
 
     if (field !== 'image' && field !== 'secondaryImage') {
-      return res.status(400).json({ error: 'Invalid field parameter. Must be "image" or "secondaryImage"' })
+      throw new Error('Invalid field parameter. Must be "image" or "secondaryImage"')
     }
 
     const key = await uploadImage(req.file, 'entity')
@@ -648,7 +649,7 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPLOAD_ENTITY_IMAGE_ERROR:', prismaError, customError)
-    res.status(statusCode).send({ errorMessage: 'Failed to upload entity image.' })
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload entity image.' })
   }
 })
 
@@ -659,7 +660,7 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *     tags:
  *       - Entity
  *     summary: Delete an entity's image
- *     description: Deletes the image file associated with an entity from S3 and clears the entity's `image` field in the database.
+ *     description: Deletes the image file associated with an entity from S3 and clears the entity's `image` or `secondaryImage` field in the database.
  *     parameters:
  *       - in: path
  *         name: id
@@ -667,6 +668,14 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *         schema:
  *           type: string
  *         description: ID of the entity whose image should be deleted.
+ *       - in: query
+ *         name: field
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [image, secondaryImage]
+ *           default: image
+ *         description: The image field to delete (image or secondaryImage)
  *     responses:
  *       '200':
  *         description: Successfully deleted the image and updated the entity
@@ -680,6 +689,16 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  *                 message:
  *                   type: string
  *                   example: Image deleted successfully
+ *       '400':
+ *         description: Invalid field parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid field parameter. Must be "image" or "secondaryImage"
  *       '404':
  *         description: Entity not found or entity has no image
  *         content:
@@ -703,31 +722,40 @@ entityRouter.put('/entity/upload-image/:id', uploadConfig.single('file'), async 
  */
 entityRouter.delete('/entity/delete-image/:id', async (req, res) => {
   const { id } = req.params
+  const { field = 'image' } = req.query
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
+
+    if (field !== 'image' && field !== 'secondaryImage') {
+      throw new Error('Invalid field parameter. Must be "image" or "secondaryImage"' )
+    }
+
     const entity = await prisma.entity.findUnique({
       where: { id },
-      select: { image: true }
+      select: { image: true, secondaryImage: true }
     })
 
     if (!entity) {
-      return res.status(404).json({ errorMessage: 'Entity not found' })
+      throw new Error('Entity not found')
     }
 
-    if (!entity.image) {
-      return res.status(404).json({ errorMessage: 'Entity has no image to delete' })
+    const imageToDelete = field === 'image' ? entity.image : entity.secondaryImage
+
+    if (!imageToDelete) {
+      throw new Error(`Entity has no ${field} to delete`)
     }
 
-    await deleteImage(entity.image)
+    await deleteImage(imageToDelete)
 
     const updatedEntity = await prisma.entity.update({
       where: { id },
-      data: { image: null },
+      data: { [field]: null },
     })
 
     res.json({
       entity: updatedEntity,
-      message: 'Image deleted successfully'
+      message: `${field} deleted successfully`
     })
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
@@ -788,6 +816,9 @@ entityRouter.get('/entity/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Entity ID is required')
+    }
     const entity = await prisma.entity.findUnique({
       where: {
         id
@@ -801,9 +832,9 @@ entityRouter.get('/entity/:id', async (req, res) => {
       throw new Error('No entity ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_ENTITY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve entity.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entity.' })
   }
 })
 
@@ -859,13 +890,17 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Entity ID is required')
+    }
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const entity = await prisma.entity.findUnique({
       where: { id },
       select: { image: true, secondaryImage: true }
     })
 
     if (!entity) {
-      return res.status(404).json({ errorMessage: 'Entity not found' })
+      throw new Error('Entity not found')
     }
 
     const deletePromises = []
@@ -890,8 +925,8 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
 
     res.json(deletedEntity)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_ENTITY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete entity.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_ENTITY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete entity.' })
   }
 })

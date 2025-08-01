@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const categoryRouter = express.Router()
@@ -68,8 +69,8 @@ categoryRouter.get('/categories', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_CATEGORIES_ERROR:', prismaError)
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CATEGORIES_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: 'Failed to retrieve categories.' })
   }
 })
@@ -127,6 +128,7 @@ categoryRouter.post(`/category`, async (req, res) => {
   const { name, displayName, createdById, description } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const category = await prisma.category.create({
       data: {
         name,
@@ -137,9 +139,9 @@ categoryRouter.post(`/category`, async (req, res) => {
     })
     res.json(category)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_CATEGORY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create category.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CATEGORY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create category.' })
   }
 })
 
@@ -214,8 +216,10 @@ categoryRouter.post(`/category`, async (req, res) => {
  */
 categoryRouter.put(`/category/:id`, async (req, res) => {
   const { id } = req.params
+  const { lastModifiedById } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const category = await prisma.category.update({
       where: { id },
       data: {
@@ -228,9 +232,9 @@ categoryRouter.put(`/category/:id`, async (req, res) => {
       throw new Error('Cannot update category by ID')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_CATEGORY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update category.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_CATEGORY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update category.' })
   }
 })
 
@@ -297,6 +301,9 @@ categoryRouter.get('/category/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Category ID is required')
+    }
     const category = await prisma.category.findUnique({
       where: {
         id,
@@ -309,9 +316,9 @@ categoryRouter.get('/category/:id', async (req, res) => {
       throw new Error('No category ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_CATEGORY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve category.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_CATEGORY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve category.' })
   }
 })
 
@@ -372,6 +379,7 @@ categoryRouter.delete(`/category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const category = await prisma.category.delete({
       where: {
         id: id,
@@ -383,8 +391,8 @@ categoryRouter.delete(`/category/:id`, async (req, res) => {
       throw new Error('No category ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_CATEGORY_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete category.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_CATEGORY_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete category.' })
   }
 })

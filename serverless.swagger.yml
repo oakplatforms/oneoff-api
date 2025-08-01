@@ -34,6 +34,9 @@ functions:
           path: /swagger-ui/{proxy+}
           method: ANY
       - httpApi:
+          path: /swagger-schema
+          method: GET
+      - httpApi:
           path: /open-api
           method: GET
     package:

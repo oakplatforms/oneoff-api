@@ -2,6 +2,7 @@ import express from 'express'
 const router = express.Router()
 import { userRouter } from './user'
 import { accountRouter } from './account'
+import { authRouter } from './auth'
 import { cartRouter } from './cart'
 import { brandRouter } from './brand'
 import { categoryRouter } from './category'
@@ -18,12 +19,13 @@ import { orderRouter } from './order'
 import { transactionRouter } from './transaction'
 import { invoiceRouter } from './invoice'
 import { sellerRouter } from './seller'
-import { customerRouter } from './customers'
+import { customerRouter } from './customer'
 import { shipmentRouter } from './shipment'
 import { offerRouter } from './offer'
 
 router.use(userRouter)
 router.use(accountRouter)
+router.use(authRouter)
 router.use(cartRouter)
 router.use(customerRouter)
 router.use(sellerRouter)

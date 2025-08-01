@@ -36,6 +36,13 @@ provider:
           Resource: 
             - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}/*
             - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminAddUserToGroup
+            - cognito-idp:AdminRemoveUserFromGroup
+          Resource: 
+            - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:CONSUMER_USER_POOL_ID}
+            - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:ADMIN_USER_POOL_ID}
 
 functions:
   api:
@@ -75,7 +82,8 @@ functions:
       SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
       SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
       SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
-  
+      CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
+
   authorizer:
     name: tcgx-api-authorizer-${sls:stage}
     handler: lambdas/authorizerHandler.handler
@@ -101,6 +109,7 @@ functions:
       DATABASE_URL: ${env:DATABASE_URL}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
+      CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
     events:
       - httpApi:
           path: /webhook/stripe

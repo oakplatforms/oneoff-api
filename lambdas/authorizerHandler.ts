@@ -98,6 +98,7 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
           return generatePolicy('guest', 'Allow', routeArn, {
             role: 'guest',
             userPool: 'temporary',
+            principalId: 'guest',
           })
         } else {
           console.warn('Invalid guest token role')
@@ -128,11 +129,26 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
     const publicKey = await getPublicKey(decodedHeader.header.kid as string, jwksUrl)
     const decodedUser = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as jwt.JwtPayload
 
-    let role = (decodedUser['custom:role'] as string) || 'user'
-    if (userPoolId === USER_POOLS.admin) role = 'admin'
-    if (userPoolId === USER_POOLS.consumer) role = 'customer'
+    //Get the user's Cognito groups to determine their actual role
+    const cognitoGroups = decodedUser['cognito:groups'] as string[] || []
+    console.log('Cognito groups:', cognitoGroups)
 
-    return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, { role, userPool: userPoolId })
+    let role = 'registered'
+    if (cognitoGroups.includes('admin')) {
+      role = 'admin'
+    } else if (cognitoGroups.includes('seller')) {
+      role = 'seller'
+    } else if (cognitoGroups.includes('customer')) {
+      role = 'customer'
+    } else if (cognitoGroups.includes('registered')) {
+      role = 'registered'
+    }
+
+    return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
+      role,
+      userPool: userPoolId,
+      principalId: decodedUser.sub as string
+    })
   } catch (error) {
     const err = error as Error
     console.error('Authorization Error:', err.message)
