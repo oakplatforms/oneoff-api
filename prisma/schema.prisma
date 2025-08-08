@@ -444,6 +444,21 @@ model SupportedTagValue {
   tagId            String
 }
 
+model Set {
+  id               String  @id @default(cuid()) 
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // custom
+  image            String?
+  name             String
+  displayName      String?
+  description      String?
+
+  // relations
+  entities         Entity[]
+}
+
 model List {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
@@ -489,6 +504,8 @@ model Entity {
   reviews          Review[]
   bids             Bid[]
   listings         Listing[]
+  set              Set? @relation(fields: [setId], references: [id], onDelete: Cascade)
+  setId            String?
 }
 
 model EntityList {
