@@ -450,9 +450,11 @@ model Set {
   updatedAt        DateTime  @updatedAt
 
   // custom
-  image            String?
+  banner           String?
+  logo             String?
   name             String
   displayName      String?
+  code             String
   description      String?
 
   // relations

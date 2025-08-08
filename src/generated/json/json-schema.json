@@ -1309,7 +1309,13 @@
           "type": "string",
           "format": "date-time"
         },
-        "image": {
+        "banner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "logo": {
           "type": [
             "string",
             "null"
@@ -1323,6 +1329,9 @@
             "string",
             "null"
           ]
+        },
+        "code": {
+          "type": "string"
         },
         "description": {
           "type": [
