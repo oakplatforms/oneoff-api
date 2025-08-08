@@ -4,3 +4,4 @@ api/
 *.env*
 .build
 .serverless
+migration-scripts/
