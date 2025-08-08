@@ -6,40 +6,9 @@ import serverless from '@vendia/serverless-express'
 
 const app = express()
 
-const processedDto = replaceDTORefs(dto)
-const sortedDto = alphaSortDTO(processedDto)
+const sortedDto = alphaSortDTO(replaceDTORefs(dto))
 
-//Debug: Check for any remaining unresolved references
-const checkForUnresolvedRefs = (obj: Record<string, unknown>, path = ''): string[] => {
-  const unresolved: string[] = []
-
-  if (typeof obj === 'object' && obj !== null) {
-    Object.entries(obj).forEach(([key, value]) => {
-      const currentPath = path ? `${path}.${key}` : key
-
-      if (key === '$ref' && typeof value === 'string') {
-        if (value.startsWith('#/definitions/') || value.startsWith('#/$defs/')) {
-          unresolved.push(`${currentPath}: ${value}`)
-        }
-      } else if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-          unresolved.push(...checkForUnresolvedRefs(item as Record<string, unknown>, `${currentPath}[${index}]`))
-        })
-      } else if (typeof value === 'object') {
-        unresolved.push(...checkForUnresolvedRefs(value as Record<string, unknown>, currentPath))
-      }
-    })
-  }
-
-  return unresolved
-}
-
-const unresolvedRefs = checkForUnresolvedRefs(sortedDto)
-if (unresolvedRefs.length > 0) {
-  console.warn('Unresolved references found:', unresolvedRefs)
-}
-
-const swaggerSpec = swaggerJSDoc({
+const jsDocOptions = {
   definition: {
     openapi: '3.0.1',
     info: {
@@ -58,20 +27,11 @@ const swaggerSpec = swaggerJSDoc({
     },
   },
   apis: ['./src/routers/*.ts'],
-})
+}
+const swaggerSpec = swaggerJSDoc(jsDocOptions)
 
-app.get('/open-api', (_req, res) => {
-  try {
-    console.log('Generating OpenAPI spec...')
-    const spec = swaggerSpec as { components?: { schemas?: Record<string, unknown> } }
-    console.log('Schema definitions count:', Object.keys(spec.components?.schemas || {}).length)
-    res.json(swaggerSpec)
-  } catch (error) {
-    console.error('Error generating OpenAPI spec:', error)
-    res.status(500).json({ error: 'Failed to generate OpenAPI specification' })
-  }
-})
-
+app.get('/open-api', (req, res) => res.json(jsDocOptions.definition))
+app.get('/swagger-schema', (req, res) => res.json(swaggerSpec))
 app.get('/swagger-ui', (_req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -86,7 +46,7 @@ app.get('/swagger-ui', (_req, res) => {
         <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
         <script>
           SwaggerUIBundle({
-            url: '/open-api',
+            url: '/swagger-schema',
             dom_id: '#swagger-ui'
           });
         </script>

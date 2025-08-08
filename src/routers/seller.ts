@@ -7,6 +7,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { validateSeller } from '../validation/seller'
 import { calculateWalletBalance } from '../services/payout'
 import { validatePayoutAmount } from '../validation/payout'
+import { AuthenticatedUser, validateAccount } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
@@ -64,6 +65,9 @@ sellerRouter.get('/seller/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Seller ID is required')
+    }
     const seller = await prisma.seller.findUnique({
       where: { id },
       include: generateIncludes(include)
@@ -75,9 +79,9 @@ sellerRouter.get('/seller/:id', async (req, res) => {
       throw new Error('No seller ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SELLER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve seller.' })
   }
 })
 
@@ -191,6 +195,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
     agreedToTerms
   } = req.body
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customerOrRegistered')
     const result = await prisma.$transaction(async (tx) => {
       const updatedAccount = await tx.account.update({
         where: { id: accountId },
@@ -361,6 +366,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     const result = await prisma.$transaction(async (tx) => {
       const updatedSeller = await tx.seller.update({
         where: { accountId },
@@ -494,12 +500,14 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
   const { id } = req.params
   const {
+    accountId,
     shippingCarrierTypes,
     sellerShippingMethods,
     sellerShippingOptions
   } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     const updatedSeller = await prisma.seller.update({
       where: { id },
       data: {
@@ -587,18 +595,17 @@ sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
 sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
   const { sellerId } = req.params
 
-  if (!sellerId) {
-    return res.status(400).json({ errorMessage: 'Missing required parameter: sellerId' })
-  }
-
   try {
+    if (!sellerId) {
+      throw new Error('Missing required parameter: sellerId')
+    }
     const seller = await prisma.seller.findUnique({
       where: { id: sellerId },
-      select: { paymentAccountId: true },
+      select: { paymentAccountId: true, accountId: true },
     })
 
     if (!seller?.paymentAccountId) {
-      return res.status(404).json({ errorMessage: 'Seller payment account not found.' })
+      throw new Error('Seller payment account not found.')
     }
 
     const externalAccounts = await stripe.accounts.listExternalAccounts(seller.paymentAccountId, {
@@ -607,9 +614,9 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
 
     return res.status(200).json(externalAccounts)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SELLER_PAYMENT_METHODS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller payment methods.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_PAYMENT_METHODS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve seller payment methods.' })
   }
 })
 
@@ -676,11 +683,12 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
   const { accountId } = req.params
   const { tokenId } = req.body
 
-  if (!accountId || !tokenId) {
-    return res.status(400).json({ errorMessage: 'Missing required parameters.' })
-  }
-
   try {
+    if (!accountId || !tokenId) {
+      throw new Error('Missing required parameters.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
     const result = await prisma.$transaction(async (tx) => {
       const updatedSeller = await tx.seller.update({
         where: { accountId },
@@ -699,9 +707,9 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
     }, { timeout: 60000 })
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SELLER_PAYMENT_METHOD_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create seller payment method.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SELLER_PAYMENT_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create seller payment method.' })
   }
 })
 
@@ -800,11 +808,12 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
   const frontBuffer = Buffer.from(front.base64, 'base64')
   const backBuffer = Buffer.from(back.base64, 'base64')
 
-  if (!frontBuffer || !backBuffer) {
-    return res.status(400).json({ errorMessage: 'Both front and back images are required.' })
-  }
-
   try {
+    if (!frontBuffer || !backBuffer) {
+      throw new Error('Both front and back images are required.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
     const result = await prisma.$transaction(async (tx) => {
       const updatedSeller = await tx.seller.update({
         where: { accountId },
@@ -918,11 +927,11 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
   const { sellerId } = req.params
   const { amount, accountId } = req.body
 
-  if (!amount || !accountId) {
-    return res.status(400).json({ errorMessage: 'Missing required parameters.' })
-  }
-
   try {
+    if (!amount || !accountId) {
+      throw new Error('Missing required parameters.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
     await validatePayoutAmount(accountId, sellerId, amount)
 
@@ -1025,11 +1034,10 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
 sellerRouter.get('/seller/payout-history/:accountId', async (req, res) => {
   const { accountId } = req.params
 
-  if (!accountId) {
-    return res.status(400).json({ errorMessage: 'Missing accountId parameter.' })
-  }
-
   try {
+    if (!accountId) {
+      throw new Error('Missing accountId parameter.')
+    }
     const payouts = await prisma.payout.findMany({
       where: {
         accountId: accountId,
@@ -1108,44 +1116,43 @@ sellerRouter.get('/seller/payout-history/:accountId', async (req, res) => {
 sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
   const { accountId } = req.params
 
-  if (!accountId) {
-    return res.status(400).json({ error: 'Missing accountId in path.' })
-  }
-
   try {
+    if (!accountId) {
+      throw new Error('Missing accountId in path.')
+    }
     const account = await prisma.account.findUnique({
       where: { id: accountId },
       include: { seller: true },
     })
 
     if (!account?.seller?.id) {
-      return res.status(404).json({ error: 'Seller not found for this account.' })
+      throw new Error('Seller not found for this account.')
     }
 
     const wallet = await calculateWalletBalance(accountId, account.seller.id)
     return res.json(wallet)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SELLER_WALLET_BALANCE_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve seller wallet balance.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_WALLET_BALANCE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve seller wallet balance.' })
   }
 })
 
 /**
  * @openapi
- * /seller/{sellerId}:
+ * /seller/{accountId}:
  *   delete:
  *     tags:
  *       - Seller
- *     summary: Delete a seller's Stripe account
- *     description: Deletes the seller’s connected Stripe account using their sellerId.
+ *     summary: Delete a seller's account and Stripe account
+ *     description: Deletes the seller's connected Stripe account and local seller record using their accountId.
  *     parameters:
  *       - in: path
- *         name: sellerId
+ *         name: accountId
  *         required: true
  *         schema:
  *           type: string
- *         description: The Stripe account ID of the seller to be deleted.
+ *         description: The account ID of the seller to be deleted.
  *     responses:
  *       '200':
  *         description: Seller account successfully deleted.
@@ -1156,9 +1163,9 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *               properties:
  *                 success:
  *                   type: string
- *                   example: Seller account id was successfully deleted
+ *                   example: Seller account was successfully deleted
  *       '400':
- *         description: Bad request or invalid seller ID.
+ *         description: Bad request or invalid account ID.
  *         content:
  *           application/json:
  *             schema:
@@ -1167,7 +1174,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  *       '500':
- *         description: Internal Server Error during Stripe account deletion.
+ *         description: Internal Server Error during seller account deletion.
  *         content:
  *           application/json:
  *             schema:
@@ -1176,17 +1183,36 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-sellerRouter.delete('/seller/:sellerId', async (req, res) => {
-  const { sellerId } = req.params
+sellerRouter.delete('/seller/:accountId', async (req, res) => {
+  const { accountId } = req.params
 
   try {
-    await stripe.accounts.del(sellerId)
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
-    return res.json({ success: 'Seller account id was successfully deleted' })
+    const existingSeller = await prisma.seller.findUnique({
+      where: { accountId },
+      select: { id: true, paymentAccountId: true }
+    })
+
+    if (!existingSeller) {
+      throw new Error('No seller found for this account')
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const deletedSeller = await tx.seller.delete({
+        where: { accountId }
+      })
+
+      await stripe.accounts.del(existingSeller.paymentAccountId!)
+
+      return deletedSeller
+    }, { timeout: 60000 })
+
+    return res.json({ success: 'Seller account was successfully deleted' })
 
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_SELLER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete seller.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SELLER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete seller.' })
   }
 })

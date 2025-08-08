@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const tagRouter = express.Router()
@@ -66,9 +67,9 @@ tagRouter.get('/tags', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_TAGS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve tags.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TAGS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve tags.' })
   }
 })
 
@@ -148,7 +149,9 @@ tagRouter.get('/tags', async (req, res) => {
  */
 tagRouter.post(`/tag`, async (req, res) => {
   const { name, displayName, supportedTagValues, createdById } = req.body
+
   try {
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const tag = await prisma.tag.create({
       data: {
         name,
@@ -169,9 +172,9 @@ tagRouter.post(`/tag`, async (req, res) => {
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_TAG_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create tag.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_TAG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create tag.' })
   }
 })
 
@@ -261,6 +264,7 @@ tagRouter.put('/tag/:id', async (req, res) => {
   const { supportedTagValues, lastModifiedById, ...rest } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const tag = await prisma.tag.update({
       where: { id },
       data: {
@@ -292,9 +296,9 @@ tagRouter.put('/tag/:id', async (req, res) => {
 
     res.json(tag)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_TAG_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update tag.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_TAG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update tag.' })
   }
 })
 
@@ -361,6 +365,9 @@ tagRouter.get('/tag/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Tag ID is required')
+    }
     const tag = await prisma.tag.findUnique({
       where: {
         id,
@@ -373,9 +380,9 @@ tagRouter.get('/tag/:id', async (req, res) => {
       throw new Error('No tag ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_TAG_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve tag.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TAG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve tag.' })
   }
 })
 
@@ -436,6 +443,10 @@ tagRouter.delete(`/tag/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Tag ID is required')
+    }
+    await validateRole(req.user as AuthenticatedUser, 'admin')
     const tag = await prisma.tag.delete({
       where: {
         id: id,
@@ -447,8 +458,8 @@ tagRouter.delete(`/tag/:id`, async (req, res) => {
       throw new Error('No tag ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_TAG_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete tag.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_TAG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete tag.' })
   }
 })

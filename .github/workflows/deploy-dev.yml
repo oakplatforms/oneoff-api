@@ -65,3 +65,6 @@ jobs:
         TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET_DEV }}
         ADMIN_USER_POOL_ID: ${{ secrets.ADMIN_USER_POOL_ID_DEV }}
         CONSUMER_USER_POOL_ID: ${{ secrets.CONSUMER_USER_POOL_ID_DEV }}
+    
+    - name: Deploy Swagger to Dev
+      run: serverless deploy --config serverless.swagger.yml --stage dev --verbose

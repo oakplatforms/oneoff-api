@@ -1295,6 +1295,49 @@
         }
       }
     },
+    "Set": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        }
+      }
+    },
     "List": {
       "type": "object",
       "properties": {
@@ -1514,6 +1557,22 @@
           "items": {
             "$ref": "#/definitions/Listing"
           }
+        },
+        "set": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Set"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "setId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -2665,6 +2724,9 @@
     },
     "supportedTagValue": {
       "$ref": "#/definitions/SupportedTagValue"
+    },
+    "set": {
+      "$ref": "#/definitions/Set"
     },
     "list": {
       "$ref": "#/definitions/List"

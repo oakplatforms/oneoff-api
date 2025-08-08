@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { AuthenticatedUser, validateAccount } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const offerRouter = express.Router()
@@ -59,9 +60,9 @@ offerRouter.get('/offers', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_OFFERS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve offers.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_OFFERS_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve offers.' })
   }
 })
 
@@ -100,18 +101,19 @@ offerRouter.get('/offers', async (req, res) => {
 offerRouter.post('/offer', async (req, res) => {
   const { status, bidId, sellerAccountId, quantityInOffer } = req.body
 
-  if (!bidId || !sellerAccountId || !quantityInOffer) {
-    return res.status(400).send({ errorMessage: 'Missing required bidId, sellerAccountId, or quantityInOffer.' })
-  }
-
   try {
+    if (!bidId || !sellerAccountId || !quantityInOffer) {
+      throw new Error('Missing required bidId, sellerAccountId, or quantityInOffer.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, sellerAccountId, 'seller')
+
     const bid = await prisma.bid.findUnique({
       where: { id: bidId },
       select: { price: true, entityId: true },
     })
 
     if (!bid || !bid.entityId) {
-      return res.status(404).send({ errorMessage: 'Bid not found or missing entityId.' })
+      throw new Error('Bid not found or missing entityId.')
     }
 
     const offer = await prisma.offer.create({
@@ -189,9 +191,13 @@ offerRouter.post('/offer', async (req, res) => {
  */
 offerRouter.put('/offer/:id', async (req, res) => {
   const { id } = req.params
-  const { status } = req.body
+  const { status, sellerAccountId } = req.body
 
   try {
+    if (!id) {
+      throw new Error('Offer ID is required')
+    }
+    await validateAccount(req.user as AuthenticatedUser, sellerAccountId, 'seller')
     const updatedOffer = await prisma.offer.update({
       where: { id },
       data: { status },
@@ -246,6 +252,9 @@ offerRouter.get('/offer/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Offer ID is required')
+    }
     const offer = await prisma.offer.findUnique({
       where: { id },
       include: generateIncludes(include),
@@ -257,9 +266,9 @@ offerRouter.get('/offer/:id', async (req, res) => {
       res.status(404).send({ errorMessage: 'Offer not found.' })
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_OFFER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve offer.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_OFFER_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve offer.' })
   }
 })
 
@@ -288,17 +297,21 @@ offerRouter.get('/offer/:id', async (req, res) => {
  *       '500':
  *         description: Internal Server Error.
  */
-offerRouter.delete('/offer/:id', async (req, res) => {
-  const { id } = req.params
+offerRouter.delete('/offer/:accountId/:id', async (req, res) => {
+  const { id, accountId } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Offer ID is required')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const offer = await prisma.offer.delete({
       where: { id },
     })
     res.json(offer)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_OFFER_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete offer.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_OFFER_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete offer.' })
   }
 })

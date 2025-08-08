@@ -6,6 +6,7 @@ import { resolveBids } from '../services/resolver'
 import { validateSeller } from '../validation/seller'
 import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { AuthenticatedUser, validateAccount } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -101,9 +102,9 @@ listingRouter.get('/listings', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_LISTINGS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve listings.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LISTINGS_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve listings.' })
   }
 })
 
@@ -159,34 +160,33 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
 
   if (!entityId) {
     throw new Error('entity ID is required to retrieve lowest ask listing')
-  } else {
-    try {
-      const listing = await prisma.listing.findFirst({
-        where: {
-          AND: [
-            { status: 'ACTIVE' },
-            { entityId: entityId as string },
-            {
-              OR: [
-                { isOffer: false },
-                { isOffer: null }
-              ]
-            }
-          ]
-        },
-        orderBy: [
-          { price: 'asc' },
-          { createdAt: 'asc' }
-        ],
-        include: generateIncludes(include),
-      })
+  }
+  try {
+    const listing = await prisma.listing.findFirst({
+      where: {
+        AND: [
+          { status: 'ACTIVE' },
+          { entityId: entityId as string },
+          {
+            OR: [
+              { isOffer: false },
+              { isOffer: null }
+            ]
+          }
+        ]
+      },
+      orderBy: [
+        { price: 'asc' },
+        { createdAt: 'asc' }
+      ],
+      include: generateIncludes(include),
+    })
 
-      res.json(listing)
-    } catch (error) {
-      const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-      console.error('GET_LISTING_LOWEST_ASK_ERROR:', prismaError)
-      res.status(statusCode).send({ errorMessage: 'Failed to retrieve listing lowest ask.' })
-    }
+    res.json(listing)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LISTING_LOWEST_ASK_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve listing lowest ask.' })
   }
 })
 
@@ -312,6 +312,7 @@ listingRouter.post(`/listing`, async (req, res) => {
   } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
     const userListing = await prisma.listing.findFirst({
       where: {
@@ -494,6 +495,7 @@ listingRouter.put(`/listing/:id`, async (req, res) => {
   } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
     await validateExistingListing(id)
 
@@ -581,6 +583,9 @@ listingRouter.get('/listing/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Listing ID is required')
+    }
     const listing = await prisma.listing.findUnique({
       where: { id },
       include: generateIncludes(include)
@@ -592,9 +597,9 @@ listingRouter.get('/listing/:id', async (req, res) => {
       throw new Error('No listing ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_LISTING_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve listing.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_LISTING_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve listing.' })
   }
 })
 
@@ -641,10 +646,14 @@ listingRouter.get('/listing/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.delete(`/listing/:id`, async (req, res) => {
-  const { id } = req.params
+listingRouter.delete(`/listing/:accountId/:id`, async (req, res) => {
+  const { id, accountId } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Listing ID is required')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     const listing = await prisma.listing.delete({
       where: { id },
     })
@@ -655,8 +664,8 @@ listingRouter.delete(`/listing/:id`, async (req, res) => {
       throw new Error('No listing ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_LISTING_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete listing.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_LISTING_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete listing.' })
   }
 })

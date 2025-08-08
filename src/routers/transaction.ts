@@ -100,9 +100,9 @@ transactionRouter.get('/transactions', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_TRANSACTIONS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve transactions.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TRANSACTIONS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve transactions.' })
   }
 })
 
@@ -165,6 +165,9 @@ transactionRouter.get('/transaction/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Transaction ID is required')
+    }
     const transaction = await prisma.transaction.findUnique({
       where: { id },
       include: generateIncludes(include)
@@ -176,8 +179,8 @@ transactionRouter.get('/transaction/:id', async (req, res) => {
       throw new Error('No transaction ID found')
     }
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_TRANSACTION_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve transaction.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_TRANSACTION_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve transaction.' })
   }
 })

@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { AuthenticatedUser, validateAdmin, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const shippingOptionRouter = express.Router()
@@ -55,9 +56,9 @@ shippingOptionRouter.get('/shipping-options', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SHIPPING_OPTIONS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve shipping options.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SHIPPING_OPTIONS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve shipping options.' })
   }
 })
 
@@ -113,6 +114,7 @@ shippingOptionRouter.post('/shipping-option', async (req, res) => {
   } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
     const shippingOption = await prisma.shippingOption.create({
       data: {
         name,
@@ -126,9 +128,9 @@ shippingOptionRouter.post('/shipping-option', async (req, res) => {
     })
     res.json(shippingOption)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SHIPPING_OPTION_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to create shipping option.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_SHIPPING_OPTION_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create shipping option.' })
   }
 })
 
@@ -190,6 +192,7 @@ shippingOptionRouter.put('/shipping-option/:id', async (req, res) => {
   } = req.body
 
   try {
+    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const shippingOption = await prisma.shippingOption.update({
       where: { id },
       data: {
@@ -204,9 +207,9 @@ shippingOptionRouter.put('/shipping-option/:id', async (req, res) => {
     })
     res.json(shippingOption)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_SHIPPING_OPTION_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to update shipping option.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SHIPPING_OPTION_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update shipping option.' })
   }
 })
 
@@ -243,15 +246,18 @@ shippingOptionRouter.get('/shipping-option/:id', async (req, res) => {
   const { include } = req.query
 
   try {
+    if (!id) {
+      throw new Error('Shipping option ID is required')
+    }
     const shippingOption = await prisma.shippingOption.findUnique({
       where: { id },
       include: generateIncludes(include),
     })
     res.json(shippingOption)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_SHIPPING_OPTION_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve shipping option.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SHIPPING_OPTION_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve shipping option.' })
   }
 })
 
@@ -282,13 +288,17 @@ shippingOptionRouter.delete('/shipping-option/:id', async (req, res) => {
   const { id } = req.params
 
   try {
+    if (!id) {
+      throw new Error('Shipping option ID is required')
+    }
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const shippingOption = await prisma.shippingOption.delete({
       where: { id },
     })
     res.json(shippingOption)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_SHIPPING_OPTION_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to delete shipping option.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SHIPPING_OPTION_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete shipping option.' })
   }
 })
