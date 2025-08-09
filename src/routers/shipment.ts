@@ -227,16 +227,30 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         )
 
         if (shippingParcel) {
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let parcelConfig: any
+          if (shippingParcel.type === 'Custom_Cheapest') {
+            parcelConfig = {
+              length: 6,
+              width: 4,
+              height: 0.25,
+              distanceUnit: 'in',
+              weight: orderWeight?.toString(),
+              massUnit: 'oz',
+            }
+          } else {
+            parcelConfig = {
+              template: shippingParcel.type,
+              weight: orderWeight?.toString(),
+              distanceUnit: 'in',
+              massUnit: 'oz',
+            }
+          }
+
           const shippoShipment = await shippo.shipments.create({
             addressFrom: fromAddress,
             addressTo: toAddress,
-            parcels: [
-              {
-                template: shippingParcel.type,
-                weight: orderWeight?.toString(),
-                massUnit: 'lb',
-              }
-            ],
+            parcels: [parcelConfig],
             carrierAccounts: [carrierAccounts[carrier]],
             metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}}`,
             async: false,
