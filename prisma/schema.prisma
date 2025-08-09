@@ -108,8 +108,9 @@ enum ShippingCarrierType {
 }
 
 enum ShippingParcelType {
+  Custom_Cheapest
   USPS_FlatRateEnvelope
-  USPS_First_Class_Package_Service
+  USPS_GroundAdvantage
   USPS_SoftPack
   UPS_Box_10kg
   UPS_Box_25kg
@@ -453,7 +454,7 @@ model Set {
   // custom
   banner           String?
   logo             String?
-  name             String
+  name             String @unique
   displayName      String?
   code             String
   description      String?
