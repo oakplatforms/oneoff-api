@@ -242,7 +242,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
             parcelConfig = {
               template: shippingParcel.type,
               weight: orderWeight?.toString(),
-              mass_unit: 'oz',
+              massUnit: 'oz',
             }
           }
 
