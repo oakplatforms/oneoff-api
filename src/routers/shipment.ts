@@ -234,9 +234,9 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
               length: '6',
               width: '4',
               height: '0.25',
-              distance_unit: 'in',
+              distanceUnit: 'in',
               weight: orderWeight?.toString(),
-              mass_unit: 'oz',
+              massUnit: 'oz',
             }
           } else {
             parcelConfig = {
