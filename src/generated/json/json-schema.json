@@ -1021,8 +1021,9 @@
         "type": {
           "type": "string",
           "enum": [
+            "Custom_Cheapest",
             "USPS_FlatRateEnvelope",
-            "USPS_First_Class_Package_Service",
+            "USPS_GroundAdvantage",
             "USPS_SoftPack",
             "UPS_Box_10kg",
             "UPS_Box_25kg",
