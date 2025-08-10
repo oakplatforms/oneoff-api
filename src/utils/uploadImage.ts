@@ -1,4 +1,3 @@
-import crypto from 'crypto'
 import s3 from './s3Client'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import multer from 'multer'
@@ -42,9 +41,10 @@ export async function uploadImage(
     throw new Error('Unsupported image format')
   }
 
+  const originalName = file.originalname.replace(/\.[^/.]+$/, '')
   const ext = mime === 'image/svg+xml' ? 'svg' : mime.split('/')[1] || 'jpg'
-  const imageId = crypto.randomUUID()
-  const key = `${model}/${imageId}.${ext}`
+  const sanitizedName = originalName.replace(/[^a-zA-Z0-9-_]/g, '_')
+  const key = `${model}/${sanitizedName}.${ext}`
 
   let buffer = file.buffer
 
@@ -55,11 +55,13 @@ export async function uploadImage(
       fit: resizeOptions.fit ?? 'inside',
     })
 
-    if (ext === 'jpeg' || ext === 'jpg') {
+    if (ext === 'webp') {
+      pipeline.webp({ quality: resizeOptions.quality ?? 75 })
+    } else if (ext === 'jpeg' || ext === 'jpg') {
       pipeline.jpeg({ quality: resizeOptions.quality ?? 75 })
     } else if (ext === 'png') {
       pipeline.png({ compressionLevel: 9 })
-    } else if (ext === 'webp') {
+    } else {
       pipeline.webp({ quality: resizeOptions.quality ?? 75 })
     }
 
@@ -76,5 +78,5 @@ export async function uploadImage(
     })
   )
 
-  return key
+  return `/${key}`
 }
