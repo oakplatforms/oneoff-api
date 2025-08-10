@@ -44,7 +44,7 @@ export async function uploadImage(
   const originalName = file.originalname.replace(/\.[^/.]+$/, '')
   const ext = mime === 'image/svg+xml' ? 'svg' : mime.split('/')[1] || 'jpg'
   const sanitizedName = originalName.replace(/[^a-zA-Z0-9-_]/g, '_')
-  const key = `/${model}/${sanitizedName}.${ext}`
+  const key = `${model}/${sanitizedName}.${ext}`
 
   let buffer = file.buffer
 
@@ -78,5 +78,5 @@ export async function uploadImage(
     })
   )
 
-  return key
+  return `/${key}`
 }
