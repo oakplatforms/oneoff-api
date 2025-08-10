@@ -261,8 +261,16 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         }
       }
 
+      const allRates = allShipments.flatMap(s => s.rates || [])
+
+      const sortedRates = allRates.sort((a, b) => {
+        const priceA = parseFloat(a.amount || '0')
+        const priceB = parseFloat(b.amount || '0')
+        return priceA - priceB
+      })
+
       return {
-        rates: allShipments.flatMap(s => s.rates || []),
+        rates: sortedRates,
         errors: allShipments.flatMap(s => s.messages || []),
         metadata: allShipments[0]?.metadata || null,
       }
