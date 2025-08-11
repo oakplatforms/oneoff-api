@@ -30,7 +30,7 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
 
   if (!trackingNumber || !trackingStatus) {
     console.warn('Missing tracking number or status from Shippo webhook')
-    return
+    return null
   }
 
   const statusMap: Record<string, 'UNKNOWN' | 'PRE_TRANSIT' | 'TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'RETURNED' | 'FAILURE'> = {
@@ -47,11 +47,14 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
 
   const shipment = await prisma.shipment.findFirst({
     where: { trackingNumber },
+    include: {
+      order: true,
+    },
   })
 
   if (!shipment) {
     console.warn(`No Shipment found for tracking number: ${trackingNumber}`)
-    return
+    return null
   }
 
   await prisma.shipment.update({
@@ -62,4 +65,10 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
   })
 
   console.log(`Updated Shipment ${shipment.id}: trackingStatus → ${mappedStatus}`)
+
+  // Return orderId and trackingStatus for EventBridge events
+  return {
+    orderId: shipment.orderId,
+    trackingStatus: mappedStatus,
+  }
 }
