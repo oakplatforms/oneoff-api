@@ -235,7 +235,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
               width: '4',
               height: '0.25',
               distanceUnit: 'in',
-              weight: '15',
+              weight: orderWeight?.toString(),
               massUnit: 'oz',
             }
           } else {
