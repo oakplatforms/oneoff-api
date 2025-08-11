@@ -99,13 +99,13 @@ offerRouter.get('/offers', async (req, res) => {
  *               $ref: '#/components/schemas/Offer'
  */
 offerRouter.post('/offer', async (req, res) => {
-  const { status, bidId, sellerAccountId, quantityInOffer } = req.body
+  const { status, bidId, accountId, quantityInOffer } = req.body
 
   try {
-    if (!bidId || !sellerAccountId || !quantityInOffer) {
-      throw new Error('Missing required bidId, sellerAccountId, or quantityInOffer.')
+    if (!bidId || !accountId || !quantityInOffer) {
+      throw new Error('Missing required bidId, accountId, or quantityInOffer.')
     }
-    await validateAccount(req.user as AuthenticatedUser, sellerAccountId, 'seller')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
     const bid = await prisma.bid.findUnique({
       where: { id: bidId },
@@ -126,7 +126,7 @@ offerRouter.post('/offer', async (req, res) => {
             quantity: quantityInOffer,
             isOffer: true,
             status: 'ACTIVE',
-            account: { connect: { id: sellerAccountId } },
+            account: { connect: { id: accountId } },
             entity: { connect: { id: bid.entityId } },
           },
         },
@@ -191,13 +191,13 @@ offerRouter.post('/offer', async (req, res) => {
  */
 offerRouter.put('/offer/:id', async (req, res) => {
   const { id } = req.params
-  const { status, sellerAccountId } = req.body
+  const { status, accountId } = req.body
 
   try {
     if (!id) {
       throw new Error('Offer ID is required')
     }
-    await validateAccount(req.user as AuthenticatedUser, sellerAccountId, 'seller')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const updatedOffer = await prisma.offer.update({
       where: { id },
       data: { status },
