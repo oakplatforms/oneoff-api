@@ -103,6 +103,10 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
     throw new Error('Account does not have an associated user')
   }
 
+  if (account.user.authId !== reqUser.principalId) {
+    throw new Error('User cannot make this request')
+  }
+
   //Additional role-specific validations
   switch (requiredRole) {
   case 'seller':

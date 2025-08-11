@@ -197,7 +197,7 @@ offerRouter.put('/offer/:id', async (req, res) => {
     if (!id) {
       throw new Error('Offer ID is required')
     }
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const updatedOffer = await prisma.offer.update({
       where: { id },
       data: { status },
