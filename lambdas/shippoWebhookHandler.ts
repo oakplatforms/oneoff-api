@@ -1,5 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { handleShippoTrackingUpdated } from '../src/webhooks/shippo'
+import eventBridge from '../src/utils/eventBridge'
+import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Received Shippo webhook event:', JSON.stringify(event, null, 2))
@@ -26,10 +28,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('Shippo event received:', tracking)
 
     switch (tracking.event) {
-    case 'track_updated':
-      await handleShippoTrackingUpdated(tracking)
+    case 'track_updated': {
+      const result = await handleShippoTrackingUpdated(tracking)
+
+      if (result && result.orderId && result.trackingStatus) {
+        await triggerTrackingStatusEvents(result.orderId, result.trackingStatus)
+      }
+
       console.log('track_updated event processed')
       break
+    }
     default:
       console.log(`Unhandled Shippo event type: ${tracking.event}`)
     }
@@ -56,5 +64,53 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
       body: JSON.stringify({ errorMessage: 'Internal server error' })
     }
+  }
+}
+
+async function triggerTrackingStatusEvents(orderId: string, trackingStatus: string) {
+  try {
+    let detailType: string | null = null
+    switch (trackingStatus) {
+    case 'DELIVERED':
+      detailType = 'order.delivered.customer'
+      break
+    case 'RETURNED':
+      await Promise.all([
+        triggerEvent(orderId, 'order.refund.customer'),
+        triggerEvent(orderId, 'order.refund.seller')
+      ])
+      return
+    case 'OUT_FOR_DELIVERY':
+      await Promise.all([
+        triggerEvent(orderId, 'order.outForDelivery.customer'),
+        triggerEvent(orderId, 'order.outForDelivery.seller')
+      ])
+      break
+    default:
+      return
+    }
+    if (detailType) {
+      await triggerEvent(orderId, detailType)
+    }
+  } catch (err) {
+    console.error(`Failed to trigger tracking status event for order ${orderId}:`, err)
+  }
+}
+
+async function triggerEvent(orderId: string, detailType: string) {
+  try {
+    await eventBridge.send(new PutEventsCommand({
+      Entries: [
+        {
+          Source: 'tcgx',
+          DetailType: detailType,
+          Detail: JSON.stringify({ orderId, type: detailType }),
+          EventBusName: 'default',
+        },
+      ],
+    }))
+    console.log(`EventBridge event triggered: ${detailType} for order ${orderId}`)
+  } catch (err) {
+    console.error(`Failed to send EventBridge event ${detailType} for order ${orderId}:`, err)
   }
 }
