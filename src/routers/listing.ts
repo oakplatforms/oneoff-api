@@ -7,6 +7,7 @@ import { validateSeller } from '../validation/seller'
 import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
+import { uploadConfig, uploadImage } from '../utils/uploadImage'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -667,5 +668,120 @@ listingRouter.delete(`/listing/:accountId/:id`, async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_LISTING_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete listing.' })
+  }
+})
+
+/**
+ * @openapi
+ * /listing/upload-image/{id}:
+ *   put:
+ *     tags:
+ *       - Listing
+ *     summary: Upload an image for a specific listing.
+ *     description: Uploads and processes an image for a listing, resizing it to a maximum width of 1050px while maintaining aspect ratio. The image is stored in S3 and the listing is updated with the new image URL.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the listing to upload an image for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *               - accountId
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image file to upload (JPEG, PNG, WebP, or SVG).
+ *               accountId:
+ *                 type: string
+ *                 description: The ID of the account that owns the listing (for admin validation).
+ *               field:
+ *                 type: string
+ *                 enum: [image]
+ *                 default: image
+ *                 description: The field to update (currently only 'image' is supported).
+ *     responses:
+ *       '200':
+ *         description: Successfully uploaded the image and updated the listing.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Listing'
+ *       '400':
+ *         description: Bad request, typically due to missing file, invalid accountId, or invalid field parameter.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '401':
+ *         description: Unauthorized. User does not have admin access to the specified account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listingRouter.put('/listing/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
+  const { id } = req.params
+  const { field = 'image', accountId } = req.body
+
+  try {
+    if (!accountId) {
+      throw new Error('Missing accountId in request body')
+    }
+
+    validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    if (!req.file) {
+      throw new Error('Missing image file')
+    }
+
+    if (field !== 'image') {
+      throw new Error('Invalid field parameter. Must be "image"')
+    }
+
+    const resizeOptions = {
+      width: 1050,
+      quality: 75,
+      format: 'webp' as const,
+      fit: 'inside' as const
+    }
+    const key = await uploadImage(req.file, 'listing', resizeOptions)
+
+    const updatedListing = await prisma.listing.update({
+      where: { id },
+      data: { [field]: key },
+    })
+
+    res.json(updatedListing)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPLOAD_LISTING_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload listing image.' })
   }
 })
