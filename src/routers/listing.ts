@@ -198,11 +198,11 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
  *     tags:
  *       - Listing
  *     summary: Create a new listing.
- *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `profileId`, `entityId`, and optionally `listingShippingCategories`. If the user already has a listing for this entity, an error will be returned.
+ *     description: Adds a new listing to the database for a specific marketplace and brand. The request body must include details like `price`, `quantity`, `status`, `accountId`, `entityId`, and optionally `image`, `imageCaption`, and `multiTransactionsEnabled`. If the user already has a listing for this entity, an error will be returned.
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -218,30 +218,24 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
  *               multiTransactionsEnabled:
  *                 type: boolean
  *                 description: Whether multiple transactions are enabled for the listing.
- *               profileId:
+ *               accountId:
  *                 type: string
- *                 description: The profile ID associated with the listing.
+ *                 description: The account ID associated with the listing.
  *               entityId:
  *                 type: string
  *                 description: The entity ID associated with the listing.
- *               listingShippingCategories:
- *                 type: object
- *                 description: Shipping categories to associate with the listing.
- *                 properties:
- *                   create:
- *                     type: array
- *                     description: List of shipping categories to create and associate with the listing.
- *                     items:
- *                       type: object
- *                       properties:
- *                         shippingCategoryId:
- *                           type: string
- *                           description: ID of the shipping category to associate.
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional image file for the listing (JPEG, PNG, WebP, or SVG). Will be resized to max width of 1050px.
+ *               imageCaption:
+ *                 type: string
+ *                 description: Optional caption for the listing image.
  *             required:
  *               - price
  *               - quantity
  *               - status
- *               - profileId
+ *               - accountId
  *               - entityId
  *     responses:
  *       '200':
@@ -302,7 +296,7 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.post(`/listing`, async (req, res) => {
+listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => {
   const {
     price,
     quantity,
@@ -310,6 +304,7 @@ listingRouter.post(`/listing`, async (req, res) => {
     multiTransactionsEnabled,
     accountId,
     entityId,
+    imageCaption,
   } = req.body
 
   try {
@@ -340,12 +335,25 @@ listingRouter.post(`/listing`, async (req, res) => {
         throw new Error('A higher bid already exists for this entity. To proceed, please increase your price or accept an existing bid.')
       }
 
+      let imageKey = null
+      if (req.file) {
+        const resizeOptions = {
+          width: 1050,
+          quality: 75,
+          format: 'webp' as const,
+          fit: 'inside' as const
+        }
+        imageKey = await uploadImage(req.file, 'listing', resizeOptions)
+      }
+
       const listing = await prisma.listing.create({
         data: {
           price,
           quantity,
           status,
           multiTransactionsEnabled,
+          image: imageKey,
+          imageCaption,
           account: { connect: { id: accountId } },
           entity: { connect: { id: entityId } },
         },
@@ -370,7 +378,7 @@ listingRouter.post(`/listing`, async (req, res) => {
  *     tags:
  *       - Listing
  *     summary: Update an existing listing.
- *     description: Updates an existing listing in the database for a specific marketplace and brand. The request body can include fields like `price`, `quantity`, `status`, and optionally `listingShippingCategories` for associating or disassociating shipping categories.
+ *     description: Updates an existing listing in the database for a specific marketplace and brand. The request body can include fields like `price`, `quantity`, `status`, `accountId`, `entityId`, and optionally `image`, `imageCaption`, and `multiTransactionsEnabled`.
  *     parameters:
  *       - in: path
  *         name: id
@@ -381,7 +389,7 @@ listingRouter.post(`/listing`, async (req, res) => {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -397,30 +405,19 @@ listingRouter.post(`/listing`, async (req, res) => {
  *               multiTransactionsEnabled:
  *                 type: boolean
  *                 description: Whether multiple transactions are enabled for the listing.
- *               profileId:
+ *               accountId:
  *                 type: string
- *                 description: The profile ID associated with the listing.
+ *                 description: The account ID associated with the listing.
  *               entityId:
  *                 type: string
  *                 description: The entity ID associated with the listing.
- *               listingShippingCategories:
- *                 type: object
- *                 description: Manage shipping categories associated with the listing.
- *                 properties:
- *                   create:
- *                     type: array
- *                     description: List of shipping categories to create and associate with the listing.
- *                     items:
- *                       type: object
- *                       properties:
- *                         shippingCategoryId:
- *                           type: string
- *                           description: ID of the shipping category to associate.
- *                   delete:
- *                     type: array
- *                     description: List of shipping category associations to delete by their IDs.
- *                     items:
- *                       type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional image file for the listing (JPEG, PNG, WebP, or SVG). Will be resized to max width of 1050px. If provided, will replace the existing image.
+ *               imageCaption:
+ *                 type: string
+ *                 description: Optional caption for the listing image.
  *             required:
  *               - price
  *               - quantity
@@ -487,7 +484,7 @@ listingRouter.post(`/listing`, async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listingRouter.put(`/listing/:id`, async (req, res) => {
+listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) => {
   const { id } = req.params
   const {
     price,
@@ -510,11 +507,25 @@ listingRouter.put(`/listing/:id`, async (req, res) => {
       throw new Error('A higher bid already exists for this entity. To proceed, please increase your price or accept an existing bid.')
     }
 
+    let imageKey = null
+    if (req.file) {
+      const resizeOptions = {
+        width: 1050,
+        quality: 75,
+        format: 'webp' as const,
+        fit: 'inside' as const
+      }
+      imageKey = await uploadImage(req.file, 'listing', resizeOptions)
+    }
+
+    const updateData = { ...req.body }
+    if (imageKey) {
+      updateData.image = imageKey
+    }
+
     const listing = await prisma.listing.update({
       where: { id },
-      data: {
-        ...req.body,
-      },
+      data: updateData,
       include: {
         account: true
       }
@@ -668,120 +679,5 @@ listingRouter.delete(`/listing/:accountId/:id`, async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_LISTING_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete listing.' })
-  }
-})
-
-/**
- * @openapi
- * /listing/upload-image/{id}:
- *   put:
- *     tags:
- *       - Listing
- *     summary: Upload an image for a specific listing.
- *     description: Uploads and processes an image for a listing, resizing it to a maximum width of 1050px while maintaining aspect ratio. The image is stored in S3 and the listing is updated with the new image URL.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the listing to upload an image for.
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - file
- *               - accountId
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: The image file to upload (JPEG, PNG, WebP, or SVG).
- *               accountId:
- *                 type: string
- *                 description: The ID of the account that owns the listing (for admin validation).
- *               field:
- *                 type: string
- *                 enum: [image]
- *                 default: image
- *                 description: The field to update (currently only 'image' is supported).
- *     responses:
- *       '200':
- *         description: Successfully uploaded the image and updated the listing.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Listing'
- *       '400':
- *         description: Bad request, typically due to missing file, invalid accountId, or invalid field parameter.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- *       '401':
- *         description: Unauthorized. User does not have admin access to the specified account.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- *       '500':
- *         description: Internal Server Error. An error occurred while processing the request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
- */
-listingRouter.put('/listing/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
-  const { id } = req.params
-  const { field = 'image', accountId } = req.body
-
-  try {
-    if (!accountId) {
-      throw new Error('Missing accountId in request body')
-    }
-
-    validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-
-    if (!req.file) {
-      throw new Error('Missing image file')
-    }
-
-    if (field !== 'image') {
-      throw new Error('Invalid field parameter. Must be "image"')
-    }
-
-    const resizeOptions = {
-      width: 1050,
-      quality: 75,
-      format: 'webp' as const,
-      fit: 'inside' as const
-    }
-    const key = await uploadImage(req.file, 'listing', resizeOptions)
-
-    const updatedListing = await prisma.listing.update({
-      where: { id },
-      data: { [field]: key },
-    })
-
-    res.json(updatedListing)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPLOAD_LISTING_IMAGE_ERROR:', prismaError, customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload listing image.' })
   }
 })
