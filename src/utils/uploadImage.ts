@@ -18,7 +18,7 @@ export type ResizeImageOptions = {
 const defaultResizeOptions: ResizeImageOptions = {
   width: 750,
   quality: 75,
-  format: 'jpeg',
+  format: 'webp',
   fit: 'inside',
 }
 

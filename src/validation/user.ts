@@ -85,7 +85,6 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
     throw new Error('AccountId is required')
   }
 
-  //Fetch account and verify the principalId matches the account.user.authId
   const account = await prisma.account.findUnique({
     where: { id: accountId },
     include: {
