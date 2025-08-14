@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import s3 from './s3Client'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import multer from 'multer'
@@ -41,10 +42,9 @@ export async function uploadImage(
     throw new Error('Unsupported image format')
   }
 
-  const originalName = file.originalname.replace(/\.[^/.]+$/, '')
   const ext = mime === 'image/svg+xml' ? 'svg' : mime.split('/')[1] || 'jpg'
-  const sanitizedName = originalName.replace(/[^a-zA-Z0-9-_]/g, '_')
-  const key = `${model}/${sanitizedName}.${ext}`
+  const imageId = crypto.randomUUID()
+  const key = `${model}/${imageId}.${ext}`
 
   let buffer = file.buffer
 
