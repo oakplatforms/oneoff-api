@@ -283,6 +283,14 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *         schema:
  *           type: string
  *         description: The unique ID of the profile to upload an image for.
+ *       - in: query
+ *         name: field
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [avatar, banner]
+ *           default: avatar
+ *         description: The field to update ('avatar' or 'banner'). Defaults to 'avatar'.
  *     requestBody:
  *       required: true
  *       content:
@@ -292,7 +300,6 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *             required:
  *               - file
  *               - accountId
- *               - field
  *             properties:
  *               file:
  *                 type: string
@@ -301,10 +308,6 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *               accountId:
  *                 type: string
  *                 description: The ID of the account that owns the profile (for admin validation).
- *               field:
- *                 type: string
- *                 enum: [avatar, banner]
- *                 description: The field to update ('avatar' or 'banner').
  *     responses:
  *       '200':
  *         description: Successfully uploaded the image and updated the profile.
@@ -313,7 +316,7 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Profile'
  *       '400':
- *         description: Bad request, typically due to missing file, invalid accountId, or invalid field parameter.
+ *         description: Bad request, typically due to missing file, invalid accountId, or invalid field query parameter.
  *         content:
  *           application/json:
  *             schema:
@@ -345,7 +348,8 @@ profileRouter.put('/profile/:id', async (req, res) => {
  */
 profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
   const { id } = req.params
-  const { field, accountId } = req.body
+  const { field = 'avatar' } = req.query
+  const { accountId } = req.body
 
   try {
     if (!accountId) {
@@ -359,7 +363,7 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
     }
 
     if (field !== 'avatar' && field !== 'banner') {
-      throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
+      throw new Error('Invalid field query parameter. Must be "avatar" or "banner"')
     }
 
     //Get current profile to check for existing image
