@@ -8,6 +8,7 @@ import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
+import { deleteImage } from '../utils/deleteImage'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -522,6 +523,16 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     }
 
     let imageKey = null
+    let shouldDeleteOldImage = false
+    let oldImageKey = null
+
+    const currentListing = await prisma.listing.findUnique({
+      where: { id },
+      select: { image: true }
+    })
+
+    oldImageKey = currentListing?.image
+
     if (req.file) {
       const resizeOptions = {
         width: 1050,
@@ -530,11 +541,22 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
         fit: 'inside' as const
       }
       imageKey = await uploadImage(req.file, 'listing', resizeOptions)
+
+      if (oldImageKey) {
+        shouldDeleteOldImage = true
+      }
     }
 
     const updateData = { ...req.body }
     if (imageKey) {
       updateData.image = imageKey
+    }
+
+    if (req.body.image === null || req.body.image === '' || req.body.image === 'null') {
+      updateData.image = null
+      if (oldImageKey) {
+        shouldDeleteOldImage = true
+      }
     }
 
     if (updateData.price) {
@@ -549,6 +571,12 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     if (updateData.multiTransactionsEnabled !== undefined) {
       updateData.multiTransactionsEnabled = updateData.multiTransactionsEnabled === 'true'
     }
+    if (updateData.isPrimary !== undefined) {
+      updateData.isPrimary = updateData.isPrimary === 'true'
+    }
+    if (updateData.isOffer !== undefined) {
+      updateData.isOffer = updateData.isOffer === 'true'
+    }
 
     const listing = await prisma.listing.update({
       where: { id },
@@ -557,6 +585,16 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
         account: true
       }
     })
+
+    if (shouldDeleteOldImage && oldImageKey) {
+      try {
+        const s3Key = oldImageKey.startsWith('/') ? oldImageKey.substring(1) : oldImageKey
+        await deleteImage(s3Key)
+      } catch (deleteError) {
+        console.error('Failed to delete old image from S3:', deleteError)
+      }
+    }
+
     if (listing) {
       res.json(listing)
     } else {
