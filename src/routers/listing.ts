@@ -552,7 +552,7 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
       updateData.image = imageKey
     }
 
-    const shouldRemoveImage = req.body.removeImage === 'true' || req.body.removeImage === true
+    const shouldRemoveImage = (req.body.removeImage === 'true' || req.body.removeImage === true) && !imageKey
 
     if (shouldRemoveImage) {
       updateData.image = null
