@@ -561,6 +561,8 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
       }
     }
 
+    delete updateData.removeImage
+
     if (updateData.price) {
       updateData.price = parsedPrice
     }
