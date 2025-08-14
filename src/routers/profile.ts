@@ -366,7 +366,6 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       throw new Error('Invalid field query parameter. Must be "avatar" or "banner"')
     }
 
-    //Get current profile to check for existing image
     const currentProfile = await prisma.profile.findUnique({
       where: { id },
       select: { [field]: true }
@@ -375,10 +374,9 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
     const oldImageKey = currentProfile?.[field as keyof typeof currentProfile] as string | null | undefined
     let shouldDeleteOldImage = false
 
-    //Set appropriate resize options based on field type
     const resizeOptions = field === 'avatar'
-      ? { width: 750, quality: 75, format: 'webp' as const, fit: 'inside' as const }
-      : { width: 1050, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
 
     const key = await uploadImage(req.file, 'profile', resizeOptions)
 
@@ -391,7 +389,6 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       data: { [field]: key },
     })
 
-    //Delete old image from S3 after successful database update
     if (shouldDeleteOldImage && oldImageKey) {
       try {
         const s3Key = oldImageKey.startsWith('/') ? oldImageKey.substring(1) : oldImageKey
