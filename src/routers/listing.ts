@@ -310,6 +310,15 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
+
+    const parsedPrice = parseFloat(price)
+    const parsedQuantity = parseInt(quantity)
+    const parsedMultiTransactionsEnabled = multiTransactionsEnabled === 'true'
+
+    if (isNaN(parsedPrice) || isNaN(parsedQuantity)) {
+      throw new Error('Invalid price or quantity values')
+    }
+
     const userListing = await prisma.listing.findFirst({
       where: {
         AND: [
@@ -322,11 +331,11 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
 
     if (userListing) {
       throw new Error('User already has a listing for this entity')
-    } else if (price <= 0) {
+    } else if (parsedPrice <= 0) {
       throw new Error('A listing cannot have a zero or negative price')
     } else {
       const bids = await resolveBids({
-        price,
+        price: parsedPrice,
         entityId,
         accountId,
       })
@@ -348,10 +357,10 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
 
       const listing = await prisma.listing.create({
         data: {
-          price,
-          quantity,
+          price: parsedPrice,
+          quantity: parsedQuantity,
           status,
-          multiTransactionsEnabled,
+          multiTransactionsEnabled: parsedMultiTransactionsEnabled,
           image: imageKey,
           imageCaption,
           account: { connect: { id: accountId } },
@@ -497,8 +506,13 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     await validateSeller(accountId)
     await validateExistingListing(id)
 
+    const parsedPrice = parseFloat(price)
+    if (isNaN(parsedPrice)) {
+      throw new Error('Invalid price value')
+    }
+
     const bids = await resolveBids({
-      price,
+      price: parsedPrice,
       entityId,
       accountId,
     })
@@ -521,6 +535,19 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     const updateData = { ...req.body }
     if (imageKey) {
       updateData.image = imageKey
+    }
+
+    if (updateData.price) {
+      updateData.price = parsedPrice
+    }
+    if (updateData.quantity) {
+      updateData.quantity = parseInt(updateData.quantity)
+      if (isNaN(updateData.quantity)) {
+        throw new Error('Invalid quantity value')
+      }
+    }
+    if (updateData.multiTransactionsEnabled !== undefined) {
+      updateData.multiTransactionsEnabled = updateData.multiTransactionsEnabled === 'true'
     }
 
     const listing = await prisma.listing.update({
