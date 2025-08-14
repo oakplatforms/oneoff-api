@@ -12,16 +12,18 @@ export const validateExistingProfile = async (profileId: string) => {
   return existingProfile
 }
 
-export const validateUsernameUniqueness = async (username: string, excludeProfileId?: string) => {
-  const whereClause = excludeProfileId
-    ? { username, id: { not: excludeProfileId } }
-    : { username }
-
-  const existingProfileWithUsername = await prisma.profile.findFirst({
-    where: whereClause
+export const validateUsername = async (username: string, excludeProfileId?: string) => {
+  const profiles = await prisma.profile.findMany({
+    where: excludeProfileId ? { id: { not: excludeProfileId } } : {},
+    select: { username: true }
   })
 
-  if (existingProfileWithUsername) {
+  const normalizedUsername = username.toLowerCase()
+  const conflictingProfile = profiles.find(profile =>
+    profile.username && profile.username.toLowerCase() === normalizedUsername
+  )
+
+  if (conflictingProfile) {
     throw new Error('Username is already taken')
   }
 }

@@ -4,7 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateAccount } from '../validation/user'
 import { AuthenticatedUser } from '../validation/user'
-import { validateExistingProfile, validateUsernameUniqueness } from '../validation/profile'
+import { validateExistingProfile, validateUsername } from '../validation/profile'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 
@@ -152,7 +152,7 @@ profileRouter.post('/profile', async (req, res) => {
 
     validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     if (username) {
-      await validateUsernameUniqueness(username)
+      await validateUsername(username)
     }
 
     const profile = await prisma.profile.create({
@@ -245,7 +245,7 @@ profileRouter.put('/profile/:id', async (req, res) => {
     validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     await validateExistingProfile(id)
     if (username) {
-      await validateUsernameUniqueness(username, id)
+      await validateUsername(username, id)
     }
 
     const updateData = { ...req.body }
