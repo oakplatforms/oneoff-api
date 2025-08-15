@@ -339,8 +339,10 @@ profileRouter.put('/profile/:id', async (req, res) => {
 profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
   const { id } = req.params
   const { field = 'avatar' } = req.query
+  const { accountId } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     if (!req.file) {
       throw new Error('Missing image file')
     }
@@ -354,16 +356,6 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
 
     const key = await uploadImage(req.file, 'profile', resizeOptions)
-
-    const existingProfile = await prisma.profile.findUnique({
-      where: { id }
-    })
-
-    if (!existingProfile) {
-      throw new Error('Profile not found')
-    }
-
-    console.log('Updating profile:', { id, field, key, existingProfile: !!existingProfile })
 
     const updatedProfile = await prisma.profile.update({
       where: { id },
@@ -381,7 +373,7 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
 /**
  * @openapi
  * /profile/delete-image/{id}:
- *   delete:
+ *   put:
  *     tags:
  *       - Profile
  *     summary: Delete a profile's image
@@ -445,11 +437,13 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
  *                   type: string
  *                   example: Unexpected error occurred
  */
-profileRouter.delete('/profile/delete-image/:id', async (req, res) => {
+profileRouter.put('/profile/delete-image/:id', async (req, res) => {
   const { id } = req.params
   const { field = 'avatar' } = req.query
+  const { accountId } = req.body
 
   try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     if (field !== 'avatar' && field !== 'banner') {
       throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
     }
@@ -469,15 +463,10 @@ profileRouter.delete('/profile/delete-image/:id', async (req, res) => {
       throw new Error(`Profile has no ${field} to delete`)
     }
 
-    console.log('Attempting to delete S3 image:', imageToDelete)
-
     try {
       //Remove leading slash if present for S3 key
       const s3Key = imageToDelete.startsWith('/') ? imageToDelete.substring(1) : imageToDelete
-      console.log('S3 key for deletion:', s3Key)
-
       await deleteImage(s3Key)
-      console.log('S3 image deleted successfully')
     } catch (s3Error) {
       console.error('Failed to delete S3 image:', s3Error)
       //Don't throw here - we still want to update the database
