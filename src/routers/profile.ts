@@ -469,7 +469,20 @@ profileRouter.delete('/profile/delete-image/:id', async (req, res) => {
       throw new Error(`Profile has no ${field} to delete`)
     }
 
-    await deleteImage(imageToDelete)
+    console.log('Attempting to delete S3 image:', imageToDelete)
+
+    try {
+      //Remove leading slash if present for S3 key
+      const s3Key = imageToDelete.startsWith('/') ? imageToDelete.substring(1) : imageToDelete
+      console.log('S3 key for deletion:', s3Key)
+
+      await deleteImage(s3Key)
+      console.log('S3 image deleted successfully')
+    } catch (s3Error) {
+      console.error('Failed to delete S3 image:', s3Error)
+      //Don't throw here - we still want to update the database
+      //but log the S3 failure for debugging
+    }
 
     const updatedProfile = await prisma.profile.update({
       where: { id },
