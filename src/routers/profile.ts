@@ -340,7 +340,6 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
   const { id } = req.params
   const { field = 'avatar' } = req.query
 
-  console.log('Uploading image for profile:', { id, field })
   try {
     if (!req.file) {
       throw new Error('Missing image file')
@@ -350,7 +349,6 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
     }
 
-    //Set appropriate resize options based on field type
     const resizeOptions = field === 'avatar'
       ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
       : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
@@ -452,8 +450,6 @@ profileRouter.delete('/profile/delete-image/:id', async (req, res) => {
   const { field = 'avatar' } = req.query
 
   try {
-    validateAccount(req.user as AuthenticatedUser, undefined, 'admin')
-
     if (field !== 'avatar' && field !== 'banner') {
       throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
     }
