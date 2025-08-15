@@ -340,8 +340,8 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
   const { id } = req.params
   const { field = 'avatar' } = req.query
 
+  console.log('Uploading image for profile:', { id, field })
   try {
-    validateAccount(req.user as AuthenticatedUser, undefined, 'admin')
     if (!req.file) {
       throw new Error('Missing image file')
     }
@@ -350,7 +350,22 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
     }
 
-    const key = await uploadImage(req.file, 'profile')
+    //Set appropriate resize options based on field type
+    const resizeOptions = field === 'avatar'
+      ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+
+    const key = await uploadImage(req.file, 'profile', resizeOptions)
+
+    const existingProfile = await prisma.profile.findUnique({
+      where: { id }
+    })
+
+    if (!existingProfile) {
+      throw new Error('Profile not found')
+    }
+
+    console.log('Updating profile:', { id, field, key, existingProfile: !!existingProfile })
 
     const updatedProfile = await prisma.profile.update({
       where: { id },
