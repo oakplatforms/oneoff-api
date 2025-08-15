@@ -346,101 +346,115 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
-  const { id } = req.params
-  const field = (req.query.field as string) || 'avatar'
-  const { accountId } = req.body
+profileRouter.put('/profile/upload-image/:id',
+  (req, res, next) => {
+    console.log('=== BEFORE MULTER MIDDLEWARE ===')
+    console.log('Request headers:', req.headers)
+    console.log('Request body keys:', Object.keys(req.body || {}))
+    next()
+  },
+  uploadConfig.single('file'),
+  (req, res, next) => {
+    console.log('=== AFTER MULTER MIDDLEWARE ===')
+    console.log('Multer completed, req.file:', req.file)
+    console.log('Request body after multer:', req.body)
+    next()
+  },
+  async (req, res) => {
+    console.log('=== PROFILE UPLOAD IMAGE ROUTE HANDLER ===')
+    const { id } = req.params
+    const field = (req.query.field as string) || 'avatar'
+    const { accountId } = req.body
 
-  try {
-    console.log('Profile upload image request:', { id, field, accountId, hasFile: !!req.file })
-
-    if (!accountId) {
-      throw new Error('Missing accountId in request body')
-    }
-
-    validateAccount(req.user as AuthenticatedUser, accountId, 'admin')
-
-    if (!req.file) {
-      throw new Error('Missing image file')
-    }
-
-    if (field !== 'avatar' && field !== 'banner') {
-      throw new Error('Invalid field query parameter. Must be "avatar" or "banner"')
-    }
-
-    //Check if S3 environment variables are configured
-    if (!process.env.S3_BUCKET_NAME) {
-      throw new Error('S3_BUCKET_NAME environment variable is not configured')
-    }
-
-    console.log('Looking up current profile for field:', field)
-    let currentProfile
     try {
-      currentProfile = await prisma.profile.findUnique({
-        where: { id },
-        select: { [field]: true }
-      })
-      console.log('Current profile found:', !!currentProfile)
-    } catch (dbError) {
-      console.error('Database lookup failed:', dbError)
-      throw new Error(`Failed to lookup profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
-    }
+      console.log('Profile upload image request:', { id, field, accountId, hasFile: !!req.file })
 
-    const oldImageKey = currentProfile?.[field as keyof typeof currentProfile] as string | null | undefined
-    let shouldDeleteOldImage = false
+      if (!accountId) {
+        throw new Error('Missing accountId in request body')
+      }
 
-    const resizeOptions = field === 'avatar'
-      ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
-      : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      validateAccount(req.user as AuthenticatedUser, accountId, 'admin')
 
-    console.log('Uploading image with resize options:', resizeOptions)
-    let key: string
-    try {
-      key = await uploadImage(req.file, 'profile', resizeOptions)
-      console.log('Image uploaded successfully, key:', key)
-    } catch (uploadError) {
-      console.error('Image upload failed:', uploadError)
-      throw new Error(`Failed to upload image: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`)
-    }
+      if (!req.file) {
+        throw new Error('Missing image file')
+      }
 
-    if (oldImageKey) {
-      shouldDeleteOldImage = true
-    }
+      if (field !== 'avatar' && field !== 'banner') {
+        throw new Error('Invalid field query parameter. Must be "avatar" or "banner"')
+      }
 
-    console.log('Updating profile in database with field:', field, 'and key:', key)
-    let updatedProfile
-    try {
-      updatedProfile = await prisma.profile.update({
-        where: { id },
-        data: { [field]: key },
-      })
-      console.log('Profile updated successfully')
-    } catch (dbError) {
-      console.error('Database update failed:', dbError)
-      throw new Error(`Failed to update profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
-    }
+      //Check if S3 environment variables are configured
+      if (!process.env.S3_BUCKET_NAME) {
+        throw new Error('S3_BUCKET_NAME environment variable is not configured')
+      }
 
-    if (shouldDeleteOldImage && oldImageKey) {
+      console.log('Looking up current profile for field:', field)
+      let currentProfile
       try {
-        const s3Key = oldImageKey.startsWith('/') ? oldImageKey.substring(1) : oldImageKey
-        await deleteImage(s3Key)
-      } catch (deleteError) {
-        console.error('Failed to delete old image from S3:', deleteError)
+        currentProfile = await prisma.profile.findUnique({
+          where: { id },
+          select: { [field]: true }
+        })
+        console.log('Current profile found:', !!currentProfile)
+      } catch (dbError) {
+        console.error('Database lookup failed:', dbError)
+        throw new Error(`Failed to lookup profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
+      }
+
+      const oldImageKey = currentProfile?.[field as keyof typeof currentProfile] as string | null | undefined
+      let shouldDeleteOldImage = false
+
+      const resizeOptions = field === 'avatar'
+        ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+        : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+
+      console.log('Uploading image with resize options:', resizeOptions)
+      let key: string
+      try {
+        key = await uploadImage(req.file, 'profile', resizeOptions)
+        console.log('Image uploaded successfully, key:', key)
+      } catch (uploadError) {
+        console.error('Image upload failed:', uploadError)
+        throw new Error(`Failed to upload image: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`)
+      }
+
+      if (oldImageKey) {
+        shouldDeleteOldImage = true
+      }
+
+      console.log('Updating profile in database with field:', field, 'and key:', key)
+      let updatedProfile
+      try {
+        updatedProfile = await prisma.profile.update({
+          where: { id },
+          data: { [field]: key },
+        })
+        console.log('Profile updated successfully')
+      } catch (dbError) {
+        console.error('Database update failed:', dbError)
+        throw new Error(`Failed to update profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
+      }
+
+      if (shouldDeleteOldImage && oldImageKey) {
+        try {
+          const s3Key = oldImageKey.startsWith('/') ? oldImageKey.substring(1) : oldImageKey
+          await deleteImage(s3Key)
+        } catch (deleteError) {
+          console.error('Failed to delete old image from S3:', deleteError)
+        }
+      }
+
+      res.json(updatedProfile)
+    } catch (error) {
+      console.error('UPLOAD_PROFILE_IMAGE_ERROR:', error)
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        const { statusCode, customError } = generatePrismaError(error)
+        res.status(statusCode).send({ errorMessage: customError || 'Failed to upload profile image.' })
+      } else {
+      //Handle other errors (like our custom errors)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile image.'
+        res.status(400).send({ errorMessage })
       }
     }
-
-    res.json(updatedProfile)
-  } catch (error) {
-    console.error('UPLOAD_PROFILE_IMAGE_ERROR:', error)
-
-    //Handle Prisma errors
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      const { statusCode, customError } = generatePrismaError(error)
-      res.status(statusCode).send({ errorMessage: customError || 'Failed to upload profile image.' })
-    } else {
-      //Handle other errors (like our custom errors)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile image.'
-      res.status(400).send({ errorMessage })
-    }
-  }
-})
+  })
