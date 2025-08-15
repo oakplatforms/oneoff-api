@@ -274,15 +274,15 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *   put:
  *     tags:
  *       - Profile
- *     summary: Upload an image for a specific profile.
- *     description: Uploads and processes an image for a profile (avatar or banner), resizing it appropriately. The image is stored in S3 and the profile is updated with the new image URL.
+ *     summary: Upload an image and update the profile
+ *     description: Uploads an image file for a profile and updates either the `avatar` or `banner` field with the stored S3 path. Supports JPEG, PNG, and WEBP. Image is resized before upload.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: The unique ID of the profile to upload an image for.
+ *         description: ID of the profile to update
  *       - in: query
  *         name: field
  *         required: false
@@ -290,7 +290,7 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *           type: string
  *           enum: [avatar, banner]
  *           default: avatar
- *         description: The field to update ('avatar' or 'banner'). Defaults to 'avatar'.
+ *         description: The image field to update (avatar or banner)
  *     requestBody:
  *       required: true
  *       content:
@@ -304,19 +304,19 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: The image file to upload (JPEG, PNG, WebP, or SVG).
+ *                 description: Image file to upload (JPEG, PNG, or WEBP)
  *               accountId:
  *                 type: string
- *                 description: The ID of the account that owns the profile (for admin validation).
+ *                 description: The ID of the account that owns the profile (for admin validation)
  *     responses:
  *       '200':
- *         description: Successfully uploaded the image and updated the profile.
+ *         description: Successfully uploaded the image and updated the profile
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Profile'
  *       '400':
- *         description: Bad request, typically due to missing file, invalid accountId, or invalid field query parameter.
+ *         description: Missing file, invalid request body, or invalid field parameter
  *         content:
  *           application/json:
  *             schema:
@@ -324,19 +324,9 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *               properties:
  *                 errorMessage:
  *                   type: string
- *                   description: Description of the error that occurred.
- *       '401':
- *         description: Unauthorized. User does not have admin access to the specified account.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the error that occurred.
+ *                   example: Missing image file
  *       '500':
- *         description: Internal Server Error. An error occurred while processing the request.
+ *         description: Internal server error during image processing or DB update
  *         content:
  *           application/json:
  *             schema:
@@ -344,103 +334,144 @@ profileRouter.put('/profile/:id', async (req, res) => {
  *               properties:
  *                 errorMessage:
  *                   type: string
- *                   description: Description of the error that occurred.
+ *                   example: Unexpected error occurred
  */
 profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
-  console.log('=== PROFILE UPLOAD IMAGE ROUTE HANDLER ===')
   const { id } = req.params
-  const field = (req.query.field as string) || 'avatar'
-  const { accountId } = req.body
+  const { field = 'avatar' } = req.query
 
   try {
-    console.log('Profile upload image request:', { id, field, accountId, hasFile: !!req.file })
-
-    if (!accountId) {
-      throw new Error('Missing accountId in request body')
-    }
-
-    validateAccount(req.user as AuthenticatedUser, accountId, 'admin')
-
+    validateAccount(req.user as AuthenticatedUser, undefined, 'admin')
     if (!req.file) {
       throw new Error('Missing image file')
     }
 
     if (field !== 'avatar' && field !== 'banner') {
-      throw new Error('Invalid field query parameter. Must be "avatar" or "banner"')
+      throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
     }
 
-    //Check if S3 environment variables are configured
-    if (!process.env.S3_BUCKET_NAME) {
-      throw new Error('S3_BUCKET_NAME environment variable is not configured')
-    }
+    const key = await uploadImage(req.file, 'profile')
 
-    console.log('Looking up current profile for field:', field)
-    let currentProfile
-    try {
-      currentProfile = await prisma.profile.findUnique({
-        where: { id },
-        select: { [field]: true }
-      })
-      console.log('Current profile found:', !!currentProfile)
-    } catch (dbError) {
-      console.error('Database lookup failed:', dbError)
-      throw new Error(`Failed to lookup profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
-    }
-
-    const oldImageKey = currentProfile?.[field as keyof typeof currentProfile] as string | null | undefined
-    let shouldDeleteOldImage = false
-
-    const resizeOptions = field === 'avatar'
-      ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
-      : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
-
-    console.log('Uploading image with resize options:', resizeOptions)
-    let key: string
-    try {
-      key = await uploadImage(req.file, 'profile', resizeOptions)
-      console.log('Image uploaded successfully, key:', key)
-    } catch (uploadError) {
-      console.error('Image upload failed:', uploadError)
-      throw new Error(`Failed to upload image: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`)
-    }
-
-    if (oldImageKey) {
-      shouldDeleteOldImage = true
-    }
-
-    console.log('Updating profile in database with field:', field, 'and key:', key)
-    let updatedProfile
-    try {
-      updatedProfile = await prisma.profile.update({
-        where: { id },
-        data: { [field]: key },
-      })
-      console.log('Profile updated successfully')
-    } catch (dbError) {
-      console.error('Database update failed:', dbError)
-      throw new Error(`Failed to update profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
-    }
-
-    if (shouldDeleteOldImage && oldImageKey) {
-      try {
-        const s3Key = oldImageKey.startsWith('/') ? oldImageKey.substring(1) : oldImageKey
-        await deleteImage(s3Key)
-      } catch (deleteError) {
-        console.error('Failed to delete old image from S3:', deleteError)
-      }
-    }
+    const updatedProfile = await prisma.profile.update({
+      where: { id },
+      data: { [field]: key },
+    })
 
     res.json(updatedProfile)
   } catch (error) {
-    console.error('UPLOAD_PROFILE_IMAGE_ERROR:', error)
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPLOAD_PROFILE_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload profile image.' })
+  }
+})
 
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      const { statusCode, customError } = generatePrismaError(error)
-      res.status(statusCode).send({ errorMessage: customError || 'Failed to upload profile image.' })
-    } else {
-      //Handle other errors (like our custom errors)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile image.'
-      res.status(400).send({ errorMessage })
+/**
+ * @openapi
+ * /profile/delete-image/{id}:
+ *   delete:
+ *     tags:
+ *       - Profile
+ *     summary: Delete a profile's image
+ *     description: Deletes the image file associated with a profile from S3 and clears the profile's `avatar` or `banner` field in the database.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the profile whose image should be deleted.
+ *       - in: query
+ *         name: field
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [avatar, banner]
+ *           default: avatar
+ *         description: The image field to delete (avatar or banner)
+ *     responses:
+ *       '200':
+ *         description: Successfully deleted the image and updated the profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profile:
+ *                   $ref: '#/components/schemas/Profile'
+ *                 message:
+ *                   type: string
+ *                   example: Image deleted successfully
+ *       '400':
+ *         description: Invalid field parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid field parameter. Must be "avatar" or "banner"
+ *       '404':
+ *         description: Profile not found or profile has no image
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Profile not found or has no image
+ *       '500':
+ *         description: Internal server error during image deletion or DB update
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Unexpected error occurred
+ */
+profileRouter.delete('/profile/delete-image/:id', async (req, res) => {
+  const { id } = req.params
+  const { field = 'avatar' } = req.query
+
+  try {
+    validateAccount(req.user as AuthenticatedUser, undefined, 'admin')
+
+    if (field !== 'avatar' && field !== 'banner') {
+      throw new Error('Invalid field parameter. Must be "avatar" or "banner"')
     }
+
+    const profile = await prisma.profile.findUnique({
+      where: { id },
+      select: { avatar: true, banner: true }
+    })
+
+    if (!profile) {
+      throw new Error('Profile not found')
+    }
+
+    const imageToDelete = field === 'avatar' ? profile.avatar : profile.banner
+
+    if (!imageToDelete) {
+      throw new Error(`Profile has no ${field} to delete`)
+    }
+
+    await deleteImage(imageToDelete)
+
+    const updatedProfile = await prisma.profile.update({
+      where: { id },
+      data: { [field]: null },
+    })
+
+    res.json({
+      profile: updatedProfile,
+      message: `${field} deleted successfully`
+    })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_PROFILE_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: 'Failed to delete profile image.' })
   }
 })
