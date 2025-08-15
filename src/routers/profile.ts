@@ -348,10 +348,12 @@ profileRouter.put('/profile/:id', async (req, res) => {
  */
 profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
   const { id } = req.params
-  const { field = 'avatar' } = req.query
+  const field = (req.query.field as string) || 'avatar'
   const { accountId } = req.body
 
   try {
+    console.log('Profile upload image request:', { id, field, accountId, hasFile: !!req.file })
+
     if (!accountId) {
       throw new Error('Missing accountId in request body')
     }
@@ -366,10 +368,23 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       throw new Error('Invalid field query parameter. Must be "avatar" or "banner"')
     }
 
-    const currentProfile = await prisma.profile.findUnique({
-      where: { id },
-      select: { [field]: true }
-    })
+    //Check if S3 environment variables are configured
+    if (!process.env.S3_BUCKET_NAME) {
+      throw new Error('S3_BUCKET_NAME environment variable is not configured')
+    }
+
+    console.log('Looking up current profile for field:', field)
+    let currentProfile
+    try {
+      currentProfile = await prisma.profile.findUnique({
+        where: { id },
+        select: { [field]: true }
+      })
+      console.log('Current profile found:', !!currentProfile)
+    } catch (dbError) {
+      console.error('Database lookup failed:', dbError)
+      throw new Error(`Failed to lookup profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
+    }
 
     const oldImageKey = currentProfile?.[field as keyof typeof currentProfile] as string | null | undefined
     let shouldDeleteOldImage = false
@@ -378,16 +393,32 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
       ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
       : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
 
-    const key = await uploadImage(req.file, 'profile', resizeOptions)
+    console.log('Uploading image with resize options:', resizeOptions)
+    let key: string
+    try {
+      key = await uploadImage(req.file, 'profile', resizeOptions)
+      console.log('Image uploaded successfully, key:', key)
+    } catch (uploadError) {
+      console.error('Image upload failed:', uploadError)
+      throw new Error(`Failed to upload image: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`)
+    }
 
     if (oldImageKey) {
       shouldDeleteOldImage = true
     }
 
-    const updatedProfile = await prisma.profile.update({
-      where: { id },
-      data: { [field]: key },
-    })
+    console.log('Updating profile in database with field:', field, 'and key:', key)
+    let updatedProfile
+    try {
+      updatedProfile = await prisma.profile.update({
+        where: { id },
+        data: { [field]: key },
+      })
+      console.log('Profile updated successfully')
+    } catch (dbError) {
+      console.error('Database update failed:', dbError)
+      throw new Error(`Failed to update profile: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`)
+    }
 
     if (shouldDeleteOldImage && oldImageKey) {
       try {
@@ -400,8 +431,16 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
 
     res.json(updatedProfile)
   } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPLOAD_PROFILE_IMAGE_ERROR:', prismaError, customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload profile image.' })
+    console.error('UPLOAD_PROFILE_IMAGE_ERROR:', error)
+
+    //Handle Prisma errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      const { statusCode, customError } = generatePrismaError(error)
+      res.status(statusCode).send({ errorMessage: customError || 'Failed to upload profile image.' })
+    } else {
+      //Handle other errors (like our custom errors)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile image.'
+      res.status(400).send({ errorMessage })
+    }
   }
 })
