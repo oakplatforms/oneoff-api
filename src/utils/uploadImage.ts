@@ -42,7 +42,8 @@ export async function uploadImage(
     throw new Error('Unsupported image format')
   }
 
-  const ext = mime === 'image/svg+xml' ? 'svg' : mime.split('/')[1] || 'jpg'
+  const targetFormat = resizeOptions.format || 'webp'
+  const ext = mime === 'image/svg+xml' ? 'svg' : targetFormat
   const imageId = crypto.randomUUID()
   const key = `${model}/${imageId}.${ext}`
 

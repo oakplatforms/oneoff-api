@@ -9,6 +9,7 @@ provider:
   runtime: nodejs20.x
   region: us-east-1
   stage: ${opt:stage, 'dev'}
+  versionFunctions: true
   httpApi:
     payload: '2.0'
     authorizers:
@@ -142,7 +143,7 @@ custom:
   provisionedConcurrency:
     dev: 0
     stage: 0
-    prod: 0
+    prod: 2
   
   logLevel:
     dev: debug
