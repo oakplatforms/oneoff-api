@@ -33,7 +33,6 @@ export const validateAdmin = async (reqUser: AuthenticatedUser, adminId: string,
     throw new Error('AdminId is required')
   }
 
-  //Fetch admin and verify the principalId matches the admin.user.authId
   const admin = await prisma.admin.findUnique({
     where: { id: adminId },
     include: {
@@ -53,12 +52,10 @@ export const validateAdmin = async (reqUser: AuthenticatedUser, adminId: string,
     throw new Error('User principalId does not match admin user authId')
   }
 
-  //Validate the role matches the required role
   if (reqUser.role !== requiredRole) {
     throw new Error(`User role '${reqUser.role}' does not match required role '${requiredRole}'`)
   }
 
-  //Additional role-specific validations
   switch (requiredRole) {
   case 'admin':
     if (!admin.user.isAdmin) {
