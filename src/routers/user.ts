@@ -139,7 +139,6 @@ userRouter.post(`/user`, async (req, res) => {
   const { profile: profileProps, carts: cartsProps, ...accountProps } = account || {}
 
   try {
-    console.log('admin user', req.user, isAdmin, admin)
     validateRole(req.user as AuthenticatedUser, 'admin')
     const user = await prisma.user.create({
       data: {
