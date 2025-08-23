@@ -6,7 +6,7 @@ import { resolveListings } from '../services/resolver'
 import { validateCustomer } from '../validation/customer'
 import { validateExistingBid } from '../validation/bid'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateAccount, AuthenticatedUser, validateRole } from '../validation/user'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -67,11 +67,6 @@ bidRouter.get('/bids', async (req, res) => {
   const { include, entityId, accountId, status, usePagination, page, limit } = req.query
 
   try {
-    if (accountId) {
-      await validateAccount(req.user as AuthenticatedUser, accountId as string, 'customer')
-    } else {
-      await validateRole(req.user as AuthenticatedUser, 'admin')
-    }
 
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
@@ -103,83 +98,6 @@ bidRouter.get('/bids', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('GET_BIDS_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve bids.' })
-  }
-})
-
-/**
- * @openapi
- * /bid/highest-bid:
- *   get:
- *     tags:
- *       - Bid
- *     summary: Retrieve the highest active bid for a specific entity.
- *     description: Fetches the highest active bid placed for a specific entity (product) by price. If there are ties, the earliest created bid will be returned.
- *     parameters:
- *       - name: entityId
- *         in: query
- *         description: The unique ID of the entity (product) to find the highest bid for.
- *         required: true
- *         schema:
- *           type: string
- *       - name: include
- *         in: query
- *         description: Optional query parameter to include related data (e.g., account, product details).
- *         schema:
- *           type: string
- *     responses:
- *       '200':
- *         description: Successfully retrieved the highest bid.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Bid'
- *       '400':
- *         description: Missing entity ID or invalid parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Description of the validation error.
- *       '500':
- *         description: Internal server error, typically due to database or server issues.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   description: Detailed error message for debugging.
- */
-bidRouter.get('/bid/highest-bid', async (req, res) => {
-  const { include, entityId } = req.query
-
-  try {
-    if (!entityId) {
-      throw new Error('Entity ID is required to retrieve highest bid')
-    }
-    const bid = await prisma.bid.findFirst({
-      where: {
-        AND: [
-          { status: 'ACTIVE' },
-          { entityId: entityId as string },
-        ],
-      },
-      orderBy: [
-        { price: 'desc' },
-        { createdAt: 'asc' }
-      ],
-      include: generateIncludes(include)
-    })
-
-    res.json(bid)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_HIGHEST_BID_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve highest bid.' })
   }
 })
 
