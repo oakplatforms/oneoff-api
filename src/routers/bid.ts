@@ -6,7 +6,7 @@ import { resolveListings } from '../services/resolver'
 import { validateCustomer } from '../validation/customer'
 import { validateExistingBid } from '../validation/bid'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateAccount, AuthenticatedUser } from '../validation/user'
+import { validateAccount, AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -67,6 +67,12 @@ bidRouter.get('/bids', async (req, res) => {
   const { include, entityId, accountId, status, usePagination, page, limit } = req.query
 
   try {
+    if (accountId) {
+      await validateAccount(req.user as AuthenticatedUser, accountId as string, 'customer')
+    } else {
+      await validateRole(req.user as AuthenticatedUser, 'admin')
+    }
+
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
