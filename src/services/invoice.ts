@@ -44,8 +44,9 @@ const createPaymentIntent = async (
     throw new Error('Invalid price format.')
   }
 
+  const totalAmount = Math.round(total * 100)
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(total * 100),
+    amount: totalAmount,
     currency: 'usd',
     customer: customerId,
     payment_method: paymentMethodId as string,
@@ -54,6 +55,7 @@ const createPaymentIntent = async (
     transfer_data: {
       destination: sellerId,
     },
+    application_fee_amount: Math.round(totalAmount * 0.05),
     automatic_payment_methods: {
       enabled: true,
       allow_redirects: 'never',

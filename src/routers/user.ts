@@ -3,6 +3,7 @@ import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { generateIncludes } from '../utils/generateIncludes'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { validateRole, AuthenticatedUser } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const userRouter = express.Router()
@@ -138,6 +139,7 @@ userRouter.post(`/user`, async (req, res) => {
   const { profile: profileProps, carts: cartsProps, ...accountProps } = account || {}
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const user = await prisma.user.create({
       data: {
         authId,

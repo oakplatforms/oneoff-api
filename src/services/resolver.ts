@@ -11,7 +11,6 @@ export const resolveListings = async (bid: Prisma.BidWhereInput) => {
         { status: 'ACTIVE' },
         { price: { lte: bid.price as string } },
         { quantity: { gt: 0 } },
-        { accountId: { not: bid.accountId as string } },
         {
           OR: [
             { isOffer: false },
@@ -35,9 +34,6 @@ export const resolveBids = async (listing: Prisma.ListingWhereInput) => {
       },
       quantity: {
         gt: 0,
-      },
-      accountId: {
-        not: listing.accountId as string,
       },
     },
     take: 100,

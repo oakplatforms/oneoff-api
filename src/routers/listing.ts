@@ -6,7 +6,7 @@ import { resolveBids } from '../services/resolver'
 import { validateSeller } from '../validation/seller'
 import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { AuthenticatedUser, validateAccount } from '../validation/user'
+import { AuthenticatedUser, validateAccount, validateRole } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 
@@ -71,6 +71,12 @@ listingRouter.get('/listings', async (req, res) => {
   const { include, entityId, accountId, status, usePagination, page, limit } = req.query
 
   try {
+    if (accountId) {
+      await validateAccount(req.user as AuthenticatedUser, accountId as string, 'seller')
+    } else {
+      await validateRole(req.user as AuthenticatedUser, 'admin')
+    }
+
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
@@ -189,6 +195,115 @@ listingRouter.get('/listing/lowest-ask', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('GET_LISTING_LOWEST_ASK_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve listing lowest ask.' })
+  }
+})
+
+/**
+ * @openapi
+ * /listing/entity-prices:
+ *   get:
+ *     tags:
+ *       - Listing
+ *     summary: Retrieve the lowest ask and highest bid prices for an entity.
+ *     description: Fetches both the lowest ask price and highest bid price for a specific entity. Returns an object with both prices for market analysis.
+ *     parameters:
+ *       - in: query
+ *         name: entityId
+ *         schema:
+ *           type: string
+ *         description: The entity ID to get prices for.
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include in the response.
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the entity prices.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 lowestAsk:
+ *                   type: number
+ *                   description: The lowest ask price for the entity.
+ *                 highestBid:
+ *                   type: number
+ *                   description: The highest bid price for the entity.
+ *       '400':
+ *         description: Bad request, typically due to missing entity ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listingRouter.get('/listing/entity-prices', async (req, res) => {
+  const { include, entityId } = req.query
+
+  if (!entityId) {
+    throw new Error('entity ID is required to retrieve entity prices')
+  }
+
+  try {
+    const lowestAskListing = await prisma.listing.findFirst({
+      where: {
+        AND: [
+          { status: 'ACTIVE' },
+          { entityId: entityId as string },
+          {
+            OR: [
+              { isOffer: false },
+              { isOffer: null }
+            ]
+          }
+        ]
+      },
+      orderBy: [
+        { price: 'asc' },
+        { createdAt: 'asc' }
+      ],
+      include: generateIncludes(include),
+    })
+
+    const highestBid = await prisma.bid.findFirst({
+      where: {
+        AND: [
+          { status: 'ACTIVE' },
+          { entityId: entityId as string },
+        ],
+      },
+      orderBy: [
+        { price: 'desc' },
+        { createdAt: 'asc' }
+      ],
+      include: generateIncludes(include)
+    })
+
+    const result = {
+      lowestAsk: lowestAskListing?.price || null,
+      highestBid: highestBid?.price || null
+    }
+
+    res.json(result)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_PRICES_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entity prices.' })
   }
 })
 
