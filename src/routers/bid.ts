@@ -67,7 +67,9 @@ bidRouter.get('/bids', async (req, res) => {
   const { include, entityId, accountId, status, usePagination, page, limit } = req.query
 
   try {
-
+    if (!entityId && !accountId) {
+      throw new Error('Either entityId or accountId must be provided to filter bids.')
+    }
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
