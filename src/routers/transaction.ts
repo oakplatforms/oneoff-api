@@ -92,7 +92,7 @@ transactionRouter.get('/transactions', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.transaction,
       where,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -170,7 +170,7 @@ transactionRouter.get('/transaction/:id', async (req, res) => {
     }
     const transaction = await prisma.transaction.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (transaction) {

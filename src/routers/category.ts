@@ -61,7 +61,7 @@ categoryRouter.get('/categories', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.category,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -223,7 +223,9 @@ categoryRouter.put(`/category/:id`, async (req, res) => {
     const category = await prisma.category.update({
       where: { id },
       data: {
-        ...req.body,
+        ...(req.body.name !== undefined && { name: req.body.name }),
+        ...(req.body.displayName !== undefined && { displayName: req.body.displayName }),
+        ...(req.body.description !== undefined && { description: req.body.description }),
       }
     })
     if (category) {
@@ -308,7 +310,7 @@ categoryRouter.get('/category/:id', async (req, res) => {
       where: {
         id,
       },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
     if (category) {
       res.json(category)

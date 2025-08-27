@@ -70,7 +70,7 @@ sellerRouter.get('/seller/:id', async (req, res) => {
     }
     const seller = await prisma.seller.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (seller) {

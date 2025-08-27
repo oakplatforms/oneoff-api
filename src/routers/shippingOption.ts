@@ -48,7 +48,7 @@ shippingOptionRouter.get('/shipping-options', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.shippingOption,
       where: isStandalone !== undefined ? { isStandalone: isStandalone === 'true' } : undefined,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -202,7 +202,7 @@ shippingOptionRouter.put('/shipping-option/:id', async (req, res) => {
         weight,
         rate,
         isStandalone,
-        lastModifiedById
+        lastModifiedBy: { connect: { id: lastModifiedById } }
       },
     })
     res.json(shippingOption)
@@ -251,7 +251,7 @@ shippingOptionRouter.get('/shipping-option/:id', async (req, res) => {
     }
     const shippingOption = await prisma.shippingOption.findUnique({
       where: { id },
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
     })
     res.json(shippingOption)
   } catch (error) {

@@ -74,7 +74,7 @@ listRouter.get('/lists', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.list,
       where,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -378,7 +378,7 @@ listRouter.get('/list/:id', async (req, res) => {
     }
     const list = await prisma.list.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (list) {

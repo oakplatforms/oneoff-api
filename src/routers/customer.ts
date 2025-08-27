@@ -118,7 +118,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
 
       const newCustomer = await tx.customer.create({
         data: {
-          accountId,
+          account: { connect: { id: accountId } },
           firstName,
           lastName,
           phone,
