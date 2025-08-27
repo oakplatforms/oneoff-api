@@ -147,7 +147,7 @@ entityRouter.get('/entities', async (req, res) => {
       prismaModel: prisma.entity,
       where: whereClause,
       include: {
-        ...generateIncludes(include),
+        ...generateIncludes(include as string),
         //Include listings and bids to calculate prices
         listings: {
           where: {
@@ -552,8 +552,13 @@ entityRouter.put('/entity/:id', async (req, res) => {
     const entity = await prisma.entity.update({
       where: { id },
       data: {
-        ...req.body,
-        lastModifiedById,
+        name: req.body.name,
+        type: req.body.type,
+        displayName: req.body.displayName,
+        description: req.body.description,
+        image: req.body.image,
+        secondaryImage: req.body.secondaryImage,
+        lastModifiedBy: { connect: { id: lastModifiedById } },
         product: product
           ? {
             update: {
@@ -564,7 +569,7 @@ entityRouter.put('/entity/:id', async (req, res) => {
         entityTags: entityTags
           ? {
             create: entityTags.create?.map((entityTag: { tagId: string; tagValue: string }) => ({
-              tagId: entityTag.tagId,
+              tag: { connect: { id: entityTag.tagId } },
               tagValue: entityTag.tagValue,
             })),
             updateMany: entityTags.update?.map((entityTag: { id: string; tagValue: string }) => ({
@@ -576,8 +581,9 @@ entityRouter.put('/entity/:id', async (req, res) => {
             })),
           }
           : undefined,
-        categoryId,
-        brandId,
+        category: categoryId ? { connect: { id: categoryId } } : undefined,
+        brand: brandId ? { connect: { id: brandId } } : undefined,
+        setId: req.body.setId,
       },
     })
 
@@ -860,7 +866,7 @@ entityRouter.get('/entity/:id', async (req, res) => {
         id
       },
       include: {
-        ...generateIncludes(include),
+        ...generateIncludes(include as string),
         //Include listings and bids to calculate prices
         listings: {
           where: {
