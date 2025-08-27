@@ -23,7 +23,9 @@ import { customerRouter } from './customer'
 import { shipmentRouter } from './shipment'
 import { offerRouter } from './offer'
 import { profileRouter } from './profile'
+import { warmupRouter } from './warmup'
 
+router.use(warmupRouter)
 router.use(userRouter)
 router.use(accountRouter)
 router.use(authRouter)
