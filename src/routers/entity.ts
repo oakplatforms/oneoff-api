@@ -583,7 +583,7 @@ entityRouter.put('/entity/:id', async (req, res) => {
           : undefined,
         category: categoryId ? { connect: { id: categoryId } } : undefined,
         brand: brandId ? { connect: { id: brandId } } : undefined,
-        setId: req.body.setId,
+        set: req.body.setId ? { connect: { id: req.body.setId } } : undefined,
       },
     })
 
