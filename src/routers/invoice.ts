@@ -57,7 +57,7 @@ invoiceRouter.get('/invoice/:id', async (req, res) => {
     }
     const invoice = await prisma.invoice.findUnique({
       where: { id },
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
     })
 
     if (invoice) {

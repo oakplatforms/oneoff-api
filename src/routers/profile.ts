@@ -69,7 +69,7 @@ profileRouter.get('/profile/:id', async (req, res) => {
     }
     const profile = await prisma.profile.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (profile) {
@@ -234,6 +234,7 @@ profileRouter.put('/profile/:id', async (req, res) => {
   const { id } = req.params
   const {
     username,
+    description,
     accountId,
   } = req.body
 
@@ -248,13 +249,12 @@ profileRouter.put('/profile/:id', async (req, res) => {
       await validateUsername(username, id)
     }
 
-    const updateData = { ...req.body }
-
-    delete updateData.accountId
-
     const profile = await prisma.profile.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...(username !== undefined && { username }),
+        ...(description !== undefined && { description }),
+      },
       include: {
         account: true
       }

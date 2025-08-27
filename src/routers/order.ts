@@ -111,7 +111,7 @@ orderRouter.get('/orders', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.order,
       where,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -183,7 +183,7 @@ orderRouter.get('/order/:id', async (req, res) => {
     }
     const order = await prisma.order.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (order) {
@@ -516,9 +516,9 @@ orderRouter.put('/order/:id', async (req, res) => {
       const updatedOrder = await prisma.order.update({
         where: { id },
         data: {
-          ...(customerId && { customerId }),
-          ...(sellerId && { sellerId }),
-          ...(cartId && { cartId }),
+          ...(customerId && { customer: { connect: { id: customerId } } }),
+          ...(sellerId && { seller: { connect: { id: sellerId } } }),
+          ...(cartId && { cart: { connect: { id: cartId } } }),
           ...(shippingMethodId && {
             shippingMethod: { connect: { id: shippingMethodId } }
           }),

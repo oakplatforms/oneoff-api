@@ -32,7 +32,7 @@ brandRouter.get('/brands', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.brand,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -139,14 +139,17 @@ brandRouter.post(`/brand`, async (req, res) => {
  */
 brandRouter.put('/brand/:id', async (req, res) => {
   const { id } = req.params
-  const { lastModifiedById, ...rest } = req.body
+  const { lastModifiedById, name, slug, description, logoUrl } = req.body
 
   try {
     await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
     const brand = await prisma.brand.update({
       where: { id },
       data: {
-        ...rest,
+        ...(name !== undefined && { name }),
+        ...(slug !== undefined && { slug }),
+        ...(description !== undefined && { description }),
+        ...(logoUrl !== undefined && { logoUrl }),
         lastModifiedBy: { connect: { id: lastModifiedById } },
       },
     })
@@ -218,7 +221,7 @@ brandRouter.get('/brand/:id', async (req, res) => {
       where: {
         id,
       },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (brand) {

@@ -52,7 +52,7 @@ offerRouter.get('/offers', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.offer,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parseInt(page as string) || 0,
       limit: parseInt(limit as string) || 10,
       usePagination: usePagination === 'false' ? false : true,
@@ -257,7 +257,7 @@ offerRouter.get('/offer/:id', async (req, res) => {
     }
     const offer = await prisma.offer.findUnique({
       where: { id },
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
     })
 
     if (offer) {

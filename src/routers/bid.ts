@@ -89,7 +89,7 @@ bidRouter.get('/bids', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.bid,
       where,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -365,7 +365,12 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
     const bid = await prisma.bid.update({
       where: { id },
       data: {
-        ...req.body,
+        ...(req.body.price !== undefined && { price: req.body.price }),
+        ...(req.body.quantity !== undefined && { quantity: req.body.quantity }),
+        ...(req.body.status !== undefined && { status: req.body.status }),
+        ...(req.body.multiTransactionsEnabled !== undefined && { multiTransactionsEnabled: req.body.multiTransactionsEnabled }),
+        ...(req.body.profileId !== undefined && { profile: { connect: { id: req.body.profileId } } }),
+        ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
       },
       include: {
         account: true
@@ -451,7 +456,7 @@ bidRouter.get('/bid/:id', async (req, res) => {
     }
     const bid = await prisma.bid.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (bid) {

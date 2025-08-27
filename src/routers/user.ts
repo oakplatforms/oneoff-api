@@ -62,7 +62,7 @@ userRouter.get('/users', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.user,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -142,7 +142,7 @@ userRouter.post(`/user`, async (req, res) => {
     validateRole(req.user as AuthenticatedUser, 'admin')
     const user = await prisma.user.create({
       data: {
-        authId,
+        auth: { connect: { id: authId } },
         isAdmin,
         ...(isAdmin && admin && {
           admin: {
@@ -262,10 +262,14 @@ userRouter.put(`/user/:id`, async (req, res) => {
       data: {
         account: {
           update: {
-            ...accountProps,
+            ...(accountProps.username !== undefined && { username: accountProps.username }),
+            ...(accountProps.email !== undefined && { email: accountProps.email }),
             ...(profileProps && {
               profile: {
-                update: profileProps
+                update: {
+                  ...(profileProps.username !== undefined && { username: profileProps.username }),
+                  ...(profileProps.description !== undefined && { description: profileProps.description }),
+                }
               }
             })
           },
@@ -337,7 +341,7 @@ userRouter.get('/user/:authId', async (req, res) => {
       where: {
         authId: { contains: authId as string }
       },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (users?.[0]) {
