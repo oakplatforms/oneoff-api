@@ -59,7 +59,7 @@ tagRouter.get('/tags', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.tag,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: parsedUsePagination,
@@ -372,7 +372,7 @@ tagRouter.get('/tag/:id', async (req, res) => {
       where: {
         id,
       },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
     if (tag) {
       res.json(tag)

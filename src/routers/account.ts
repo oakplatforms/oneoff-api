@@ -53,7 +53,7 @@ accountRouter.get('/accounts', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.account,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -136,7 +136,7 @@ accountRouter.get('/account/:id', async (req, res) => {
 
     const account = await prisma.account.findUnique({
       where: { id },
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
     })
 
     if (!account) {

@@ -75,7 +75,7 @@ entityTagRouter.get('/entity-tags', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.entityTag,
       where,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -154,7 +154,7 @@ entityTagRouter.get('/entity-tag/:id', async (req, res) => {
       where: {
         id
       },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
     if (entityTag) {
       res.json(entityTag)

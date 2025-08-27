@@ -99,7 +99,7 @@ listingRouter.get('/listings', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.listing,
       where,
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -505,7 +505,19 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
 
     const listing = await prisma.listing.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...(imageKey && { image: imageKey }),
+        ...(shouldRemoveImage && { image: null }),
+        ...(req.body.price !== undefined && { price: parsedPrice }),
+        ...(req.body.quantity !== undefined && { quantity: parseInt(req.body.quantity) }),
+        ...(req.body.multiTransactionsEnabled !== undefined && { multiTransactionsEnabled: req.body.multiTransactionsEnabled === 'true' }),
+        ...(req.body.isPrimary !== undefined && { isPrimary: req.body.isPrimary === 'true' }),
+        ...(req.body.isOffer !== undefined && { isOffer: req.body.isOffer === 'true' }),
+        ...(req.body.status !== undefined && { status: req.body.status }),
+        ...(req.body.imageCaption !== undefined && { imageCaption: req.body.imageCaption }),
+        ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
+        ...(req.body.accountId !== undefined && { account: { connect: { id: req.body.accountId } } }),
+      },
       include: {
         account: true
       }
@@ -590,7 +602,7 @@ listingRouter.get('/listing/:id', async (req, res) => {
     }
     const listing = await prisma.listing.findUnique({
       where: { id },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
 
     if (listing) {

@@ -42,7 +42,10 @@ cartRouter.post('/cart', async (req, res) => {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCartAccount(accountId, isPrimary)
     const cart = await prisma.cart.create({
-      data: { accountId, isPrimary },
+      data: {
+        account: { connect: { id: accountId } },
+        isPrimary
+      },
     })
     res.json(cart)
   } catch (error) {
@@ -98,8 +101,7 @@ cartRouter.put('/cart/:id', async (req, res) => {
     const cart = await prisma.cart.update({
       where: { id },
       data: {
-        ...req.body,
-        ...(accountId && { accountId }),
+        ...(accountId && { account: { connect: { id: accountId } } }),
       },
     })
     res.json(cart)
@@ -147,7 +149,7 @@ cartRouter.get('/cart/:id', async (req, res) => {
     }
     const cart = await prisma.cart.findUnique({
       where: { id },
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
     })
     if (cart) res.json(cart)
     else res.status(404).send({ errorMessage: 'Cart not found' })

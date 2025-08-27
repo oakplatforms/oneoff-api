@@ -62,7 +62,7 @@ shippingMethodRouter.get('/shipping-methods', async (req, res) => {
     const result = await paginatePrisma({
       prismaModel: prisma.shippingMethod,
       where: {},
-      include: generateIncludes(include),
+      include: generateIncludes(include as string),
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
@@ -265,7 +265,9 @@ shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
     const shippingMethod = await prisma.shippingMethod.update({
       where: { id },
       data: {
-        ...req.body,
+        ...(req.body.name !== undefined && { name: req.body.name }),
+        ...(req.body.displayName !== undefined && { displayName: req.body.displayName }),
+        ...(req.body.description !== undefined && { description: req.body.description }),
         parcels: parcels
           ? {
             create: parcels.create?.map((parcel: { carrier: ShippingCarrierType; type: ShippingParcelType }) => ({
@@ -382,7 +384,7 @@ shippingMethodRouter.get('/shipping-method/:id', async (req, res) => {
       where: {
         id,
       },
-      include: generateIncludes(include)
+      include: generateIncludes(include as string)
     })
     if (shippingMethod) {
       res.json(shippingMethod)
