@@ -1,5 +1,4 @@
 import express, { Request, Response, NextFunction } from 'express'
-import cors from 'cors'
 import router from './routers/all_routes'
 
 declare module 'express-serve-static-core' {
@@ -17,14 +16,6 @@ process.on('unhandledRejection', (reason) => {
 })
 
 const app = express()
-
-// CORS middleware
-app.use(cors({
-  origin: true, // Allow all origins in development
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-authorizer-role', 'x-authorizer-userpool', 'x-authorizer-principalid']
-}))
 
 app.use(express.json({ limit: '10mb' }))
 
