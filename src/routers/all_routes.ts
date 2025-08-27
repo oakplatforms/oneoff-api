@@ -23,28 +23,9 @@ import { customerRouter } from './customer'
 import { shipmentRouter } from './shipment'
 import { offerRouter } from './offer'
 import { profileRouter } from './profile'
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { warmupRouter } from './warmup'
 
-router.get('/warmup', async (req, res) => {
-  try {
-    const prisma = getPrismaClient()
-    await prisma.$queryRaw`SELECT 1`
-
-    res.json({
-      status: 'warmed_up',
-      message: 'Prisma client initialized successfully',
-      timestamp: new Date().toISOString()
-    })
-  } catch (error) {
-    console.error('WARMUP_ERROR:', error)
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to initialize Prisma client',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    })
-  }
-})
-
+router.use(warmupRouter)
 router.use(userRouter)
 router.use(accountRouter)
 router.use(authRouter)
