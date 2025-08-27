@@ -50,8 +50,6 @@ functions:
   api:
     name: tcgx-api-${sls:stage}
     handler: lambdas/apiHandler.handler
-    layers:
-      - arn:aws:lambda:us-east-1:992382609315:layer:sharp-aws-layer:1
     events:
       - httpApi:
           path: /{proxy+}
