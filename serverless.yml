@@ -10,7 +10,6 @@ provider:
   region: us-east-1
   stage: ${opt:stage, 'dev'}
   versionFunctions: true
-  architecture: arm64
   httpApi:
     payload: '2.0'
     authorizers:
