@@ -50,6 +50,8 @@ functions:
   api:
     name: tcgx-api-${sls:stage}
     handler: lambdas/apiHandler.handler
+    memorySize: ${self:custom.memorySize.${sls:stage}}
+    ephemeralStorageSize: ${self:custom.storageSize.${sls:stage}}
     layers:
       - arn:aws:lambda:us-east-1:992382609315:layer:sharp-arm64:1
     events:
@@ -145,6 +147,16 @@ custom:
     dev: 0
     stage: 0
     prod: 2
+  
+  memorySize:
+    dev: 1024
+    stage: 1024
+    prod: 2048
+  
+  storageSize:
+    dev: 512
+    stage: 512
+    prod: 1024
   
   logLevel:
     dev: debug
