@@ -88,8 +88,6 @@ export const entityRouter = express.Router()
 entityRouter.get('/entities', async (req, res) => {
   const { include, entityTags, categoryId, brandId, search, limit, page, usePagination } = req.query
 
-  console.log('Raw entityTags:', entityTags)
-
   try {
     const entityTagFilters = Array.isArray(entityTags)
       ? entityTags.filter(tag => typeof tag === 'string')
@@ -97,29 +95,32 @@ entityRouter.get('/entities', async (req, res) => {
         ? [entityTags]
         : []
 
-    console.log('entityTagFilters:', entityTagFilters)
-
     const parsedTagFilters = entityTagFilters.map(tagFilter => {
       const [tagName, tagValue] = (tagFilter as string)?.split?.(':') ?? ['', '']
-      console.log('Split result:', { tagName, tagValue })
       return { tag: { name: tagName }, tagValue }
     })
 
-    console.log('parsedTagFilters:', parsedTagFilters)
+    //Group entity tags by tag name
+    const tagGroups = parsedTagFilters.reduce((groups, filter) => {
+      const tagName = filter.tag.name
+      if (!groups[tagName]) {
+        groups[tagName] = []
+      }
+      groups[tagName].push(filter)
+      return groups
+    }, {} as Record<string, typeof parsedTagFilters>)
 
     const whereClause: Prisma.EntityWhereInput = {
       AND: [
-        ...(parsedTagFilters.length > 0
-          ? [
-            {
-              entityTags: {
-                some: {
-                  OR: parsedTagFilters
-                }
-              }
+        //For each tag name, create an OR condition for its values
+        ...Object.entries(tagGroups).map(([tagName, filters]) => ({
+          entityTags: {
+            some: {
+              tag: { name: tagName },
+              tagValue: { in: filters.map(f => f.tagValue) }
             }
-          ]
-          : []),
+          }
+        })),
         ...(categoryId
           ? [
             {
