@@ -88,6 +88,8 @@ export const entityRouter = express.Router()
 entityRouter.get('/entities', async (req, res) => {
   const { include, entityTags, categoryId, brandId, search, limit, page, usePagination } = req.query
 
+  console.log('Raw entityTags:', entityTags)
+
   try {
     const entityTagFilters = Array.isArray(entityTags)
       ? entityTags.filter(tag => typeof tag === 'string')
@@ -95,10 +97,15 @@ entityRouter.get('/entities', async (req, res) => {
         ? [entityTags]
         : []
 
+    console.log('entityTagFilters:', entityTagFilters)
+
     const parsedTagFilters = entityTagFilters.map(tagFilter => {
       const [tagName, tagValue] = (tagFilter as string)?.split?.(':') ?? ['', '']
+      console.log('Split result:', { tagName, tagValue })
       return { tag: { name: tagName }, tagValue }
     })
+
+    console.log('parsedTagFilters:', parsedTagFilters)
 
     const whereClause: Prisma.EntityWhereInput = {
       AND: [
