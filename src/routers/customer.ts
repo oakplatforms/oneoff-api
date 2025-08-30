@@ -488,23 +488,49 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
  *                   type: string
  *                   example: There was an error while removing your payment method
  */
-customerRouter.delete('/customer/payment-method/:accountId/:paymentMethodId', async (req, res) => {
-  const { accountId, paymentMethodId } = req.params
+customerRouter.delete(
+  '/customer/payment-method/:accountId/:paymentMethodId',
+  async (req, res) => {
+    const { accountId, paymentMethodId } = req.params
 
-  if (!accountId || !paymentMethodId) {
-    throw new Error('Missing required parameters: accountId and paymentMethodId')
+    if (!accountId || !paymentMethodId) {
+      return res.status(400).send({ errorMessage: 'Missing required parameters: accountId and paymentMethodId' })
+    }
+
+    try {
+      await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+      await prisma.$transaction(
+        async (tx) => {
+          const customer = await tx.customer.findFirst({
+            where: { accountId },
+            select: { id: true },
+          })
+          if (!customer) {
+            throw new Error('Customer not found for this account.')
+          }
+
+          await tx.customer.update({
+            where: { id: customer.id },
+            data: { hasPaymentMethod: false },
+          })
+
+          await stripe.paymentMethods.detach(paymentMethodId)
+        },
+        { timeout: 60000 }
+      )
+
+      return res.json({ success: 'Payment method was successfully removed' })
+    } catch (error) {
+      const { statusCode, prismaError, customError } = generatePrismaError(
+        error as Prisma.PrismaClientKnownRequestError
+      )
+      console.error('DELETE_CUSTOMER_PAYMENT_METHOD_ERROR:', prismaError || customError)
+      return res
+        .status(statusCode)
+        .send({ errorMessage: customError || 'Failed to delete customer payment method.' })
+    }
   }
-
-  try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-    await stripe.paymentMethods.detach(paymentMethodId)
-
-    return res.json({ success: 'Payment method was successfully removed' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_CUSTOMER_PAYMENT_METHOD_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete customer payment method.' })
-  }
-})
+)
 
 export default customerRouter
