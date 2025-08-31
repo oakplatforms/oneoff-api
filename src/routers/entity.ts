@@ -153,33 +153,7 @@ entityRouter.get('/entities', async (req, res) => {
 
     const result = await paginatePrisma({
       prismaModel: prisma.entity,
-      where: {
-        ...whereClause,
-        OR: [
-          {
-            listings: {
-              some: {
-                AND: [
-                  { status: 'ACTIVE' },
-                  {
-                    OR: [
-                      { isOffer: false },
-                      { isOffer: null }
-                    ]
-                  }
-                ]
-              }
-            }
-          },
-          {
-            bids: {
-              some: {
-                status: 'ACTIVE'
-              }
-            }
-          }
-        ]
-      },
+      where: whereClause,
       include: {
         ...generateIncludes(include as string),
         //Include listings and bids to calculate prices
