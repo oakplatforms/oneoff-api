@@ -414,7 +414,6 @@ orderRouter.post('/order', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-
 orderRouter.put('/order/:id', async (req, res) => {
   const { id } = req.params
   const {
@@ -448,8 +447,7 @@ orderRouter.put('/order/:id', async (req, res) => {
             include: {
               listing: true,
             }
-          },
-          shipments: true
+          }
         }
       })
 
@@ -514,25 +512,6 @@ orderRouter.put('/order/:id', async (req, res) => {
 
       const isDeleted = listingsInOrder?.delete?.length === existingOrder.orderListings.length
 
-      //If all listings are being deleted, delete the entire order
-      if (isDeleted) {
-        //Delete any shipments associated with this order first
-        if (existingOrder.shipments?.length) {
-          for (const shipment of existingOrder.shipments) {
-            await prisma.shipment.delete({
-              where: { id: shipment.id },
-            })
-          }
-        }
-
-        //Delete the order
-        await prisma.order.delete({
-          where: { id },
-        })
-
-        return { deleted: true, message: 'Order deleted successfully' }
-      }
-
       const updatedOrder = await prisma.order.update({
         where: { id },
         data: {
@@ -542,6 +521,7 @@ orderRouter.put('/order/:id', async (req, res) => {
           ...(shippingMethodId && {
             shippingMethod: { connect: { id: shippingMethodId } }
           }),
+          ...(isDeleted && { status: 'DELETED' }),
           ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
             subTotal,
             orderListings: listingsInOrder
@@ -604,3 +584,4 @@ orderRouter.put('/order/:id', async (req, res) => {
     res.status(statusCode).send({ errorMessage: customError || 'Failed to update order.' })
   }
 })
+
