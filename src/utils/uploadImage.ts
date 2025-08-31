@@ -2,7 +2,15 @@ import crypto from 'crypto'
 import s3 from './s3Client'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import multer from 'multer'
-import sharp from 'sharp'
+
+// Dynamic import for sharp to handle local development vs Lambda environment
+let sharp: any = null
+try {
+  sharp = require('sharp')
+} catch (error) {
+  // Sharp not available locally, will be available in Lambda via layer
+  console.warn('Sharp not available locally - will be available in Lambda environment')
+}
 
 export const uploadConfig = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -49,7 +57,7 @@ export async function uploadImage(
 
   let buffer = file.buffer
 
-  if (mime !== 'image/svg+xml') {
+  if (mime !== 'image/svg+xml' && sharp) {
     const pipeline = sharp(file.buffer).resize({
       width: resizeOptions.width,
       height: resizeOptions.height,
@@ -67,6 +75,10 @@ export async function uploadImage(
     }
 
     buffer = await pipeline.toBuffer()
+  } else if (mime !== 'image/svg+xml' && !sharp) {
+    // If sharp is not available (local development), use original buffer
+    // In production Lambda, sharp will be available via the layer
+    console.warn('Image processing skipped - sharp not available locally')
   }
 
   await s3.send(

@@ -414,7 +414,6 @@ orderRouter.post('/order', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-
 orderRouter.put('/order/:id', async (req, res) => {
   const { id } = req.params
   const {
@@ -585,3 +584,4 @@ orderRouter.put('/order/:id', async (req, res) => {
     res.status(statusCode).send({ errorMessage: customError || 'Failed to update order.' })
   }
 })
+

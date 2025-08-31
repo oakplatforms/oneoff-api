@@ -180,6 +180,21 @@ entityRouter.get('/entities', async (req, res) => {
           select: { price: true }
         }
       },
+      orderBy: [
+        {
+          listings: {
+            _count: 'desc'
+          }
+        },
+        {
+          bids: {
+            _count: 'desc'
+          }
+        },
+        {
+          name: 'asc'
+        }
+      ],
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
