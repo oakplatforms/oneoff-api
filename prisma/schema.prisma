@@ -309,6 +309,7 @@ model Brand {
   name             String  @unique
   displayName      String?
   logo             String?
+  legalDisclaimer  String?
 
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)

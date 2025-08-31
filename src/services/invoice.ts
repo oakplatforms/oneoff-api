@@ -55,7 +55,7 @@ const createPaymentIntent = async (
     transfer_data: {
       destination: sellerId,
     },
-    application_fee_amount: Math.round(totalAmount * 0.05),
+    application_fee_amount: Math.round(totalAmount * 0.05) + 40,
     automatic_payment_methods: {
       enabled: true,
       allow_redirects: 'never',

@@ -725,6 +725,12 @@
             "null"
           ]
         },
+        "legalDisclaimer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "createdBy": {
           "anyOf": [
             {
