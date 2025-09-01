@@ -86,7 +86,7 @@ export const entityRouter = express.Router()
  *                   example: Unexpected error occurred
  */
 entityRouter.get('/entities', async (req, res) => {
-  const { include, entityTags, categoryId, brandId, search, limit, page, usePagination } = req.query
+  const { include, entityTags, categoryId, brandId, setId, search, limit, page, usePagination } = req.query
 
   try {
     const entityTagFilters = Array.isArray(entityTags)
@@ -132,6 +132,13 @@ entityRouter.get('/entities', async (req, res) => {
           ? [
             {
               brandId: brandId as string
+            }
+          ]
+          : []),
+        ...(setId
+          ? [
+            {
+              setId: setId as string
             }
           ]
           : []),
