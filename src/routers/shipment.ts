@@ -231,8 +231,8 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
           let parcelConfig: any
           if (shippingParcel.type === 'Custom_Cheapest') {
             parcelConfig = {
-              length: '6',
-              width: '4',
+              length: '11.5',
+              width: '6.125',
               height: '0.25',
               distanceUnit: 'in',
               weight: orderWeight?.toString(),
