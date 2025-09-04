@@ -142,7 +142,7 @@ userRouter.post(`/user`, async (req, res) => {
     validateRole(req.user as AuthenticatedUser, 'admin')
     const user = await prisma.user.create({
       data: {
-        auth: { connect: { id: authId } },
+        authId,
         isAdmin,
         ...(isAdmin && admin && {
           admin: {
