@@ -533,4 +533,105 @@ customerRouter.delete(
   }
 )
 
+/**
+ * @openapi
+ * /customer/{accountId}:
+ *   delete:
+ *     tags:
+ *       - Customer
+ *     summary: Delete a customer and their Stripe account
+ *     description: Permanently deletes a customer record from the database and their associated Stripe customer account. This action cannot be undone.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the account associated with the customer to delete.
+ *     responses:
+ *       '200':
+ *         description: Customer and Stripe account successfully deleted.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Customer and Stripe account were successfully deleted
+ *       '400':
+ *         description: Missing required parameter.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Missing required parameter: accountId"
+ *       '404':
+ *         description: Customer not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Customer not found for this account"
+ *       '500':
+ *         description: Error occurred while deleting the customer.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to delete customer
+ */
+customerRouter.delete('/customer/:accountId', async (req, res) => {
+  const { accountId } = req.params
+
+  if (!accountId) {
+    return res.status(400).send({ errorMessage: 'Missing required parameter: accountId' })
+  }
+
+  try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+
+    await prisma.$transaction(
+      async (tx) => {
+        const customer = await tx.customer.findFirst({
+          where: { accountId },
+          select: { id: true, paymentAccountId: true },
+        })
+
+        if (!customer) {
+          throw new Error('Customer not found for this account.')
+        }
+
+        await tx.customer.delete({
+          where: { id: customer.id },
+        })
+
+        if (customer.paymentAccountId) {
+          await stripe.customers.del(customer.paymentAccountId)
+        }
+      },
+      { timeout: 60000 }
+    )
+
+    return res.json({ success: 'Customer and Stripe account were successfully deleted' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
+    console.error('DELETE_CUSTOMER_ERROR:', prismaError || customError)
+    return res
+      .status(statusCode)
+      .send({ errorMessage: customError || 'Failed to delete customer.' })
+  }
+})
+
 export default customerRouter
