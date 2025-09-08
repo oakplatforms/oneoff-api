@@ -42,6 +42,7 @@ provider:
           Action:
             - cognito-idp:AdminAddUserToGroup
             - cognito-idp:AdminRemoveUserFromGroup
+            - cognito-idp:AdminDeleteUser
           Resource: 
             - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:CONSUMER_USER_POOL_ID}
             - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:ADMIN_USER_POOL_ID}
