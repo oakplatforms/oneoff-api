@@ -3,7 +3,9 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateRole, AuthenticatedUser } from '../validation/user'
+import { validateRole, validateAccount, AuthenticatedUser } from '../validation/user'
+import stripe from '../utils/stripe'
+import { deleteUserFromCognito } from '../utils/deleteUserFromCognito'
 
 const prisma = getPrismaClient()
 export const accountRouter = express.Router()
@@ -151,3 +153,135 @@ accountRouter.get('/account/:id', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /account/{id}:
+ *   delete:
+ *     tags:
+ *       - Account
+ *     summary: Delete an account and all associated data
+ *     description: Permanently deletes an account and all associated data including Stripe customer, Cognito user, and database records. Cannot delete accounts with pending orders.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the account to delete.
+ *     responses:
+ *       '200':
+ *         description: Account and all associated data successfully deleted.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Account and all associated data were successfully deleted
+ *       '400':
+ *         description: Missing required parameter or account has pending orders.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '404':
+ *         description: Account not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while deleting the account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+accountRouter.delete('/account/:id', async (req, res) => {
+  const { id } = req.params
+
+  if (!id) {
+    return res.status(400).json({ errorMessage: 'Account ID is required.' })
+  }
+
+  try {
+    await validateAccount(req.user as AuthenticatedUser, id, 'authenticated')
+
+    await prisma.$transaction(
+      async (tx) => {
+        //Get account with all related data
+        const account = await tx.account.findUnique({
+          where: { id },
+          include: {
+            user: true,
+            seller: true,
+            customer: true,
+            carts: {
+              include: {
+                orders: {
+                  where: {
+                    status: { in: ['PENDING'] }
+                  }
+                }
+              }
+            }
+          }
+        })
+
+        if (!account) {
+          throw new Error('Account not found.')
+        }
+
+        //Check for pending orders
+        const accountWithIncludes = account as Record<string, unknown>
+        const pendingOrders = (accountWithIncludes.carts as Array<Record<string, unknown>>)?.flatMap((cart: Record<string, unknown>) => cart.orders as Array<Record<string, unknown>>) || []
+        if (pendingOrders.length > 0) {
+          throw new Error('Cannot delete account with pending orders. Please complete or cancel all pending orders first.')
+        }
+
+        //Delete Stripe customer if exists
+        const customer = accountWithIncludes.customer as Record<string, unknown>
+        if (customer?.paymentAccountId) {
+          await stripe.customers.del(customer.paymentAccountId as string)
+        }
+
+        //Delete Cognito user if exists
+        const user = accountWithIncludes.user as Record<string, unknown>
+        if (user?.authId) {
+          await deleteUserFromCognito(user.authId as string)
+        }
+
+        //Delete account (this will cascade delete related records due to foreign key constraints)
+        await tx.account.delete({
+          where: { id }
+        })
+      },
+      { timeout: 60000 }
+    )
+
+    return res.json({ success: 'Account and all associated data were successfully deleted' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(
+      error as Prisma.PrismaClientKnownRequestError
+    )
+    console.error('DELETE_ACCOUNT_ERROR:', prismaError || customError)
+    return res
+      .status(statusCode)
+      .send({ errorMessage: customError || 'Failed to delete account.' })
+  }
+})
+
+export default accountRouter
