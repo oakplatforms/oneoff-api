@@ -106,25 +106,20 @@ authRouter.post('/auth/update-password', async (req, res) => {
 /**
  * @openapi
  * /auth/check-for-user:
- *   post:
+ *   get:
  *     tags:
  *       - Auth
  *     summary: Check if user exists in sign-up flow.
  *     description: Checks if a user already exists with the given email address. If user exists and is confirmed, throws an error. If user exists and is unconfirmed, deletes the unconfirmed user and proceeds. If no user exists, returns success.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: The email address to check for existing users.
- *                 example: "user@example.com"
+ *     parameters:
+ *       - name: email
+ *         in: query
+ *         required: true
+ *         description: The email address to check for existing users.
+ *         schema:
+ *           type: string
+ *           format: email
+ *           example: "user@example.com"
  *     responses:
  *       '200':
  *         description: Email is available for signup or unconfirmed user was deleted.
@@ -175,11 +170,11 @@ authRouter.post('/auth/update-password', async (req, res) => {
  *                   description: Description of the error that occurred.
  *                   example: "Failed to check for existing user"
  */
-authRouter.post('/auth/check-for-user', async (req, res) => {
+authRouter.get('/auth/check-for-user', async (req, res) => {
   try {
-    const { email } = req.body
+    const { email } = req.query
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return res.status(400).json({
         errorMessage: 'Email is required and must be a valid email address'
       })
