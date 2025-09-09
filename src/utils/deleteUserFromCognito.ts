@@ -1,6 +1,5 @@
-import { CognitoIdentityProviderClient, AdminDeleteUserCommand } from '@aws-sdk/client-cognito-identity-provider'
-
-const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' })
+import { AdminDeleteUserCommand } from '@aws-sdk/client-cognito-identity-provider'
+import cognitoClient from './cognitoClient'
 
 export const deleteUserFromCognito = async (authId: string) => {
   try {

@@ -1,6 +1,8 @@
 import express from 'express'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import { ListUsersCommand, AdminDeleteUserCommand } from '@aws-sdk/client-cognito-identity-provider'
+import cognitoClient from '../utils/cognitoClient'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 export const authRouter = express.Router()
@@ -98,5 +100,137 @@ authRouter.post('/auth/update-password', async (req, res) => {
   } catch (error) {
     console.error('UPDATE_PASSWORD_ERROR:', error)
     res.status(500).json({ errorMessage: 'Failed to trigger password update email.' })
+  }
+})
+
+/**
+ * @openapi
+ * /auth/check-for-user:
+ *   post:
+ *     tags:
+ *       - Auth
+ *     summary: Check if user exists in sign-up flow.
+ *     description: Checks if a user already exists with the given email address. If user exists and is confirmed, throws an error. If user exists and is unconfirmed, deletes the unconfirmed user and proceeds. If no user exists, returns success.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email address to check for existing users.
+ *                 example: "user@example.com"
+ *     responses:
+ *       '200':
+ *         description: Email is available for signup or unconfirmed user was deleted.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indicates if the operation was successful.
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   description: Success message indicating the email is available.
+ *                   example: "Email is available for signup"
+ *       '400':
+ *         description: Bad request, typically due to missing or invalid email format.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *                   example: "Email is required and must be a valid email address"
+ *       '409':
+ *         description: User already exists with confirmed status.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Error message indicating user already exists.
+ *                   example: "User already exists. Please try logging in instead."
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *                   example: "Failed to check for existing user"
+ */
+authRouter.post('/auth/check-for-user', async (req, res) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return res.status(400).json({
+        errorMessage: 'Email is required and must be a valid email address'
+      })
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        errorMessage: 'Email is required and must be a valid email address'
+      })
+    }
+
+    const userPoolId = process.env.CONSUMER_USER_POOL_ID
+    if (!userPoolId) {
+      throw new Error('CONSUMER_USER_POOL_ID environment variable is not set')
+    }
+
+    const listCommand = new ListUsersCommand({
+      UserPoolId: userPoolId,
+      Filter: `email = "${email}"`
+    })
+
+    const listResponse = await cognitoClient.send(listCommand)
+    const user = listResponse.Users?.[0]
+
+    if (user) {
+      const status = user.UserStatus
+
+      if (status === 'CONFIRMED') {
+        return res.status(409).json({
+          errorMessage: 'User already exists. Please try logging in instead.'
+        })
+      } else if (status === 'UNCONFIRMED') {
+        const deleteCommand = new AdminDeleteUserCommand({
+          UserPoolId: userPoolId,
+          Username: user.Username
+        })
+
+        await cognitoClient.send(deleteCommand)
+        console.log('Deleted unconfirmed user:', email)
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Email is available for signup'
+    })
+  } catch (error) {
+    console.error('CHECK_FOR_USER_ERROR:', error)
+    res.status(500).json({
+      errorMessage: 'Failed to check for existing user'
+    })
   }
 })
