@@ -957,14 +957,43 @@ entityRouter.get('/entities/batch', async (req, res) => {
         id: { in: uniqueEntityIds }
       },
       include: {
-        ...generateIncludes(include as string)
+        ...generateIncludes(include as string),
+        listings: {
+          where: {
+            AND: [
+              { status: 'ACTIVE' },
+              {
+                OR: [
+                  { isOffer: false },
+                  { isOffer: null }
+                ]
+              }
+            ]
+          },
+          orderBy: { price: 'asc' },
+          take: 1,
+          select: { price: true }
+        },
+        bids: {
+          where: { status: 'ACTIVE' },
+          orderBy: { price: 'desc' },
+          take: 1,
+          select: { price: true }
+        }
       }
     })
 
-    //Sort entities to match the order of entityIds parameter
+    //Sort entities to match the order of entityIds parameter and apply transformation
     const orderedEntities = uniqueEntityIds
       .map(id => entities.find(entity => entity.id === id))
-      .filter(entity => entity !== undefined)
+      .filter((entity): entity is NonNullable<typeof entity> => entity !== undefined)
+      .map(entity => ({
+        ...entity,
+        lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
+        highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
+        listings: undefined,
+        bids: undefined
+      }))
 
     res.json(orderedEntities)
   } catch (error) {
