@@ -883,6 +883,97 @@ entityRouter.delete('/entity/delete-image/:id', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
+/**
+ * @openapi
+ * /entities/batch:
+ *   get:
+ *     tags:
+ *       - Entity
+ *     summary: Retrieve multiple entities by IDs
+ *     description: |
+ *       Fetch multiple entities by their IDs. Accepts entity IDs as a comma-separated string.
+ *       If an entity ID doesn't exist, it will be silently skipped and not included in the response.
+ *     parameters:
+ *       - in: query
+ *         name: entityIds
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of entity IDs to retrieve (e.g., entityIds=id1,id2,id3).
+ *       - in: query
+ *         name: include
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include (e.g., `tags,product,brand,category`).
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the entities that exist.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Entity'
+ *       '400':
+ *         description: Bad request, typically due to missing entity IDs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: No entity IDs provided
+ *       '500':
+ *         description: Internal server error occurred while querying entities.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Unexpected error occurred
+ */
+entityRouter.get('/entities/batch', async (req, res) => {
+  const { entityIds, include } = req.query
+
+  try {
+    if (!entityIds || typeof entityIds !== 'string') {
+      throw new Error('entityIds parameter is required')
+    }
+
+    const entityIdArray = entityIds.split(',').map(id => id.trim()).filter(id => id)
+
+    if (entityIdArray.length === 0) {
+      throw new Error('No valid entity IDs provided')
+    }
+
+    const uniqueEntityIds = Array.from(new Set(entityIdArray))
+
+    const entities = await prisma.entity.findMany({
+      where: {
+        id: { in: uniqueEntityIds }
+      },
+      include: {
+        ...generateIncludes(include as string)
+      }
+    })
+
+    //Sort entities to match the order of entityIds parameter
+    const orderedEntities = uniqueEntityIds
+      .map(id => entities.find(entity => entity.id === id))
+      .filter(entity => entity !== undefined)
+
+    res.json(orderedEntities)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITIES_BATCH_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entities.' })
+  }
+})
+
 entityRouter.get('/entity/:id', async (req, res) => {
   const { id } = req.params
   const { include } = req.query
