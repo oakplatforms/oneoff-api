@@ -409,9 +409,6 @@ model Tag {
   // custom
   name             String  @unique
   displayName      String?
-  banner           String?
-  logo             String?
-  description      String?
 
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -430,7 +427,10 @@ model SupportedTagValue {
   // custom
   name             String
   displayName      String?
-  
+  banner           String?
+  logo             String?
+  description      String?
+
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
