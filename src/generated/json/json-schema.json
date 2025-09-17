@@ -1194,6 +1194,24 @@
             "null"
           ]
         },
+        "banner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "logo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "createdBy": {
           "anyOf": [
             {
@@ -1329,6 +1347,12 @@
             "null"
           ]
         },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "type": "string"
         },
@@ -1340,12 +1364,6 @@
         },
         "code": {
           "type": "string"
-        },
-        "description": {
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "entities": {
           "type": "array",
@@ -1373,6 +1391,18 @@
           "type": "string"
         },
         "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "banner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "logo": {
           "type": [
             "string",
             "null"
@@ -1606,6 +1636,12 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "quantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "list": {
           "$ref": "#/definitions/List"
@@ -1847,6 +1883,46 @@
         }
       }
     },
+    "Condition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "listings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Listing"
+          }
+        },
+        "bids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Bid"
+          }
+        }
+      }
+    },
     "Listing": {
       "type": "object",
       "properties": {
@@ -1878,19 +1954,6 @@
         "multiTransactionsEnabled": {
           "type": "boolean",
           "default": false
-        },
-        "condition": {
-          "type": "string",
-          "default": "MINT",
-          "enum": [
-            "MINT",
-            "NEAR_MINT",
-            "VERY_GOOD",
-            "GOOD",
-            "FAIR",
-            "POOR",
-            "DAMAGED"
-          ]
         },
         "isPrimary": {
           "type": [
@@ -1950,6 +2013,22 @@
             "null"
           ]
         },
+        "condition": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Condition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conditionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "orderListings": {
           "type": "array",
           "items": {
@@ -2003,19 +2082,6 @@
           ],
           "default": false
         },
-        "condition": {
-          "type": "string",
-          "default": "MINT",
-          "enum": [
-            "MINT",
-            "NEAR_MINT",
-            "VERY_GOOD",
-            "GOOD",
-            "FAIR",
-            "POOR",
-            "DAMAGED"
-          ]
-        },
         "account": {
           "anyOf": [
             {
@@ -2052,6 +2118,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Offer"
+          }
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Condition"
           }
         }
       }
@@ -2765,6 +2837,9 @@
     },
     "payout": {
       "$ref": "#/definitions/Payout"
+    },
+    "condition": {
+      "$ref": "#/definitions/Condition"
     },
     "listing": {
       "$ref": "#/definitions/Listing"

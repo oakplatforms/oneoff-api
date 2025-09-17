@@ -130,16 +130,6 @@ enum ShipmentType {
   RETURN
 }
 
-enum Condition {
-  MINT
-  NEAR_MINT
-  VERY_GOOD
-  GOOD
-  FAIR
-  POOR
-  DAMAGED
-}
-
 model User {
   id            String   @id @default(cuid()) 
   createdAt     DateTime @default(now())
@@ -419,7 +409,10 @@ model Tag {
   // custom
   name             String  @unique
   displayName      String?
-  
+  banner           String?
+  logo             String?
+  description      String?
+
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
@@ -455,11 +448,11 @@ model Set {
   // custom
   banner           String?
   logo             String?
+  description      String?
   name             String @unique
   displayName      String?
   code             String
-  description      String?
-
+  
   // relations
   entities         Entity[]
 }
@@ -472,6 +465,8 @@ model List {
   // custom
   name             String
   displayName      String?
+  banner           String?
+  logo             String?
   description      String?
   type             ListType? @default(DEFAULT)
 
@@ -518,11 +513,16 @@ model EntityList {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  // custom
+  quantity         Int?
+  
   // relations
   list             List @relation(fields: [listId], references: [id], onDelete: Cascade)
   listId           String
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId         String
+
+  @@id([listId, entityId])
 }
 
 model EntityTag {
@@ -530,6 +530,7 @@ model EntityTag {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  // custom
   tagValue         String
   isPrimary        Boolean?
   index            Int?
@@ -594,6 +595,21 @@ model Payout {
   transactions     Transaction[]
 }
 
+model Condition {
+  id               String   @id @default(cuid()) 
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // custom
+  name             String   @unique
+  displayName      String
+  description      String?
+
+  // relations
+  listings         Listing[]
+  bids             Bid[]
+}
+
 model Listing {
   id               String  @id @default(cuid()) 
   createdAt        DateTime  @default(now())
@@ -604,7 +620,6 @@ model Listing {
   quantity         Int
   status           Status
   multiTransactionsEnabled Boolean @default(false) 
-  condition        Condition @default(MINT)
   isPrimary        Boolean? @default(false)
   isOffer          Boolean? @default(false)
   image            String?
@@ -615,6 +630,8 @@ model Listing {
   accountId        String?
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
+  condition        Condition? @relation(fields: [conditionId], references: [id], onDelete: SetNull)
+  conditionId      String?
   orderListings    OrderListing[]
   offer            Offer?
 }
@@ -629,7 +646,7 @@ model Bid {
   quantity         Int
   status           Status
   multiTransactionsEnabled Boolean? @default(false) 
-  condition        Condition @default(MINT)
+
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -637,6 +654,7 @@ model Bid {
   entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityId         String?
   offers           Offer[]
+  conditions       Condition[]
 }
 
 model Offer {
@@ -707,9 +725,9 @@ model OrderListing {
   quantity         Int?
 
   // relations
-  order            Order @relation(fields: [orderId], references: [id])
+  order            Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId          String
-  listing          Listing @relation(fields: [listingId], references: [id])
+  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   listingId        String
 
   @@id([orderId, listingId])
