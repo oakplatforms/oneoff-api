@@ -1419,12 +1419,19 @@
             "string",
             "null"
           ],
-          "default": "DEFAULT",
           "enum": [
-            "DEFAULT",
+            "HOMEPAGE",
             "COLLECTION",
-            "DECK"
+            "FAVORITE",
+            "CUSTOM"
           ]
+        },
+        "isPrivate": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
         },
         "account": {
           "anyOf": [

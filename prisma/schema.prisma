@@ -25,9 +25,10 @@ enum ProductType {
 }
 
 enum ListType {
-  DEFAULT
+  HOMEPAGE
   COLLECTION
-  DECK
+  FAVORITE
+  CUSTOM
 }
 
 enum AccountType {
@@ -468,7 +469,8 @@ model List {
   banner           String?
   logo             String?
   description      String?
-  type             ListType? @default(DEFAULT)
+  type             ListType?
+  isPrivate        Boolean? @default(false)
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)

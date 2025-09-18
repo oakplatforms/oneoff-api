@@ -122,6 +122,20 @@ listRouter.get('/lists', async (req, res) => {
  *               accountId:
  *                 type: string
  *                 description: The ID of the account creating the list.
+ *               entityList:
+ *                 type: object
+ *                 properties:
+ *                   create:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         entityId:
+ *                           type: string
+ *                           description: ID of the entity to link to the list.
+ *                         quantity:
+ *                           type: integer
+ *                           description: Optional quantity of the entity in the list.
  *     responses:
  *       '200':
  *         description: Successfully created the list.
@@ -164,8 +178,9 @@ listRouter.post('/list', async (req, res) => {
         account: { connect: { id: accountId } },
         entityList: entityList?.create?.length
           ? {
-            create: entityList.create.map((item: { entityId: string }) => ({
+            create: entityList.create.map((item: { entityId: string; quantity?: number }) => ({
               entity: { connect: { id: item.entityId } },
+              quantity: item.quantity || null,
             })),
           }
           : undefined,
@@ -226,6 +241,9 @@ listRouter.post('/list', async (req, res) => {
  *                         entityId:
  *                           type: string
  *                           description: ID of the entity to link to the list.
+ *                         quantity:
+ *                           type: integer
+ *                           description: Optional quantity of the entity in the list.
  *                   delete:
  *                     type: array
  *                     items:
@@ -275,8 +293,9 @@ listRouter.put('/list/:id', async (req, res) => {
         type,
         entityList: entityList
           ? {
-            create: entityList.create?.map((item: { entityId: string }) => ({
+            create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
               entity: { connect: { id: item.entityId } },
+              quantity: item.quantity || null,
             })),
             deleteMany: entityList.delete?.map((entityListId: string) => ({
               id: entityListId,
