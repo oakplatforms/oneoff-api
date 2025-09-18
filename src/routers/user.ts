@@ -94,6 +94,9 @@ userRouter.get('/users', async (req, res) => {
  *               authId:
  *                 type: string
  *                 description: The unique identifier for the user from Auth.
+ *               isAdmin:
+ *                 type: boolean
+ *                 description: Whether the user is an admin.
  *               account:
  *                 type: object
  *                 properties:
@@ -103,9 +106,41 @@ userRouter.get('/users', async (req, res) => {
  *                   email:
  *                     type: string
  *                     description: The email associated with the account.
- *               required:
- *                 - authId
- *                 - account
+ *                   type:
+ *                     type: string
+ *                     description: The type of account (e.g., REGISTERED).
+ *                   profile:
+ *                     type: object
+ *                     description: Optional profile data to create with the account.
+ *                   carts:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                     description: Optional carts to create with the account.
+ *                   lists:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                           description: Internal name for the list.
+ *                         displayName:
+ *                           type: string
+ *                           description: Public-facing display name for the list.
+ *                         type:
+ *                           type: string
+ *                           enum: [DEFAULT, COLLECTION, DECK, FAVORITE]
+ *                           description: Type of the list.
+ *                         isPrivate:
+ *                           type: boolean
+ *                           description: Whether the list is private or public.
+ *                     description: Optional lists to create with the account.
+ *               admin:
+ *                 type: object
+ *                 description: Optional admin data to create if isAdmin is true.
+ *             required:
+ *               - authId
  *     responses:
  *       '200':
  *         description: Successfully created a new user.
@@ -136,7 +171,7 @@ userRouter.get('/users', async (req, res) => {
  */
 userRouter.post(`/user`, async (req, res) => {
   const { authId, isAdmin, account, admin } = req.body
-  const { profile: profileProps, carts: cartsProps, ...accountProps } = account || {}
+  const { profile: profileProps, carts: cartsProps, lists: listsProps, ...accountProps } = account || {}
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
@@ -163,6 +198,11 @@ userRouter.post(`/user`, async (req, res) => {
               ...(profileProps && {
                 profile: {
                   create: profileProps
+                }
+              }),
+              ...(listsProps && {
+                lists: {
+                  create: listsProps
                 }
               })
             }
