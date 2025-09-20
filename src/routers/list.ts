@@ -1,4 +1,4 @@
-import { ListType, Prisma } from '@prisma/client'
+import { ListType, Prisma, List } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -314,6 +314,179 @@ listRouter.put('/list/:id', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPDATE_LIST_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to update list.' })
+  }
+})
+
+/**
+ * @openapi
+ * /lists/batch:
+ *   put:
+ *     tags:
+ *       - List
+ *     summary: Update multiple lists in batch
+ *     description: Updates multiple lists and their associated entityList records in a single transaction. You can create and delete entityList entries for each list.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               lists:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - id
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: The ID of the list to update.
+ *                     name:
+ *                       type: string
+ *                       description: Internal name of the list.
+ *                     displayName:
+ *                       type: string
+ *                       description: Public-facing display name of the list.
+ *                     description:
+ *                       type: string
+ *                       description: Optional description of the list.
+ *                     type:
+ *                       type: string
+ *                       enum: [DEFAULT, COLLECTION, DECK]
+ *                       description: The type of list.
+ *                     entityList:
+ *                       type: object
+ *                       properties:
+ *                         create:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               entityId:
+ *                                 type: string
+ *                                 description: ID of the entity to link to the list.
+ *                               quantity:
+ *                                 type: integer
+ *                                 description: Optional quantity of the entity in the list.
+ *                         delete:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                             description: IDs of the entityList records to remove from the list.
+ *               accountId:
+ *                 type: string
+ *                 description: The ID of the account performing the updates.
+ *     responses:
+ *       '200':
+ *         description: Successfully updated all lists.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 updatedLists:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/List'
+ *                 successCount:
+ *                   type: integer
+ *                   description: Number of lists successfully updated.
+ *                 totalCount:
+ *                   type: integer
+ *                   description: Total number of lists in the batch.
+ *       '400':
+ *         description: Bad request due to invalid input or validation errors.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                 failedUpdates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       error:
+ *                         type: string
+ *       '500':
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+listRouter.put('/lists/batch', async (req, res) => {
+  const { lists, accountId } = req.body
+
+  try {
+    if (!lists || !Array.isArray(lists) || lists.length === 0) {
+      throw new Error('Lists array is required and must not be empty')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+
+    const updatedLists: List[] = []
+    const failedUpdates: Array<{ id: string; error: string }> = []
+
+    //Use a transaction to ensure atomicity
+    await prisma.$transaction(async (tx) => {
+      for (const listData of lists) {
+        try {
+          const { id, name, type, displayName, description, entityList } = listData
+
+          if (!id) {
+            throw new Error('List ID is required for each list')
+          }
+
+          const updatedList = await tx.list.update({
+            where: { id },
+            data: {
+              name,
+              displayName,
+              description,
+              type,
+              entityList: entityList
+                ? {
+                  create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
+                    entity: { connect: { id: item.entityId } },
+                    quantity: item.quantity || null,
+                  })),
+                  deleteMany: entityList.delete?.map((entityListId: string) => ({
+                    id: entityListId,
+                  })),
+                }
+                : undefined,
+            },
+          })
+
+          updatedLists.push(updatedList)
+        } catch (error) {
+          failedUpdates.push({
+            id: listData.id,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          })
+        }
+      }
+    })
+
+    res.json({
+      updatedLists,
+      successCount: updatedLists.length,
+      totalCount: lists.length,
+      ...(failedUpdates.length > 0 && { failedUpdates })
+    })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('BATCH_UPDATE_LISTS_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to update lists in batch.' })
   }
 })
 
