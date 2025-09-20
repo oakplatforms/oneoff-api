@@ -124,6 +124,90 @@ entityListRouter.get('/entity-lists', async (req, res) => {
 
 /**
  * @openapi
+ * /entity-lists/by-account:
+ *   get:
+ *     tags:
+ *       - Entity List
+ *     summary: Get all entity lists for an account and optional entity
+ *     description: Retrieves all entity list entries for a specific account, optionally filtered by entityId. No pagination is applied.
+ *     parameters:
+ *       - name: accountId
+ *         in: query
+ *         description: The ID of the account to get entity lists for.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: entityId
+ *         in: query
+ *         description: Optional. Filter by specific entityId.
+ *         schema:
+ *           type: string
+ *       - name: include
+ *         in: query
+ *         description: Optional. Include related models (e.g., list, entity).
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved entity lists for the account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/EntityList'
+ *       '400':
+ *         description: Bad request, invalid parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+entityListRouter.get('/entity-lists/by-account', async (req, res) => {
+  const { include, accountId, entityId } = req.query
+
+  try {
+    if (!accountId) {
+      throw new Error('Account ID is required')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId as string, 'authenticated')
+
+    const where = {
+      list: {
+        accountId: accountId as string
+      },
+      ...(entityId ? { entityId: entityId as string } : {}),
+    }
+
+    const entityLists = await prisma.entityList.findMany({
+      where,
+      include: generateIncludes(include as string),
+    })
+
+    res.json(entityLists)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_LISTS_BY_ACCOUNT_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entity lists for account.' })
+  }
+})
+
+/**
+ * @openapi
  * /entity-list:
  *   post:
  *     tags:

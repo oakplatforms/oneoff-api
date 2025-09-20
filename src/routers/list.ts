@@ -244,6 +244,17 @@ listRouter.post('/list', async (req, res) => {
  *                         quantity:
  *                           type: integer
  *                           description: Optional quantity of the entity in the list.
+ *                   update:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           description: ID of the entityList record to update.
+ *                         quantity:
+ *                           type: integer
+ *                           description: Updated quantity of the entity in the list.
  *                   delete:
  *                     type: array
  *                     items:
@@ -296,6 +307,10 @@ listRouter.put('/list/:id', async (req, res) => {
             create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
               entity: { connect: { id: item.entityId } },
               quantity: item.quantity || null,
+            })),
+            update: entityList.update?.map((item: { id: string; quantity?: number }) => ({
+              where: { id: item.id },
+              data: { quantity: item.quantity !== undefined ? item.quantity : null },
             })),
             deleteMany: entityList.delete?.map((entityListId: string) => ({
               id: entityListId,
@@ -369,6 +384,17 @@ listRouter.put('/list/:id', async (req, res) => {
  *                               quantity:
  *                                 type: integer
  *                                 description: Optional quantity of the entity in the list.
+ *                         update:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                                 description: ID of the entityList record to update.
+ *                               quantity:
+ *                                 type: integer
+ *                                 description: Updated quantity of the entity in the list.
  *                         delete:
  *                           type: array
  *                           items:
@@ -458,6 +484,10 @@ listRouter.put('/lists/batch', async (req, res) => {
                   create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
                     entity: { connect: { id: item.entityId } },
                     quantity: item.quantity || null,
+                  })),
+                  update: entityList.update?.map((item: { id: string; quantity?: number }) => ({
+                    where: { id: item.id },
+                    data: { quantity: item.quantity !== undefined ? item.quantity : null },
                   })),
                   deleteMany: entityList.delete?.map((entityListId: string) => ({
                     id: entityListId,
