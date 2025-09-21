@@ -4,7 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveBids } from '../services/resolver'
 import { validateSeller } from '../validation/seller'
-import { validateExistingListing } from '../validation/listing'
+import { validateExistingListing, validateConditionId } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
@@ -146,6 +146,9 @@ listingRouter.get('/listings', async (req, res) => {
  *               entityId:
  *                 type: string
  *                 description: The entity ID associated with the listing.
+ *               conditionId:
+ *                 type: string
+ *                 description: The condition ID associated with the listing (one-to-one relationship).
  *               image:
  *                 type: string
  *                 format: binary
@@ -227,11 +230,13 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
     accountId,
     entityId,
     imageCaption,
+    conditionId,
   } = req.body
 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
+    await validateConditionId(conditionId)
 
     const parsedPrice = parseFloat(price)
     const parsedQuantity = parseInt(quantity)
@@ -287,9 +292,11 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
           imageCaption,
           account: { connect: { id: accountId } },
           entity: { connect: { id: entityId } },
+          condition: conditionId ? { connect: { id: conditionId } } : undefined,
         },
         include: {
-          account: true
+          account: true,
+          condition: true
         }
       })
 
@@ -342,6 +349,9 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
  *               entityId:
  *                 type: string
  *                 description: The entity ID associated with the listing.
+ *               conditionId:
+ *                 type: string
+ *                 description: The condition ID associated with the listing (one-to-one relationship). If provided, replaces the existing condition association. If null, removes the condition association.
  *               image:
  *                 type: string
  *                 format: binary
@@ -421,12 +431,14 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     price,
     accountId,
     entityId,
+    conditionId,
   } = req.body
 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
     await validateExistingListing(id)
+    await validateConditionId(conditionId)
 
     const parsedPrice = parseFloat(price)
     if (isNaN(parsedPrice)) {
@@ -517,9 +529,15 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
         ...(req.body.imageCaption !== undefined && { imageCaption: req.body.imageCaption }),
         ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
         ...(req.body.accountId !== undefined && { account: { connect: { id: req.body.accountId } } }),
+        ...(req.body.conditionId !== undefined && { 
+          condition: req.body.conditionId 
+            ? { connect: { id: req.body.conditionId } }
+            : { disconnect: true }
+        }),
       },
       include: {
-        account: true
+        account: true,
+        condition: true
       }
     })
 

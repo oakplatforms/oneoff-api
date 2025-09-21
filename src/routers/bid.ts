@@ -4,7 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
 import { validateCustomer } from '../validation/customer'
-import { validateExistingBid } from '../validation/bid'
+import { validateExistingBid, validateConditionIds } from '../validation/bid'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 
@@ -136,19 +136,12 @@ bidRouter.get('/bids', async (req, res) => {
  *               entityId:
  *                 type: string
  *                 description: The ID of the entity associated with the bid.
- *               shippingCategories:
- *                 type: object
- *                 description: Manage shipping categories associated with the bid.
- *                 properties:
- *                   create:
- *                     type: array
- *                     description: List of shipping categories to associate with the bid.
- *                     items:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           description: The ID of the shipping category.
+ *               conditionIds:
+ *                 type: array
+ *                 description: Array of condition IDs to associate with the bid (many-to-many relationship).
+ *                 items:
+ *                   type: string
+ *                   description: The ID of a condition.
  *             required:
  *               - price
  *               - quantity
@@ -184,15 +177,21 @@ bidRouter.get('/bids', async (req, res) => {
  *                 entityId:
  *                   type: string
  *                   description: The ID of the entity associated with the bid.
- *                 shippingCategories:
+ *                 conditions:
  *                   type: array
- *                   description: The shipping categories associated with the bid.
+ *                   description: The conditions associated with the bid.
  *                   items:
  *                     type: object
  *                     properties:
  *                       id:
  *                         type: string
- *                         description: The ID of the shipping category.
+ *                         description: The ID of the condition.
+ *                       name:
+ *                         type: string
+ *                         description: The name of the condition.
+ *                       displayName:
+ *                         type: string
+ *                         description: The display name of the condition.
  *       '400':
  *         description: Bad request, typically if the user already has a bid for the entity or if invalid data is provided.
  *         content:
@@ -221,11 +220,13 @@ bidRouter.post(`/bid`, async (req, res) => {
     status,
     multiTransactionsEnabled,
     accountId,
-    entityId
+    entityId,
+    conditionIds
   } = req.body
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCustomer(accountId)
+    await validateConditionIds(conditionIds)
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
@@ -257,10 +258,12 @@ bidRouter.post(`/bid`, async (req, res) => {
           status,
           multiTransactionsEnabled,
           account: { connect: { id: accountId } },
-          entity: { connect: { id: entityId } }
+          entity: { connect: { id: entityId } },
+          conditions: conditionIds ? { connect: conditionIds.map((id: string) => ({ id })) } : undefined
         },
         include: {
-          account: true
+          account: true,
+          conditions: true
         }
       })
       res.json(bid)
@@ -312,6 +315,12 @@ bidRouter.post(`/bid`, async (req, res) => {
  *               entityId:
  *                 type: string
  *                 description: The ID of the entity associated with the bid.
+ *               conditionIds:
+ *                 type: array
+ *                 description: Array of condition IDs to associate with the bid (many-to-many relationship). If provided, replaces all existing condition associations.
+ *                 items:
+ *                   type: string
+ *                   description: The ID of a condition.
  *     responses:
  *       '200':
  *         description: Successfully updated the bid.
@@ -346,11 +355,13 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
     price,
     entityId,
     accountId,
+    conditionIds
   } = req.body
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCustomer(accountId)
     await validateExistingBid(id)
+    await validateConditionIds(conditionIds)
 
     const listings = await resolveListings({
       price,
@@ -371,9 +382,15 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
         ...(req.body.multiTransactionsEnabled !== undefined && { multiTransactionsEnabled: req.body.multiTransactionsEnabled }),
         ...(req.body.profileId !== undefined && { profile: { connect: { id: req.body.profileId } } }),
         ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
+        ...(req.body.conditionIds !== undefined && {
+          conditions: req.body.conditionIds
+            ? { set: req.body.conditionIds.map((id: string) => ({ id })) }
+            : { set: [] }
+        }),
       },
       include: {
-        account: true
+        account: true,
+        conditions: true
       }
     })
     if (bid) {
