@@ -11,17 +11,18 @@ export const validateExistingBid = async (bidId: string) => {
   }
 }
 
-export const validateConditionIds = async (conditionIds: string[]) => {
-  if (!conditionIds || conditionIds.length === 0) {
+export const validateConditions = async (conditions: {id: string}[]) => {
+  if (!conditions || conditions.length === 0) {
     return
   }
 
-  const conditions = await prisma.condition.findMany({
+  const conditionIds = conditions.map(c => c.id)
+  const existingConditions = await prisma.condition.findMany({
     where: { id: { in: conditionIds } },
     select: { id: true }
   })
 
-  if (conditions.length !== conditionIds.length) {
+  if (existingConditions.length !== conditionIds.length) {
     throw new Error('One or more condition IDs are invalid or do not exist')
   }
 }

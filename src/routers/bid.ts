@@ -4,7 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { resolveListings } from '../services/resolver'
 import { validateCustomer } from '../validation/customer'
-import { validateExistingBid, validateConditionIds } from '../validation/bid'
+import { validateExistingBid, validateConditions } from '../validation/bid'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 
@@ -136,12 +136,17 @@ bidRouter.get('/bids', async (req, res) => {
  *               entityId:
  *                 type: string
  *                 description: The ID of the entity associated with the bid.
- *               conditionIds:
+ *               conditions:
  *                 type: array
- *                 description: Array of condition IDs to associate with the bid (many-to-many relationship).
+ *                 description: Array of condition objects to associate with the bid (many-to-many relationship).
  *                 items:
- *                   type: string
- *                   description: The ID of a condition.
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: The ID of a condition.
+ *                   required:
+ *                     - id
  *             required:
  *               - price
  *               - quantity
@@ -221,12 +226,12 @@ bidRouter.post(`/bid`, async (req, res) => {
     multiTransactionsEnabled,
     accountId,
     entityId,
-    conditionIds
+    conditions
   } = req.body
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCustomer(accountId)
-    await validateConditionIds(conditionIds)
+    await validateConditions(conditions)
     const userBid = await prisma.bid.findFirst({
       where: {
         AND: [
@@ -259,7 +264,7 @@ bidRouter.post(`/bid`, async (req, res) => {
           multiTransactionsEnabled,
           account: { connect: { id: accountId } },
           entity: { connect: { id: entityId } },
-          conditions: conditionIds ? { connect: conditionIds.map((id: string) => ({ id })) } : undefined
+          conditions: conditions ? { connect: conditions } : undefined
         },
         include: {
           account: true,
@@ -315,12 +320,17 @@ bidRouter.post(`/bid`, async (req, res) => {
  *               entityId:
  *                 type: string
  *                 description: The ID of the entity associated with the bid.
- *               conditionIds:
+ *               conditions:
  *                 type: array
- *                 description: Array of condition IDs to associate with the bid (many-to-many relationship). If provided, replaces all existing condition associations.
+ *                 description: Array of condition objects to associate with the bid (many-to-many relationship). If provided, replaces all existing condition associations.
  *                 items:
- *                   type: string
- *                   description: The ID of a condition.
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: The ID of a condition.
+ *                   required:
+ *                     - id
  *     responses:
  *       '200':
  *         description: Successfully updated the bid.
@@ -355,13 +365,13 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
     price,
     entityId,
     accountId,
-    conditionIds
+    conditions
   } = req.body
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     await validateCustomer(accountId)
     await validateExistingBid(id)
-    await validateConditionIds(conditionIds)
+    await validateConditions(conditions)
 
     const listings = await resolveListings({
       price,
@@ -382,9 +392,9 @@ bidRouter.put(`/bid/:id`, async (req, res) => {
         ...(req.body.multiTransactionsEnabled !== undefined && { multiTransactionsEnabled: req.body.multiTransactionsEnabled }),
         ...(req.body.profileId !== undefined && { profile: { connect: { id: req.body.profileId } } }),
         ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
-        ...(req.body.conditionIds !== undefined && {
-          conditions: req.body.conditionIds
-            ? { set: req.body.conditionIds.map((id: string) => ({ id })) }
+        ...(req.body.conditions !== undefined && {
+          conditions: req.body.conditions
+            ? { set: req.body.conditions }
             : { set: [] }
         }),
       },

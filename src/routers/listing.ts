@@ -529,8 +529,8 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
         ...(req.body.imageCaption !== undefined && { imageCaption: req.body.imageCaption }),
         ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
         ...(req.body.accountId !== undefined && { account: { connect: { id: req.body.accountId } } }),
-        ...(req.body.conditionId !== undefined && { 
-          condition: req.body.conditionId 
+        ...(req.body.conditionId !== undefined && {
+          condition: req.body.conditionId
             ? { connect: { id: req.body.conditionId } }
             : { disconnect: true }
         }),
