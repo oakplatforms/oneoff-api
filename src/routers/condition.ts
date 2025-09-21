@@ -263,7 +263,7 @@ conditionRouter.post('/condition', async (req, res) => {
         displayName,
         description: description || null,
       },
-      include: generateIncludes('listings,bids')
+      include: generateIncludes(['listings', 'bids'])
     })
 
     res.json(condition)
@@ -365,7 +365,7 @@ conditionRouter.put('/condition/:id', async (req, res) => {
         ...(displayName !== undefined && { displayName }),
         ...(description !== undefined && { description }),
       },
-      include: generateIncludes('listings,bids')
+      include: generateIncludes(['listings', 'bids'])
     })
 
     res.json(updatedCondition)
@@ -446,7 +446,7 @@ conditionRouter.delete('/condition/:id', async (req, res) => {
 
     const deletedCondition = await prisma.condition.delete({
       where: { id },
-      include: generateIncludes('listings,bids')
+      include: generateIncludes(['listings', 'bids'])
     })
 
     res.json(deletedCondition)
