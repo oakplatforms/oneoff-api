@@ -24,6 +24,7 @@ import { customerRouter } from './customer'
 import { shipmentRouter } from './shipment'
 import { offerRouter } from './offer'
 import { profileRouter } from './profile'
+import { conditionRouter } from './condition'
 import { warmupRouter } from './warmup'
 
 router.use(warmupRouter)
@@ -51,5 +52,6 @@ router.use(invoiceRouter)
 router.use(shipmentRouter)
 router.use(offerRouter)
 router.use(profileRouter)
+router.use(conditionRouter)
 
 export default router
