@@ -172,6 +172,8 @@ model Admin {
   lastModifiedSupportedTagValues SupportedTagValue[] @relation(name: "LastModifiedBy")
   createdEntities Entity[] @relation(name: "CreatedBy")
   lastModifiedEntities Entity[] @relation(name: "LastModifiedBy")
+  createdLists List[] @relation(name: "CreatedBy")
+  lastModifiedLists List[] @relation(name: "LastModifiedBy")
   createdShippingMethods ShippingMethod[] @relation(name: "CreatedBy")
   lastModifiedShippingMethods ShippingMethod[] @relation(name: "LastModifiedBy")
   createdShippingOptions ShippingOption[] @relation(name: "CreatedBy")
@@ -475,6 +477,11 @@ model List {
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId        String?
+  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
+  
   entityList       EntityList[]
 }
 

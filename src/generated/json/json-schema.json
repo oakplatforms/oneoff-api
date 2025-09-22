@@ -163,6 +163,18 @@
             "$ref": "#/definitions/Entity"
           }
         },
+        "createdLists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/List"
+          }
+        },
+        "lastModifiedLists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/List"
+          }
+        },
         "createdShippingMethods": {
           "type": "array",
           "items": {
@@ -1444,6 +1456,38 @@
           ]
         },
         "accountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"

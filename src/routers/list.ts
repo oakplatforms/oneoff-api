@@ -105,7 +105,9 @@ listRouter.get('/lists', async (req, res) => {
  *             required:
  *               - name
  *               - type
- *               - accountId
+ *             oneOf:
+ *               - required: [accountId]
+ *               - required: [createdById]
  *             properties:
  *               name:
  *                 type: string
@@ -121,7 +123,7 @@ listRouter.get('/lists', async (req, res) => {
  *                 description: Optional description of the list.
  *               accountId:
  *                 type: string
- *                 description: The ID of the account creating the list.
+ *                 description: Optional ID of the account creating the list.
  *               createdById:
  *                 type: string
  *                 description: Optional admin ID for admin users creating lists.
@@ -171,14 +173,29 @@ listRouter.post('/list', async (req, res) => {
   const { name, type, displayName, description, accountId, createdById, entityList } = req.body
 
   try {
+    //Validate required fields
+    if (!name) {
+      throw new Error('Name is required')
+    }
+    if (!type) {
+      throw new Error('Type is required')
+    }
+
+    //Either accountId or createdById must be provided
+    if (!accountId && !createdById) {
+      throw new Error('Either accountId or createdById is required')
+    }
+
     await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
+
     const list = await prisma.list.create({
       data: {
         name,
         displayName,
         description,
         type,
-        account: { connect: { id: accountId } },
+        account: accountId ? { connect: { id: accountId } } : undefined,
+        createdBy: createdById ? { connect: { id: createdById } } : undefined,
         entityList: entityList?.create?.length
           ? {
             create: entityList.create.map((item: { entityId: string; quantity?: number }) => ({
@@ -297,13 +314,20 @@ listRouter.post('/list', async (req, res) => {
  */
 listRouter.put('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { name, type, displayName, description, entityList, accountId, createdById } = req.body
+  const { name, type, displayName, description, entityList, accountId, createdById, lastModifiedById } = req.body
 
   try {
     if (!id) {
       throw new Error('List ID is required')
     }
+
+    //Either accountId or createdById must be provided
+    if (!accountId && !createdById) {
+      throw new Error('Either accountId or createdById is required')
+    }
+
     await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
+
     const updatedList = await prisma.list.update({
       where: { id },
       data: {
@@ -311,6 +335,7 @@ listRouter.put('/list/:id', async (req, res) => {
         displayName,
         description,
         type,
+        lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
         entityList: entityList
           ? {
             create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
@@ -462,11 +487,16 @@ listRouter.put('/list/:id', async (req, res) => {
  *                   type: string
  */
 listRouter.put('/lists/batch', async (req, res) => {
-  const { lists, accountId, createdById } = req.body
+  const { lists, accountId, createdById, lastModifiedById } = req.body
 
   try {
     if (!lists || !Array.isArray(lists) || lists.length === 0) {
       throw new Error('Lists array is required and must not be empty')
+    }
+
+    //Either accountId or createdById must be provided
+    if (!accountId && !createdById) {
+      throw new Error('Either accountId or createdById is required')
     }
 
     await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
@@ -491,6 +521,7 @@ listRouter.put('/lists/batch', async (req, res) => {
               displayName,
               description,
               type,
+              lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
               entityList: entityList
                 ? {
                   create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
