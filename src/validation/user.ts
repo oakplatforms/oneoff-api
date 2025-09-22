@@ -153,3 +153,23 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
 
   return account
 }
+
+/**
+ * Helper function to validate either account or admin access
+ * @param reqUser - The authenticated user making the request
+ * @param accountId - The account ID to validate against
+ * @param adminId - Optional admin ID for admin validation
+ * @returns Promise that resolves if validation passes
+ */
+export const validateAccountOrAdmin = async (reqUser: AuthenticatedUser, accountId: string, adminId?: string) => {
+  if (adminId) {
+    //If adminId is provided, validate as admin
+    await validateAdmin(reqUser, adminId, 'admin')
+  } else if (accountId) {
+    //If only accountId is provided, validate as authenticated account
+    await validateAccount(reqUser, accountId, 'authenticated')
+  } else {
+    //If neither ID is provided, throw an error
+    throw new Error('Either accountId or adminId must be provided')
+  }
+}

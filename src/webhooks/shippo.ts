@@ -66,7 +66,6 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
 
   console.log(`Updated Shipment ${shipment.id}: trackingStatus → ${mappedStatus}`)
 
-  // Return orderId and trackingStatus for EventBridge events
   return {
     orderId: shipment.orderId,
     trackingStatus: mappedStatus,
