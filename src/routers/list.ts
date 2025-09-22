@@ -122,7 +122,7 @@ listRouter.get('/lists', async (req, res) => {
  *               accountId:
  *                 type: string
  *                 description: The ID of the account creating the list.
- *               adminId:
+ *               createdById:
  *                 type: string
  *                 description: Optional admin ID for admin users creating lists.
  *               entityList:
@@ -168,10 +168,10 @@ listRouter.get('/lists', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 listRouter.post('/list', async (req, res) => {
-  const { name, type, displayName, description, accountId, adminId, entityList } = req.body
+  const { name, type, displayName, description, accountId, createdById, entityList } = req.body
 
   try {
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, adminId)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
     const list = await prisma.list.create({
       data: {
         name,
@@ -266,7 +266,7 @@ listRouter.post('/list', async (req, res) => {
  *               accountId:
  *                 type: string
  *                 description: The ID of the account updating the list.
- *               adminId:
+ *               createdById:
  *                 type: string
  *                 description: Optional admin ID for admin users updating lists.
  *     responses:
@@ -297,13 +297,13 @@ listRouter.post('/list', async (req, res) => {
  */
 listRouter.put('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { name, type, displayName, description, entityList, accountId, adminId } = req.body
+  const { name, type, displayName, description, entityList, accountId, createdById } = req.body
 
   try {
     if (!id) {
       throw new Error('List ID is required')
     }
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, adminId)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
     const updatedList = await prisma.list.update({
       where: { id },
       data: {
@@ -412,7 +412,7 @@ listRouter.put('/list/:id', async (req, res) => {
  *               accountId:
  *                 type: string
  *                 description: The ID of the account performing the updates.
- *               adminId:
+ *               createdById:
  *                 type: string
  *                 description: Optional admin ID for admin users performing batch updates.
  *     responses:
@@ -462,14 +462,14 @@ listRouter.put('/list/:id', async (req, res) => {
  *                   type: string
  */
 listRouter.put('/lists/batch', async (req, res) => {
-  const { lists, accountId, adminId } = req.body
+  const { lists, accountId, createdById } = req.body
 
   try {
     if (!lists || !Array.isArray(lists) || lists.length === 0) {
       throw new Error('Lists array is required and must not be empty')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, adminId)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
 
     const updatedLists: List[] = []
     const failedUpdates: Array<{ id: string; error: string }> = []
@@ -661,7 +661,7 @@ listRouter.get('/list/:id', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               adminId:
+ *               createdById:
  *                 type: string
  *                 description: Optional admin ID for admin users deleting lists.
  *     responses:
@@ -704,12 +704,12 @@ listRouter.get('/list/:id', async (req, res) => {
  */
 listRouter.delete(`/list/:accountId/:id`, async (req, res) => {
   const { id, accountId } = req.params
-  const { adminId } = req.body
+  const { createdById } = req.body
   try {
     if (!id) {
       throw new Error('List ID is required')
     }
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, adminId)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
     const list = await prisma.list.delete({
       where: {
         id: id
