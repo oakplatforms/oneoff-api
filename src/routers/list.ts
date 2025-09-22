@@ -321,12 +321,26 @@ listRouter.put('/list/:id', async (req, res) => {
       throw new Error('List ID is required')
     }
 
-    //Either accountId or createdById must be provided
-    if (!accountId && !createdById) {
-      throw new Error('Either accountId or createdById is required')
+    //First, get the existing list to check current ownership
+    const existingList = await prisma.list.findUnique({
+      where: { id },
+      select: { accountId: true, createdById: true }
+    })
+
+    if (!existingList) {
+      throw new Error('List not found')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
+    //Use existing ownership for authorization if not provided in request body
+    const authAccountId = accountId || existingList.accountId
+    const authCreatedById = createdById || existingList.createdById
+
+    //Either accountId or createdById must be available (from existing list or request body)
+    if (!authAccountId && !authCreatedById) {
+      throw new Error('List must have either accountId or createdById')
+    }
+
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
 
     const updatedList = await prisma.list.update({
       where: { id },
@@ -335,6 +349,8 @@ listRouter.put('/list/:id', async (req, res) => {
         displayName,
         description,
         type,
+        account: accountId ? { connect: { id: accountId } } : undefined,
+        createdBy: createdById ? { connect: { id: createdById } } : undefined,
         lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
         entityList: entityList
           ? {
@@ -494,9 +510,10 @@ listRouter.put('/lists/batch', async (req, res) => {
       throw new Error('Lists array is required and must not be empty')
     }
 
-    //Either accountId or createdById must be provided
+    //For batch updates, we need either accountId or createdById for authorization
+    //This represents the user performing the batch operation
     if (!accountId && !createdById) {
-      throw new Error('Either accountId or createdById is required')
+      throw new Error('Either accountId or createdById is required for batch operation authorization')
     }
 
     await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
