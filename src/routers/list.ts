@@ -5,6 +5,7 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccountOrAdmin } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
+import { deleteImage } from '../utils/deleteImage'
 
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
@@ -925,5 +926,134 @@ listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPLOAD_LIST_IMAGE_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to upload list image.' })
+  }
+})
+
+/**
+ * @openapi
+ * /list/delete-image/{id}:
+ *   delete:
+ *     tags:
+ *       - List
+ *     summary: Delete an image from a list
+ *     description: Deletes a banner or logo image from a specific list. Supports banner and logo fields.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the list to delete image from.
+ *       - in: query
+ *         name: field
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [banner, logo]
+ *           default: banner
+ *         description: The field to delete (banner or logo).
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The ID of the account deleting the image.
+ *               createdById:
+ *                 type: string
+ *                 description: Optional admin ID for admin users deleting images.
+ *     responses:
+ *       '200':
+ *         description: Successfully deleted the image.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 list:
+ *                   $ref: '#/components/schemas/List'
+ *                 message:
+ *                   type: string
+ *                   description: Success message.
+ *       '400':
+ *         description: Bad request, typically due to invalid field parameter or missing image.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal server error, typically due to database issues.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listRouter.delete('/list/delete-image/:id', async (req, res) => {
+  const { id } = req.params
+  const { field = 'banner' } = req.query
+  const { accountId, createdById } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('List ID is required')
+    }
+
+    //First, get the existing list to check current ownership
+    const existingList = await prisma.list.findUnique({
+      where: { id },
+      select: { accountId: true, createdById: true, banner: true, logo: true }
+    })
+
+    if (!existingList) {
+      throw new Error('List not found')
+    }
+
+    //Use existing ownership for authorization if not provided in request body
+    const authAccountId = accountId || existingList.accountId
+    const authCreatedById = createdById || existingList.createdById
+
+    //Either accountId or createdById must be available (from existing list or request body)
+    if (!authAccountId && !authCreatedById) {
+      throw new Error('List must have either accountId or createdById')
+    }
+
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+
+    if (field !== 'banner' && field !== 'logo') {
+      throw new Error('Invalid field parameter. Must be "banner" or "logo"')
+    }
+
+    const imageToDelete = field === 'banner' ? existingList.banner : existingList.logo
+
+    if (!imageToDelete) {
+      throw new Error(`List has no ${field} to delete`)
+    }
+
+    await deleteImage(imageToDelete)
+
+    const updatedList = await prisma.list.update({
+      where: { id },
+      data: { [field]: null },
+    })
+
+    res.json({
+      list: updatedList,
+      message: `${field} deleted successfully`
+    })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_LIST_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete list image.' })
   }
 })
