@@ -4,6 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccountOrAdmin } from '../validation/user'
+import { uploadConfig, uploadImage } from '../utils/uploadImage'
 
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
@@ -121,6 +122,12 @@ listRouter.get('/lists', async (req, res) => {
  *               description:
  *                 type: string
  *                 description: Optional description of the list.
+ *               navigation:
+ *                 type: object
+ *                 description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d"}).
+ *               index:
+ *                 type: integer
+ *                 description: Optional index for ordering/sorting lists.
  *               accountId:
  *                 type: string
  *                 description: Optional ID of the account creating the list.
@@ -170,7 +177,7 @@ listRouter.get('/lists', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 listRouter.post('/list', async (req, res) => {
-  const { name, type, displayName, description, accountId, createdById, entityList } = req.body
+  const { name, type, displayName, description, navigation, index, accountId, createdById, entityList } = req.body
 
   try {
     //Validate required fields
@@ -193,6 +200,8 @@ listRouter.post('/list', async (req, res) => {
         name,
         displayName,
         description,
+        navigation,
+        index,
         type,
         account: accountId ? { connect: { id: accountId } } : undefined,
         createdBy: createdById ? { connect: { id: createdById } } : undefined,
@@ -246,6 +255,12 @@ listRouter.post('/list', async (req, res) => {
  *               description:
  *                 type: string
  *                 description: Optional description of the list.
+ *               navigation:
+ *                 type: object
+ *                 description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d"}).
+ *               index:
+ *                 type: integer
+ *                 description: Optional index for ordering/sorting lists.
  *               type:
  *                 type: string
  *                 enum: [DEFAULT, COLLECTION, DECK]
@@ -314,7 +329,7 @@ listRouter.post('/list', async (req, res) => {
  */
 listRouter.put('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { name, type, displayName, description, entityList, accountId, createdById, lastModifiedById } = req.body
+  const { name, type, displayName, description, navigation, index, entityList, accountId, createdById, lastModifiedById } = req.body
 
   try {
     if (!id) {
@@ -348,6 +363,8 @@ listRouter.put('/list/:id', async (req, res) => {
         name,
         displayName,
         description,
+        navigation,
+        index,
         type,
         account: accountId ? { connect: { id: accountId } } : undefined,
         createdBy: createdById ? { connect: { id: createdById } } : undefined,
@@ -416,6 +433,12 @@ listRouter.put('/list/:id', async (req, res) => {
  *                     description:
  *                       type: string
  *                       description: Optional description of the list.
+ *                     navigation:
+ *                       type: object
+ *                       description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d"}).
+ *                     index:
+ *                       type: integer
+ *                       description: Optional index for ordering/sorting lists.
  *                     type:
  *                       type: string
  *                       enum: [DEFAULT, COLLECTION, DECK]
@@ -525,7 +548,7 @@ listRouter.put('/lists/batch', async (req, res) => {
     await prisma.$transaction(async (tx) => {
       for (const listData of lists) {
         try {
-          const { id, name, type, displayName, description, entityList } = listData
+          const { id, name, type, displayName, description, navigation, index, entityList } = listData
 
           if (!id) {
             throw new Error('List ID is required for each list')
@@ -537,6 +560,8 @@ listRouter.put('/lists/batch', async (req, res) => {
               name,
               displayName,
               description,
+              navigation,
+              index,
               type,
               lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
               entityList: entityList
@@ -772,5 +797,133 @@ listRouter.delete(`/list/:accountId/:id`, async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_LIST_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete list.' })
+  }
+})
+
+/**
+ * @openapi
+ * /list/upload-image/{id}:
+ *   put:
+ *     tags:
+ *       - List
+ *     summary: Upload an image for a list
+ *     description: Uploads a banner or logo image for a specific list. Supports banner and logo fields.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the list to upload image for.
+ *       - in: query
+ *         name: field
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [banner, logo]
+ *           default: banner
+ *         description: The field to update (banner or logo).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image file to upload.
+ *               accountId:
+ *                 type: string
+ *                 description: The ID of the account uploading the image.
+ *               createdById:
+ *                 type: string
+ *                 description: Optional admin ID for admin users uploading images.
+ *     responses:
+ *       '200':
+ *         description: Successfully uploaded the image.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/List'
+ *       '400':
+ *         description: Bad request, typically due to missing file or invalid field parameter.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal server error, typically due to database issues.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
+  const { id } = req.params
+  const { field = 'banner' } = req.query
+  const { accountId, createdById } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('List ID is required')
+    }
+
+    //First, get the existing list to check current ownership
+    const existingList = await prisma.list.findUnique({
+      where: { id },
+      select: { accountId: true, createdById: true }
+    })
+
+    if (!existingList) {
+      throw new Error('List not found')
+    }
+
+    //Use existing ownership for authorization if not provided in request body
+    const authAccountId = accountId || existingList.accountId
+    const authCreatedById = createdById || existingList.createdById
+
+    //Either accountId or createdById must be available (from existing list or request body)
+    if (!authAccountId && !authCreatedById) {
+      throw new Error('List must have either accountId or createdById')
+    }
+
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+
+    if (!req.file) {
+      throw new Error('Missing image file')
+    }
+
+    if (field !== 'banner' && field !== 'logo') {
+      throw new Error('Invalid field parameter. Must be "banner" or "logo"')
+    }
+
+    const resizeOptions = field === 'banner'
+      ? { width: 800, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      : { width: 200, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+
+    const key = await uploadImage(req.file, 'list', resizeOptions)
+
+    const updatedList = await prisma.list.update({
+      where: { id },
+      data: { [field]: key },
+    })
+
+    res.json(updatedList)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPLOAD_LIST_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload list image.' })
   }
 })

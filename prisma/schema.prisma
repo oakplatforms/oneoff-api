@@ -473,6 +473,8 @@ model List {
   description      String?
   type             ListType?
   isPrivate        Boolean? @default(false)
+  navigation       Json?
+  index            Int?
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)

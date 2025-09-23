@@ -3,13 +3,12 @@ import s3 from './s3Client'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import multer from 'multer'
 
-// Dynamic import for sharp to handle local development vs Lambda environment
+//Dynamic import for sharp to handle local development vs Lambda environment
 let sharp: any = null
 try {
   sharp = require('sharp')
 } catch (error) {
-  // Sharp not available locally, will be available in Lambda via layer
-  console.warn('Sharp not available locally - will be available in Lambda environment')
+  console.warn('Sharp not available locally - will be available in Lambda environment', error)
 }
 
 export const uploadConfig = multer({

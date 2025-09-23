@@ -1445,6 +1445,22 @@
           ],
           "default": false
         },
+        "navigation": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "index": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "account": {
           "anyOf": [
             {
