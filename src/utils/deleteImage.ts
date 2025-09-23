@@ -6,9 +6,12 @@ export async function deleteImage(imageKey: string): Promise<void> {
     throw new Error('Image key is required')
   }
 
+  // Remove leading slash if present, as S3 keys should not start with /
+  const cleanKey = imageKey.startsWith('/') ? imageKey.slice(1) : imageKey
+
   const deleteCommand = new DeleteObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME!,
-    Key: imageKey,
+    Key: cleanKey,
   })
 
   await s3.send(deleteCommand)
