@@ -125,7 +125,7 @@ listRouter.get('/lists', async (req, res) => {
  *                 description: Optional description of the list.
  *               navigation:
  *                 type: object
- *                 description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d"}).
+ *                 description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d", "text": "Custom Text"}).
  *               index:
  *                 type: integer
  *                 description: Optional index for ordering/sorting lists.
@@ -258,7 +258,7 @@ listRouter.post('/list', async (req, res) => {
  *                 description: Optional description of the list.
  *               navigation:
  *                 type: object
- *                 description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d"}).
+ *                 description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d", "text": "Custom Text"}).
  *               index:
  *                 type: integer
  *                 description: Optional index for ordering/sorting lists.
@@ -436,7 +436,7 @@ listRouter.put('/list/:id', async (req, res) => {
  *                       description: Optional description of the list.
  *                     navigation:
  *                       type: object
- *                       description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d"}).
+ *                       description: Navigation configuration for dynamic routing (e.g., {"type": "Set", "id": "cmds6a8537413dbf5a86fba2d", "text": "Custom Text"}).
  *                     index:
  *                       type: integer
  *                       description: Optional index for ordering/sorting lists.
@@ -708,20 +708,8 @@ listRouter.get('/list/:id', async (req, res) => {
  *     tags:
  *       - List
  *     summary: Delete a specific list by its ID.
- *     description: Deletes a specific list by its ID from the given marketplace and brand. Returns the deleted list or an error message if the ID is not found.
+ *     description: Deletes a specific list by its ID. Returns the deleted list or an error message if the ID is not found.
  *     parameters:
- *       - name: marketplaceName
- *         in: path
- *         description: The name of the marketplace where the list is located.
- *         required: true
- *         schema:
- *           type: string
- *       - name: brandName
- *         in: path
- *         description: The name of the brand to which the list belongs.
- *         required: true
- *         schema:
- *           type: string
  *       - name: id
  *         in: path
  *         description: The ID of the list to delete.
@@ -735,6 +723,9 @@ listRouter.get('/list/:id', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The ID of the account deleting the list.
  *               createdById:
  *                 type: string
  *                 description: Optional admin ID for admin users deleting lists.
@@ -776,24 +767,39 @@ listRouter.get('/list/:id', async (req, res) => {
  *                   type: string
  *                   description: Description of the error that occurred.
  */
-listRouter.delete(`/list/:accountId/:id`, async (req, res) => {
-  const { id, accountId } = req.params
-  const { createdById } = req.body
+listRouter.delete('/list/:id', async (req, res) => {
+  const { id } = req.params
+  const { accountId, createdById } = req.body
+
   try {
     if (!id) {
       throw new Error('List ID is required')
     }
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
-    const list = await prisma.list.delete({
-      where: {
-        id: id
-      },
+
+    const existingList = await prisma.list.findUnique({
+      where: { id },
+      select: { accountId: true, createdById: true }
     })
-    if (list) {
-      res.json(list)
-    } else {
-      throw new Error('No list ID found')
+
+    if (!existingList) {
+      throw new Error('List not found')
     }
+
+    const authAccountId = accountId || existingList.accountId
+    const authCreatedById = createdById || existingList.createdById
+
+    if (!authAccountId && !authCreatedById) {
+      throw new Error('List must have either accountId or createdById')
+    }
+
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+
+    const deletedList = await prisma.list.delete({
+      where: { id },
+      include: generateIncludes(['entityList'])
+    })
+
+    res.json(deletedList)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_LIST_ERROR:', prismaError, customError)
