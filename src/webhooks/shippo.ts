@@ -57,17 +57,32 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
     return null
   }
 
-  await prisma.shipment.update({
-    where: { id: shipment.id },
-    data: {
+  const previousStatus = shipment.trackingStatus
+
+  //Only update if status has changed
+  if (previousStatus !== mappedStatus) {
+    await prisma.shipment.update({
+      where: { id: shipment.id },
+      data: {
+        trackingStatus: mappedStatus,
+      },
+    })
+
+    console.log(`Updated Shipment ${shipment.id}: trackingStatus ${previousStatus} → ${mappedStatus}`)
+
+    return {
+      orderId: shipment.orderId,
       trackingStatus: mappedStatus,
-    },
-  })
-
-  console.log(`Updated Shipment ${shipment.id}: trackingStatus → ${mappedStatus}`)
-
-  return {
-    orderId: shipment.orderId,
-    trackingStatus: mappedStatus,
+      previousStatus,
+      statusChanged: true,
+    }
+  } else {
+    console.log(`Shipment ${shipment.id} status unchanged: ${mappedStatus}`)
+    return {
+      orderId: shipment.orderId,
+      trackingStatus: mappedStatus,
+      previousStatus,
+      statusChanged: false,
+    }
   }
 }

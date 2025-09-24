@@ -31,7 +31,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     case 'track_updated': {
       const result = await handleShippoTrackingUpdated(tracking)
 
-      if (result && result.orderId && result.trackingStatus) {
+      if (result && result.orderId && result.trackingStatus && result.statusChanged) {
         await triggerTrackingStatusEvents(result.orderId, result.trackingStatus)
       }
 
@@ -80,12 +80,12 @@ async function triggerTrackingStatusEvents(orderId: string, trackingStatus: stri
         triggerEvent(orderId, 'order.refund.seller')
       ])
       return
-    case 'OUT_FOR_DELIVERY':
+    case 'TRANSIT':
       await Promise.all([
-        triggerEvent(orderId, 'order.outForDelivery.customer'),
-        triggerEvent(orderId, 'order.outForDelivery.seller')
+        triggerEvent(orderId, 'order.transit.customer'),
+        triggerEvent(orderId, 'order.transit.seller')
       ])
-      break
+      return
     default:
       return
     }

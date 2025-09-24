@@ -3,10 +3,10 @@ import s3 from './s3Client'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import multer from 'multer'
 
-//Dynamic import for sharp to handle local development vs Lambda environment
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 let sharp: any = null
 try {
-  sharp = require('sharp')
+  sharp = require('sharp') 
 } catch (error) {
   console.warn('Sharp not available locally - will be available in Lambda environment', error)
 }
@@ -75,8 +75,6 @@ export async function uploadImage(
 
     buffer = await pipeline.toBuffer()
   } else if (mime !== 'image/svg+xml' && !sharp) {
-    // If sharp is not available (local development), use original buffer
-    // In production Lambda, sharp will be available via the layer
     console.warn('Image processing skipped - sharp not available locally')
   }
 
