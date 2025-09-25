@@ -72,7 +72,10 @@ async function triggerTrackingStatusEvents(orderId: string, trackingStatus: stri
     let detailType: string | null = null
     switch (trackingStatus) {
     case 'DELIVERED':
-      detailType = 'order.delivered.customer'
+      await Promise.all([
+        triggerEvent(orderId, 'order.delivered.customer'),
+        triggerEvent(orderId, 'order.delivered.seller')
+      ])
       break
     case 'RETURNED':
       await Promise.all([
@@ -81,10 +84,7 @@ async function triggerTrackingStatusEvents(orderId: string, trackingStatus: stri
       ])
       return
     case 'TRANSIT':
-      await Promise.all([
-        triggerEvent(orderId, 'order.transit.customer'),
-        triggerEvent(orderId, 'order.transit.seller')
-      ])
+      detailType = 'order.transit.customer'
       return
     default:
       return
