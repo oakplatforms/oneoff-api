@@ -115,8 +115,8 @@ listRouter.get('/lists', async (req, res) => {
       if (!accountId) {
         throw new Error('accountId is required for this list type')
       }
+      await validateAccount(req.user as AuthenticatedUser, accountId as string, 'authenticated')
     }
-    await validateAccount(req.user as AuthenticatedUser, accountId as string, 'authenticated')
 
     const where = {
       ...(type ? { type: type as ListType } : {}),
