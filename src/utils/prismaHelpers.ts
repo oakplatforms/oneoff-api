@@ -1,10 +1,17 @@
 import { Prisma, PrismaClient } from '@prisma/client'
+import { withAccelerate } from '@prisma/extension-accelerate'
 
 let prisma: PrismaClient
 
-export const getPrismaClient = (): PrismaClient => {
+export const getPrismaClient = () => {
   if (!prisma) {
-    prisma = new PrismaClient()
+    if (process.env.PRISMA_ACCELERATE_URL) {
+      prisma = new PrismaClient({
+        datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
+      }).$extends(withAccelerate()) as unknown as PrismaClient
+    } else {
+      prisma = new PrismaClient()
+    }
   }
   return prisma
 }
