@@ -17,7 +17,7 @@ export const listRouter = express.Router()
  *     tags:
  *       - List
  *     summary: Get all lists
- *     description: Retrieves all lists, optionally filtering by list type.
+ *     description: Retrieves all lists, optionally filtering by list type. Requires at least one of accountId, createdById, or lastModifiedById for access control.
  *     parameters:
  *       - in: query
  *         name: type
@@ -32,6 +32,45 @@ export const listRouter = express.Router()
  *           type: string
  *         required: false
  *         description: Comma-separated related entities to include (e.g., "account,entityList").
+ *       - in: query
+ *         name: accountId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Account ID to filter lists by. When provided, validates account access and filters results to only lists belonging to this account.
+ *       - in: query
+ *         name: createdById
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Admin ID for admin access. Validates admin permissions but does not filter results by this field.
+ *       - in: query
+ *         name: lastModifiedById
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Admin ID for admin access. Validates admin permissions but does not filter results by this field.
+ *       - in: query
+ *         name: usePagination
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         required: false
+ *         description: Whether to use pagination (default true).
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         required: false
+ *         description: Page number for pagination (0-based).
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         required: false
+ *         description: Number of items per page.
  *     responses:
  *       '200':
  *         description: Successfully retrieved the list of lists.
@@ -42,7 +81,7 @@ export const listRouter = express.Router()
  *               items:
  *                 $ref: '#/components/schemas/List'
  *       '400':
- *         description: Bad request, possibly due to invalid query params.
+ *         description: Bad request, possibly due to invalid query params or missing required access parameters.
  *         content:
  *           application/json:
  *             schema:
@@ -63,14 +102,24 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.get('/lists', async (req, res) => {
-  const { include, type, usePagination, page, limit } = req.query
+  const { include, type, usePagination, page, limit, accountId, createdById, lastModifiedById } = req.query
 
   try {
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
+    //Validate that at least one of accountId, createdById, or lastModifiedById is provided
+    if (!accountId && !createdById && !lastModifiedById) {
+      throw new Error('At least one of accountId, createdById, or lastModifiedById must be provided')
+    }
+
+    //Validate access permissions - use accountId or first available admin ID
+    const adminId = createdById || lastModifiedById
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId as string, adminId as string)
+
     const where = {
       ...(type ? { type: type as ListType } : {}),
+      ...(accountId ? { accountId: accountId as string } : {}),
     }
 
     const result = await paginatePrisma({
