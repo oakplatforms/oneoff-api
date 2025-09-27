@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { AuthenticatedUser, validateAccountOrAdmin } from '../validation/user'
+import { AuthenticatedUser, validateAccount, validateAccountOrAdmin } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 
@@ -102,20 +102,21 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.get('/lists', async (req, res) => {
-  const { include, type, usePagination, page, limit, accountId, createdById, lastModifiedById } = req.query
+  const { include, type, usePagination, page, limit, accountId } = req.query
 
   try {
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
-    //Validate that at least one of accountId, createdById, or lastModifiedById is provided
-    if (!accountId && !createdById && !lastModifiedById) {
-      throw new Error('At least one of accountId, createdById, or lastModifiedById must be provided')
-    }
+    const requiresAccountValidation = ['CUSTOM', 'FAVORITE', 'COLLECTION'].includes(type as string)
 
-    //Validate access permissions - use accountId or first available admin ID
-    const adminId = createdById || lastModifiedById
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId as string, adminId as string)
+    //For certain list types, accountId is required and must be validated
+    if (requiresAccountValidation) {
+      if (!accountId) {
+        throw new Error('accountId is required for this list type')
+      }
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId as string, 'authenticated')
 
     const where = {
       ...(type ? { type: type as ListType } : {}),
