@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
-import { getPrismaAccelerateClient, generatePrismaError } from '../utils/prismaHelpers'
+import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
 
-const prisma = getPrismaAccelerateClient()
+const prisma = getPrismaClient()
 export const entityRouter = express.Router()
 
 /**
