@@ -13,6 +13,7 @@ export const getPrismaClient = () => {
       prisma = new PrismaClient()
     }
   }
+  console.log('PRISMA CLIENT INITIALIZED')
   return prisma
 }
 
