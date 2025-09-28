@@ -79,6 +79,7 @@ functions:
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
+      PRISMA_ACCELERATE_URL: ${env:PRISMA_ACCELERATE_URL}
       S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
@@ -113,6 +114,7 @@ functions:
     handler: lambdas/stripeWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
+      PRISMA_ACCELERATE_URL: ${env:PRISMA_ACCELERATE_URL}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
@@ -126,6 +128,7 @@ functions:
     handler: lambdas/shippoWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
+      PRISMA_ACCELERATE_URL: ${env:PRISMA_ACCELERATE_URL}
       SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
       SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
     events:

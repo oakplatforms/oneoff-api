@@ -54,6 +54,7 @@ jobs:
       run: serverless deploy --stage stage --verbose
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_STAGE }}
+        PRISMA_ACCELERATE_URL: ${{ secrets.PRISMA_ACCELERATE_URL_STAGE }}
         STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_STAGE }}
         STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_STAGE }}
         SHIPPO_SECRET_KEY: ${{ secrets.SHIPPO_SECRET_KEY_DEV }}
