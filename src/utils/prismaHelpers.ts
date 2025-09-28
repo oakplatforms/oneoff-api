@@ -2,25 +2,39 @@ import { Prisma, PrismaClient } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
 
 let prisma: PrismaClient
+let prismaAccelerate: PrismaClient
 
 export const getPrismaClient = () => {
   if (!prisma) {
     try {
-      if (process.env.PRISMA_ACCELERATE_URL) {
-        console.log('Using Accelerate client')
-        prisma = new PrismaClient({
-          datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
-        }).$extends(withAccelerate()) as unknown as PrismaClient
-      } else {
-        console.log('Using regular client')
-        prisma = new PrismaClient()
-      }
+      console.log('Using regular client')
+      prisma = new PrismaClient()
     } catch (error) {
       console.error('Prisma client initialization error:', error)
       throw error
     }
   }
   return prisma
+}
+
+export const getPrismaAccelerateClient = () => {
+  if (!prismaAccelerate) {
+    try {
+      if (process.env.PRISMA_ACCELERATE_URL) {
+        console.log('Using Accelerate client')
+        prismaAccelerate = new PrismaClient({
+          datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
+        }).$extends(withAccelerate()) as unknown as PrismaClient
+      } else {
+        console.log('Accelerate URL not found, falling back to regular client')
+        prismaAccelerate = new PrismaClient()
+      }
+    } catch (error) {
+      console.error('Prisma Accelerate client initialization error:', error)
+      throw error
+    }
+  }
+  return prismaAccelerate
 }
 
 export const generatePrismaError = (err: unknown) => {
