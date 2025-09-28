@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { getPrismaClient } from '../utils/prismaHelpers'
 
-const prisma = new PrismaClient()
+const prisma = getPrismaClient()
 
 export const validateOrdersForInvoice = async (orderIds: string[]) => {
   const orders = await prisma.order.findMany({

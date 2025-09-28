@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { getPrismaClient } from '../utils/prismaHelpers'
 
-const prisma = new PrismaClient()
+const prisma = getPrismaClient()
 
 export const validateCartAccount = async (accountId: string, isPrimary: boolean) => {
   const existingCart = await prisma.cart.findFirst({
