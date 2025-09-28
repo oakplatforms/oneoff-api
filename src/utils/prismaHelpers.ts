@@ -5,15 +5,23 @@ let prisma: PrismaClient
 
 export const getPrismaClient = () => {
   if (!prisma) {
-    if (process.env.PRISMA_ACCELERATE_URL) {
-      prisma = new PrismaClient({
-        datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
-      }).$extends(withAccelerate()) as unknown as PrismaClient
-    } else {
-      prisma = new PrismaClient()
+    console.log('PRISMA CLIENT INITIALIZING', process.env.PRISMA_ACCELERATE_URL)
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
+    try {
+      if (process.env.PRISMA_ACCELERATE_URL) {
+        console.log('Using Accelerate client')
+        prisma = new PrismaClient({
+          datasourceUrl: process.env.PRISMA_ACCELERATE_URL,
+        }).$extends(withAccelerate()) as unknown as PrismaClient
+      } else {
+        console.log('Using regular client')
+        prisma = new PrismaClient()
+      }
+    } catch (error) {
+      console.error('Prisma client initialization error:', error)
+      throw error
     }
   }
-  console.log('PRISMA CLIENT INITIALIZED')
   return prisma
 }
 
