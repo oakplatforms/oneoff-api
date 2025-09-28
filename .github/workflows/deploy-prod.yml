@@ -31,7 +31,7 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
 
     - name: Generate Prisma client
-      run: npx prisma generate --accelerate
+      run: npx prisma generate --no-engine
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
     
