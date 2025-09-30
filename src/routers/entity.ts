@@ -579,6 +579,12 @@ entityRouter.put('/entity/:id', async (req, res) => {
       }
     }
 
+    //First check if entity has an existing product
+    const existingEntity = await prisma.entity.findUnique({
+      where: { id },
+      select: { product: true }
+    })
+
     const entity = await prisma.entity.update({
       where: { id },
       data: {
@@ -590,11 +596,17 @@ entityRouter.put('/entity/:id', async (req, res) => {
         secondaryImage: req.body.secondaryImage,
         lastModifiedBy: { connect: { id: lastModifiedById } },
         product: product
-          ? {
-            update: {
-              ...product,
-            },
-          }
+          ? existingEntity?.product
+            ? {
+              update: {
+                ...product,
+              },
+            }
+            : {
+              create: {
+                ...product,
+              },
+            }
           : undefined,
         entityTags: entityTags
           ? {
