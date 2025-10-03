@@ -144,6 +144,9 @@ model User {
   // relations
   account       Account?
   admin         Admin?
+
+  @@index([authId])
+  @@index([status])
 }
 
 model Admin {
@@ -178,6 +181,8 @@ model Admin {
   lastModifiedShippingMethods ShippingMethod[] @relation(name: "LastModifiedBy")
   createdShippingOptions ShippingOption[] @relation(name: "CreatedBy")
   lastModifiedShippingOptions ShippingOption[] @relation(name: "LastModifiedBy")
+
+  @@index([userId])
 }
 
 model Account {
@@ -203,6 +208,10 @@ model Account {
   listings Listing[]
   payouts Payout[]
   transactions Transaction[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
 }
 
 model Cart {
@@ -241,6 +250,9 @@ model Customer {
   account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String  @unique
   orders    Order[]
+
+  @@index([accountId])
+  @@index([status])
 }
 
 model Seller {
@@ -274,6 +286,9 @@ model Seller {
   sellerShippingMethods SellerShippingMethod[]
   sellerShippingOptions SellerShippingOption[]
   orders    Order[]
+
+  @@index([accountId])
+  @@index([status])
 }
 
 model Profile {
@@ -291,6 +306,8 @@ model Profile {
   // relations
   account       Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId     String?  @unique
+
+  @@index([accountId])
 }
 
 model Brand {
@@ -485,6 +502,10 @@ model List {
   lastModifiedById String?
   
   entityList       EntityList[]
+
+  @@index([accountId])
+  @@index([type])
+  @@index([isPrivate])
 }
 
 model Entity {
@@ -517,6 +538,10 @@ model Entity {
   listings         Listing[]
   set              Set? @relation(fields: [setId], references: [id], onDelete: Cascade)
   setId            String?
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([type])
 }
 
 model EntityList {
@@ -534,6 +559,8 @@ model EntityList {
   entityId         String
 
   @@id([listId, entityId])
+  @@index([listId])
+  @@index([entityId])
 }
 
 model EntityTag {
@@ -551,6 +578,10 @@ model EntityTag {
   tagId            String
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId         String
+
+  @@index([tagId])
+  @@index([entityId])
+  @@index([tagValue])
 }
 
 model Product {
@@ -588,6 +619,10 @@ model Review {
   accountId        String?
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId         String
+
+  @@index([accountId])
+  @@index([entityId])
+  @@index([rating])
 }
 
 model Payout {
@@ -645,6 +680,11 @@ model Listing {
   conditionId      String?
   orderListings    OrderListing[]
   offer            Offer?
+
+  @@index([accountId])
+  @@index([entityId])
+  @@index([status])
+  @@index([price])
 }
 
 model Bid {
@@ -666,6 +706,10 @@ model Bid {
   entityId         String?
   offers           Offer[]
   conditions       Condition[]
+
+  @@index([accountId])
+  @@index([entityId])
+  @@index([status])
 }
 
 model Offer {
@@ -682,6 +726,10 @@ model Offer {
   listing          Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
   listingId        String? @unique
   order            Order?
+
+  @@index([bidId])
+  @@index([listingId])
+  @@index([status])
 }
 
 model Invoice {
@@ -725,6 +773,11 @@ model Order {
   orderShippingOptions OrderShippingOption[]
   offer            Offer? @relation(fields: [offerId], references: [id], onDelete: Cascade)
   offerId          String? @unique
+
+  @@index([customerId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model OrderListing {
@@ -767,6 +820,11 @@ model Transaction {
   orderId          String?
   payout           Payout? @relation(fields: [payoutId], references: [id])
   payoutId         String?
+
+  @@index([accountId])
+  @@index([orderId])
+  @@index([transactionType])
+  @@index([createdAt])
 }
 
 model SellerShippingMethod {
