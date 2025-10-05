@@ -2,7 +2,7 @@ import { Prisma, PrismaClient } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
 
 let prisma: PrismaClient
-let prismaAccelerate: ReturnType<typeof createAccelerateClient>
+let prismaAccelerate: PrismaClient
 
 const createAccelerateClient = () => {
   if (process.env.PRISMA_ACCELERATE_URL) {
@@ -32,7 +32,7 @@ export const getPrismaClient = () => {
 export const getPrismaAccelerateClient = () => {
   if (!prismaAccelerate) {
     try {
-      prismaAccelerate = createAccelerateClient()
+      prismaAccelerate = createAccelerateClient() as PrismaClient
     } catch (error) {
       console.error('Prisma Accelerate client initialization error:', error)
       throw error

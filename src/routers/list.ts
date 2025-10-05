@@ -108,7 +108,8 @@ listRouter.get('/lists', async (req, res) => {
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
-    const requiresAccountValidation = ['CUSTOM', 'FAVORITE', 'COLLECTION'].includes(type as string)
+    const typeArray = Array.isArray(type) ? type : type ? [type] : []
+    const requiresAccountValidation = typeArray.some(t => ['CUSTOM', 'FAVORITE', 'COLLECTION'].includes(t as string))
 
     //For certain list types, accountId is required and must be validated
     if (requiresAccountValidation) {
@@ -119,7 +120,7 @@ listRouter.get('/lists', async (req, res) => {
     }
 
     const where = {
-      ...(type ? { type: type as ListType } : {}),
+      ...(typeArray.length > 0 ? { type: { in: typeArray as ListType[] } } : {}),
       ...(accountId ? { accountId: accountId as string } : {}),
     }
 
@@ -228,7 +229,7 @@ listRouter.get('/lists', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 listRouter.post('/list', async (req, res) => {
-  const { name, type, displayName, description, navigation, index, accountId, createdById, entityList } = req.body
+  const { name, type, displayName, description, navigation, index, isPrivate, accountId, createdById, entityList } = req.body
 
   try {
     //Validate required fields
@@ -253,6 +254,7 @@ listRouter.post('/list', async (req, res) => {
         description,
         navigation,
         index,
+        isPrivate,
         type,
         account: accountId ? { connect: { id: accountId } } : undefined,
         createdBy: createdById ? { connect: { id: createdById } } : undefined,
@@ -380,7 +382,7 @@ listRouter.post('/list', async (req, res) => {
  */
 listRouter.put('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { name, type, displayName, description, navigation, index, entityList, accountId, createdById, lastModifiedById } = req.body
+  const { name, type, displayName, description, navigation, index, isPrivate, entityList, accountId, createdById, lastModifiedById } = req.body
 
   try {
     if (!id) {
@@ -416,6 +418,7 @@ listRouter.put('/list/:id', async (req, res) => {
         description,
         navigation,
         index,
+        isPrivate,
         type,
         account: accountId ? { connect: { id: accountId } } : undefined,
         createdBy: createdById ? { connect: { id: createdById } } : undefined,
@@ -599,7 +602,7 @@ listRouter.put('/lists/batch', async (req, res) => {
     await prisma.$transaction(async (tx) => {
       for (const listData of lists) {
         try {
-          const { id, name, type, displayName, description, navigation, index, entityList } = listData
+          const { id, name, type, displayName, description, navigation, index, isPrivate, entityList } = listData
 
           if (!id) {
             throw new Error('List ID is required for each list')
@@ -613,6 +616,7 @@ listRouter.put('/lists/batch', async (req, res) => {
               description,
               navigation,
               index,
+              isPrivate,
               type,
               lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
               entityList: entityList
