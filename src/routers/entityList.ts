@@ -291,7 +291,7 @@ entityListRouter.post('/entity-list', async (req, res) => {
         entityId,
         quantity: quantity || null,
       },
-      include: generateIncludes('list,entity')
+      include: generateIncludes(['list', 'entity'])
     })
 
     res.json(entityList)
@@ -464,7 +464,7 @@ entityListRouter.put('/entity-list/:id', async (req, res) => {
       data: {
         quantity: quantity !== undefined ? quantity : null,
       },
-      include: generateIncludes('list,entity')
+      include: generateIncludes(['list', 'entity'])
     })
 
     res.json(updatedEntityList)
@@ -561,7 +561,7 @@ entityListRouter.delete('/entity-list/:id', async (req, res) => {
 
     const deletedEntityList = await prisma.entityList.delete({
       where: { id },
-      include: generateIncludes('list,entity')
+      include: generateIncludes(['list', 'entity'])
     })
 
     res.json(deletedEntityList)
