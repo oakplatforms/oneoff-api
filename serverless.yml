@@ -151,7 +151,7 @@ custom:
   provisionedConcurrency:
     dev: 0
     stage: 0
-    prod: 2
+    prod: 3
   
   memorySize:
     dev: 1024
