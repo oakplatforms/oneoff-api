@@ -106,20 +106,33 @@ export async function handler(event: ExtendedAuthorizerEvent) {
   try {
     const isTokenEvent = !!event.authorizationToken
 
+    console.log('Event type:', event.type)
+    console.log('Is token event:', isTokenEvent)
+    console.log('Event headers:', JSON.stringify(event.headers, null, 2))
+    console.log('Event multiValueHeaders:', JSON.stringify(event.multiValueHeaders, null, 2))
+    console.log('Event authorizationToken:', event.authorizationToken)
+
     let rawHeader: string | undefined
 
     if (isTokenEvent) {
       rawHeader = event.authorizationToken
     } else {
-      rawHeader =
-        pickHeader(event, 'Authorization') ||
-        pickHeader(event, 'X-Authorization')
+      const authHeader = pickHeader(event, 'Authorization')
+      const xAuthHeader = pickHeader(event, 'X-Authorization')
+      console.log('Authorization header:', authHeader)
+      console.log('X-Authorization header:', xAuthHeader)
+      rawHeader = authHeader || xAuthHeader
     }
 
+    console.log('Raw header:', rawHeader)
     const token = extractBearer(rawHeader)
 
     const routeArn = event.methodArn || event.routeArn || '*'
     const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
+
+    console.log('Route ARN:', routeArn)
+    console.log('Method:', method)
+    console.log('Token:', token)
 
     if (!token) {
       console.warn('Missing token')
