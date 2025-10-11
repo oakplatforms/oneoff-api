@@ -99,7 +99,7 @@ function extractBearer(raw?: string): string | undefined {
     }
   }
   const match = raw?.match(/Bearer\s+(.+)/i)
-  return (match ? match[1] : raw)?.trim()
+  return match ? match[1].trim() : undefined
 }
 
 export async function handler(event: ExtendedAuthorizerEvent) {
