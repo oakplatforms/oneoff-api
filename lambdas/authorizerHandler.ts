@@ -2,6 +2,20 @@ import jwt from 'jsonwebtoken'
 import jwksClient from 'jwks-rsa'
 import type { APIGatewayAuthorizerEvent } from 'aws-lambda'
 
+type ExtendedAuthorizerEvent = APIGatewayAuthorizerEvent & {
+  headers?: Record<string, string>
+  multiValueHeaders?: Record<string, string[]>
+  authorizationToken?: string
+  methodArn?: string
+  routeArn?: string
+  requestContext?: {
+    http?: {
+      method?: string
+    }
+  }
+  httpMethod?: string
+}
+
 const COGNITO_REGION = 'us-east-1'
 const USER_POOLS = {
   admin: process.env.ADMIN_USER_POOL_ID,
@@ -58,28 +72,61 @@ function generatePolicy(
   }
 }
 
-export async function handler(event: APIGatewayAuthorizerEvent) {
+function pickHeader(
+  event: ExtendedAuthorizerEvent,
+  name: string
+): string | undefined {
+  const h = event.headers || {}
+  const mv = event.multiValueHeaders || {}
+  //try exact + lowercase in headers (string)
+  const str = h[name] ?? h[name.toLowerCase()]
+  if (str) return str
+  //try multiValueHeaders (array)
+  const arr = mv[name] ?? mv[name.toLowerCase()]
+  if (Array.isArray(arr) && arr.length) return arr[0]
+  return undefined
+}
+
+function extractBearer(raw?: string): string | undefined {
+  if (!raw) return undefined
+  //Handle weird cases like '["Bearer XXX"]'
+  if (raw.startsWith('["') || raw.startsWith("['")) {
+    try {
+      const arr = JSON.parse(raw.replace(/'/g, '"'))
+      raw = Array.isArray(arr) ? arr[0] : raw
+    } catch {
+      //ignore
+    }
+  }
+  const match = raw?.match(/Bearer\s+(.+)/i)
+  return (match ? match[1] : raw)?.trim()
+}
+
+export async function handler(event: ExtendedAuthorizerEvent) {
   try {
-    const isTokenEvent = event.type === 'TOKEN'
+    const isTokenEvent = !!event.authorizationToken
 
-    const token = isTokenEvent
-      ? event.authorizationToken?.split(' ')[1]
-      : event.headers?.Authorization?.split(' ')[1] ||
-        event.headers?.authorization?.split(' ')[1] ||
-        event.headers?.['X-Authorization']?.split(' ')[1] ||
-        event.headers?.['x-authorization']?.split(' ')[1]
+    let rawHeader: string | undefined
 
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const routeArn = (event as any).methodArn || (event as any).routeArn
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const method = (event as any).requestContext?.http?.method || (event as any).httpMethod || 'GET'
+    if (isTokenEvent) {
+      rawHeader = event.authorizationToken
+    } else {
+      rawHeader =
+        pickHeader(event, 'Authorization') ||
+        pickHeader(event, 'X-Authorization')
+    }
+
+    const token = extractBearer(rawHeader)
+
+    const routeArn = event.methodArn || event.routeArn || '*'
+    const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
 
     if (!token) {
       console.warn('Missing token')
       return deny(routeArn)
     }
 
-    console.log('Token:', token)
+    console.log('Token (first 20):', token.slice(0, 20), '…')
     const decodedHeader = jwt.decode(token, { complete: true }) as { header?: { alg?: string; kid?: string } } | null
     if (!decodedHeader?.header) {
       console.warn('Malformed token, no header')
@@ -156,7 +203,6 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
   } catch (error) {
     const err = error as Error
     console.error('Authorization Error:', err.message)
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return deny((event as any).methodArn || (event as any).routeArn || '*')
+    return deny(event.methodArn || event.routeArn || '*')
   }
 }
