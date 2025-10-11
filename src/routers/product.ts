@@ -109,8 +109,8 @@ productRouter.put('/product/update-price', async (req, res) => {
     }
 
     const numericPrice = Number(price)
-    if (isNaN(numericPrice) || numericPrice < 0) {
-      throw new Error('Price must be a valid number greater than or equal to 0')
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      throw new Error('Price must be a valid number greater than 0')
     }
 
     const updatedProduct = await prisma.product.update({
