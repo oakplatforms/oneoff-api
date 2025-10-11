@@ -6,6 +6,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
+import { processEntitiesInBatches, EntityProcessingInput } from '../utils/stepFunctions'
 
 const prisma = getPrismaClient()
 export const entityRouter = express.Router()
@@ -1164,5 +1165,195 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_ENTITY_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete entity.' })
+  }
+})
+
+/**
+ * @openapi
+ * /entities/process-batch:
+ *   post:
+ *     tags:
+ *       - Entity
+ *     summary: Process all entities and send to Step Function
+ *     description: |
+ *       Processes all entities in the database, constructs the required object format for each entity,
+ *       and sends them to an AWS Step Function in batches. This endpoint handles thousands of entities
+ *       efficiently by batching them and controlling concurrency.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               batchSize:
+ *                 type: integer
+ *                 description: Number of entities to process per batch (default: 100)
+ *                 default: 100
+ *                 minimum: 1
+ *                 maximum: 1000
+ *               maxBatches:
+ *                 type: integer
+ *                 description: Maximum number of batches to process (optional, for testing)
+ *                 minimum: 1
+ *     responses:
+ *       '200':
+ *         description: Successfully processed entities and started Step Function executions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *                 totalEntities:
+ *                   type: integer
+ *                   description: Total number of entities processed
+ *                 totalBatches:
+ *                   type: integer
+ *                   description: Total number of batches created
+ *                 executionArns:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: ARNs of the Step Function executions started
+ *       '400':
+ *         description: Bad request, typically due to missing PRICING_ENGINE_ARN environment variable
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: State machine ARN is required
+ *       '500':
+ *         description: Internal server error during entity processing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Failed to process entities
+ */
+entityRouter.post('/entities/process-batch', async (req, res) => {
+  const { batchSize = 100, maxBatches } = req.body
+
+  try {
+    const stateMachineArn = process.env.PRICING_ENGINE_ARN
+
+    if (!stateMachineArn) {
+      throw new Error('PRICING_ENGINE_ARN environment variable is required')
+    }
+
+    if (batchSize < 1 || batchSize > 1000) {
+      throw new Error('Batch size must be between 1 and 1000')
+    }
+
+    if (maxBatches && maxBatches < 1) {
+      throw new Error('Max batches must be at least 1')
+    }
+
+    console.log('Starting entity batch processing...')
+
+    //Fetch all entities with required relationships
+    const entities = await prisma.entity.findMany({
+      include: {
+        brand: {
+          select: {
+            displayName: true
+          }
+        },
+        set: {
+          select: {
+            displayName: true
+          }
+        },
+        product: {
+          select: {
+            number: true
+          }
+        },
+        entityTags: {
+          include: {
+            tag: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    console.log(`Found ${entities.length} entities to process`)
+
+    if (maxBatches) {
+      const maxEntities = maxBatches * batchSize
+      const entitiesToProcess = Math.min(entities.length, maxEntities)
+      console.log(`Limiting to ${maxBatches} batches (max ${maxEntities} entities), will process ${entitiesToProcess} entities`)
+    }
+
+    //Transform entities to the required format
+    const processedEntities: EntityProcessingInput[] = entities.map(entity => {
+      //Find rarity tag value
+      const rarityTag = entity.entityTags.find(et => et.tag.name === 'rarity')
+      const rarity = rarityTag?.tagValue || 'Unknown'
+
+      //Determine print based on product number
+      let print: string | undefined
+      if (entity.product?.number) {
+        const number = entity.product.number
+        if (number.endsWith('-RF')) {
+          print = 'Rainbow Foil'
+        } else if (number.endsWith('-CF')) {
+          print = 'Cold Foil'
+        } else if (number.endsWith('-GF')) {
+          print = 'Gold Foil'
+        }
+      }
+
+      //Determine edition based on product number
+      let edition = 'First Edition'
+      if (entity.product?.number && entity.product.number.startsWith('U-')) {
+        edition = 'Unlimited'
+      }
+
+      return {
+        entityId: entity.id,
+        brand: entity.brand?.displayName || 'Unknown',
+        name: entity.displayName || entity.name,
+        number: entity.product?.number || '',
+        rarity,
+        set: entity.set?.displayName || 'Unknown',
+        print,
+        edition
+      }
+    })
+
+    //Process entities in batches and send to Step Function
+    const { executionArns, totalBatches } = await processEntitiesInBatches(
+      processedEntities,
+      stateMachineArn,
+      batchSize,
+      maxBatches
+    )
+
+    console.log(`Successfully started ${totalBatches} batches with ${executionArns.length} executions`)
+
+    res.json({
+      message: 'Entity batch processing started successfully',
+      totalEntities: processedEntities.length,
+      totalBatches,
+      executionArns
+    })
+
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('PROCESS_ENTITIES_BATCH_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to process entities.' })
   }
 })

@@ -31,6 +31,10 @@ provider:
           Resource: arn:aws:events:us-east-1:*:event-bus/default
         - Effect: Allow
           Action:
+            - states:StartExecution
+          Resource: arn:aws:states:us-east-1:*:stateMachine:*
+        - Effect: Allow
+          Action:
             - s3:PutObject
             - s3:PutObjectAcl
             - s3:GetObject
@@ -89,6 +93,7 @@ functions:
       SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
       SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
+      PRICING_ENGINE_ARN: ${env:PRICING_ENGINE_ARN}
 
   authorizer:
     name: tcgx-api-authorizer-${sls:stage}
