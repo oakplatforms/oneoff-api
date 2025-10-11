@@ -64,7 +64,6 @@ export async function processEntitiesInBatches(
 
   //Limit batches if maxBatches is specified
   const limitedBatches = maxBatches ? batches.slice(0, maxBatches) : batches
-  
   const executionArns: string[] = []
   const totalBatches = limitedBatches.length
 

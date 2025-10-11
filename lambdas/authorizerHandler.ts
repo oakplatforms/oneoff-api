@@ -64,7 +64,10 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
 
     const token = isTokenEvent
       ? event.authorizationToken?.split(' ')[1]
-      : event.headers?.Authorization?.split(' ')[1] || event.headers?.authorization?.split(' ')[1]
+      : event.headers?.Authorization?.split(' ')[1] ||
+        event.headers?.authorization?.split(' ')[1] ||
+        event.headers?.['X-Authorization']?.split(' ')[1] ||
+        event.headers?.['x-authorization']?.split(' ')[1]
 
     //eslint-disable-next-line @typescript-eslint/no-explicit-any
     const routeArn = (event as any).methodArn || (event as any).routeArn
