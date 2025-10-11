@@ -79,6 +79,7 @@ export async function handler(event: APIGatewayAuthorizerEvent) {
       return deny(routeArn)
     }
 
+    console.log('Token:', token)
     const decodedHeader = jwt.decode(token, { complete: true }) as { header?: { alg?: string; kid?: string } } | null
     if (!decodedHeader?.header) {
       console.warn('Malformed token, no header')
