@@ -117,11 +117,11 @@ export async function handler(event: ExtendedAuthorizerEvent) {
     if (isTokenEvent) {
       rawHeader = event.authorizationToken
     } else {
-      const authHeader = pickHeader(event, 'Authorization')
-      const xAuthHeader = pickHeader(event, 'X-Authorization')
+      const authHeader = pickHeader(event, 'authorization') || pickHeader(event, 'Authorization')
+      const xAuthHeader = pickHeader(event, 'x-authorization') || pickHeader(event, 'X-Authorization')
       console.log('Authorization header:', authHeader)
       console.log('X-Authorization header:', xAuthHeader)
-      rawHeader = authHeader || xAuthHeader
+      rawHeader = xAuthHeader || authHeader
     }
 
     console.log('Raw header:', rawHeader)
