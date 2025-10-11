@@ -146,11 +146,13 @@ export async function handler(event: ExtendedAuthorizerEvent) {
             return deny(routeArn)
           }
 
-          return generatePolicy('guest', 'Allow', routeArn, {
+          const guestPolicy = generatePolicy('guest', 'Allow', routeArn, {
             role: 'guest',
             userPool: 'temporary',
             principalId: 'guest',
           })
+          console.log('Generated guest policy:', JSON.stringify(guestPolicy, null, 2))
+          return guestPolicy
         } else {
           console.warn('Invalid guest token role')
           return deny(routeArn)
@@ -195,11 +197,14 @@ export async function handler(event: ExtendedAuthorizerEvent) {
       role = 'registered'
     }
 
-    return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
+    const policy = generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
       role,
       userPool: userPoolId,
       principalId: decodedUser.sub as string
     })
+
+    console.log('Generated policy:', JSON.stringify(policy, null, 2))
+    return policy
   } catch (error) {
     const err = error as Error
     console.error('Authorization Error:', err.message)
