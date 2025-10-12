@@ -1274,7 +1274,8 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
         },
         product: {
           select: {
-            number: true
+            number: true,
+            price: true
           }
         },
         entityTags: {
@@ -1307,6 +1308,9 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
       const colorTag = entity.entityTags.find(et => et.tag.name === 'color')
       const color = colorTag?.tagValue
 
+      //Get current price from product
+      const currentPrice = entity.product?.price ? Number(entity.product.price) : null
+
       //Determine print based on product number
       let print: string | undefined
       if (entity.product?.number) {
@@ -1335,7 +1339,8 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
         color: color || '',
         set: entity.set?.displayName || '',
         print,
-        edition
+        edition,
+        currentPrice
       }
     })
 

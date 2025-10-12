@@ -14,6 +14,7 @@ export interface EntityProcessingInput {
   set: string
   print?: string
   edition: string
+  currentPrice: number | null
 }
 
 export interface BatchProcessingInput {
