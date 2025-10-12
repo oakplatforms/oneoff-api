@@ -1301,7 +1301,11 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
     const processedEntities: EntityProcessingInput[] = entities.map(entity => {
       //Find rarity tag value
       const rarityTag = entity.entityTags.find(et => et.tag.name === 'rarity')
-      const rarity = rarityTag?.tagValue || 'Unknown'
+      const rarity = rarityTag?.tagValue
+
+      //Find color tag value
+      const colorTag = entity.entityTags.find(et => et.tag.name === 'color')
+      const color = colorTag?.tagValue
 
       //Determine print based on product number
       let print: string | undefined
@@ -1324,11 +1328,12 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
 
       return {
         entityId: entity.id,
-        brand: entity.brand?.displayName || 'Unknown',
+        brand: entity.brand?.displayName || '',
         name: entity.displayName || entity.name,
         number: entity.product?.number || '',
-        rarity,
-        set: entity.set?.displayName || 'Unknown',
+        rarity: rarity || '',
+        color: color || '',
+        set: entity.set?.displayName || '',
         print,
         edition
       }

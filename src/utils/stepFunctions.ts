@@ -10,6 +10,7 @@ export interface EntityProcessingInput {
   name: string
   number: string
   rarity: string
+  color: string
   set: string
   print?: string
   edition: string
