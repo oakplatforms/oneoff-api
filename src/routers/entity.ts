@@ -1314,7 +1314,7 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
 
       //Find edition tag value
       const editionTag = entity.entityTags.find(et => et.tag.name === 'edition')
-      const edition = editionTag?.tagValue
+      const edition = editionTag?.tagValue || 'First Edition'
 
       //Get current price from product
       const currentPrice = entity.product?.price ? Number(entity.product.price) : null
