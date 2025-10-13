@@ -105,13 +105,6 @@ function extractBearer(raw?: string): string | undefined {
 export async function handler(event: ExtendedAuthorizerEvent) {
   try {
     const isTokenEvent = !!event.authorizationToken
-
-    console.log('Event type:', event.type)
-    console.log('Is token event:', isTokenEvent)
-    console.log('Event headers:', JSON.stringify(event.headers, null, 2))
-    console.log('Event multiValueHeaders:', JSON.stringify(event.multiValueHeaders, null, 2))
-    console.log('Event authorizationToken:', event.authorizationToken)
-
     let rawHeader: string | undefined
 
     if (isTokenEvent) {
@@ -119,27 +112,19 @@ export async function handler(event: ExtendedAuthorizerEvent) {
     } else {
       const authHeader = pickHeader(event, 'authorization') || pickHeader(event, 'Authorization')
       const xAuthHeader = pickHeader(event, 'x-authorization') || pickHeader(event, 'X-Authorization')
-      console.log('Authorization header:', authHeader)
-      console.log('X-Authorization header:', xAuthHeader)
       rawHeader = xAuthHeader || authHeader
     }
 
-    console.log('Raw header:', rawHeader)
     const token = extractBearer(rawHeader)
 
     const routeArn = event.methodArn || event.routeArn || '*'
     const method = event.requestContext?.http?.method || event.httpMethod || 'GET'
-
-    console.log('Route ARN:', routeArn)
-    console.log('Method:', method)
-    console.log('Token:', token)
 
     if (!token) {
       console.warn('Missing token')
       return deny(routeArn)
     }
 
-    console.log('Token (first 20):', token.slice(0, 20), '…')
     const decodedHeader = jwt.decode(token, { complete: true }) as { header?: { alg?: string; kid?: string } } | null
     if (!decodedHeader?.header) {
       console.warn('Malformed token, no header')
@@ -210,14 +195,11 @@ export async function handler(event: ExtendedAuthorizerEvent) {
       role = 'registered'
     }
 
-    const policy = generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
+    return generatePolicy(decodedUser.sub as string, 'Allow', routeArn, {
       role,
       userPool: userPoolId,
       principalId: decodedUser.sub as string
     })
-
-    console.log('Generated policy:', JSON.stringify(policy, null, 2))
-    return policy
   } catch (error) {
     const err = error as Error
     console.error('Authorization Error:', err.message)
