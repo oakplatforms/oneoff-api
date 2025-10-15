@@ -17,15 +17,6 @@ export const getPrismaClient = async () => {
         connectionTimeoutMillis: 2000,
       })
 
-      try {
-        const client = await pool.connect()
-        console.log('Database connection test successful')
-        client.release()
-      } catch (connError) {
-        console.error('Database connection test failed:', connError)
-        throw connError
-      }
-
       const adapter = new PrismaPg(pool)
 
       prisma = new PrismaClient({
