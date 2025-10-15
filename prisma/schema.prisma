@@ -212,6 +212,8 @@ model Account {
   @@index([userId])
   @@index([type])
   @@index([status])
+  @@index([type, status])
+  @@index([userId, type])
 }
 
 model Cart {
@@ -253,6 +255,7 @@ model Customer {
 
   @@index([accountId])
   @@index([status])
+  @@index([accountId, status])
 }
 
 model Seller {
@@ -542,6 +545,9 @@ model Entity {
   @@index([categoryId])
   @@index([brandId])
   @@index([type])
+  @@index([categoryId, type])
+  @@index([brandId, type])
+  @@index([setId])
 }
 
 model EntityList {
@@ -685,6 +691,10 @@ model Listing {
   @@index([entityId])
   @@index([status])
   @@index([price])
+  @@index([status, price])
+  @@index([entityId, status])
+  @@index([accountId, status])
+  @@index([conditionId])
 }
 
 model Bid {
@@ -778,6 +788,9 @@ model Order {
   @@index([sellerId])
   @@index([status])
   @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([customerId, status])
+  @@index([sellerId, status])
 }
 
 model OrderListing {
@@ -825,6 +838,8 @@ model Transaction {
   @@index([orderId])
   @@index([transactionType])
   @@index([createdAt])
+  @@index([accountId, transactionType])
+  @@index([transactionType, createdAt])
 }
 
 model SellerShippingMethod {
