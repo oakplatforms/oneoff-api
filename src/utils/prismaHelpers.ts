@@ -11,6 +11,18 @@ export const getPrismaClient = () => {
       console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
       console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length || 0)
 
+      if (process.env.DATABASE_URL) {
+        try {
+          const url = new URL(process.env.DATABASE_URL)
+          console.log('Database host:', url.hostname)
+          console.log('Database port:', url.port)
+          console.log('Database name:', url.pathname.substring(1))
+          console.log('Database user:', url.username)
+        } catch (e) {
+          console.log('Could not parse DATABASE_URL:', e)
+        }
+      }
+
       const pool = new Pool({ connectionString: process.env.DATABASE_URL })
       const adapter = new PrismaPg(pool)
 
