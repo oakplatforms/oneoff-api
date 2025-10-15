@@ -11,7 +11,7 @@ export const getPrismaClient = async () => {
       console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
 
       const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
+        connectionString: process.env.DATABASE_URL + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'sslmode=require',
         max: 1,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
