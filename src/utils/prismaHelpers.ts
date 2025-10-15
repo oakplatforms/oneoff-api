@@ -1,12 +1,29 @@
 import { Prisma, PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 let prisma: PrismaClient
 
 export const getPrismaClient = () => {
   if (!prisma) {
     try {
-      console.log('Initializing Prisma client')
-      prisma = new PrismaClient()
+      console.log('Initializing Prisma client with connection pooling')
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'sslmode=require',
+        max: 1,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+        allowExitOnIdle: true,
+      })
+
+      const adapter = new PrismaPg(pool)
+      prisma = new PrismaClient({
+        adapter,
+        log: ['error'],
+        errorFormat: 'pretty'
+      })
+
+      console.log('Prisma client with connection pooling created successfully')
     } catch (error) {
       console.error('Prisma client initialization error:', error)
       throw error
