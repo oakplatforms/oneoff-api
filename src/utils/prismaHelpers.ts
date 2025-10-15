@@ -1,4 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 let prisma: PrismaClient
 
@@ -8,12 +10,16 @@ export const getPrismaClient = () => {
       console.log('Initializing Prisma client with client engine')
       console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
       console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length || 0)
-
+      
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+      const adapter = new PrismaPg(pool)
+      
       prisma = new PrismaClient({
+        adapter,
         log: ['error'],
         errorFormat: 'pretty'
       })
-
+      
       console.log('Prisma client created successfully')
     } catch (error) {
       console.error('Prisma client initialization error:', error)
