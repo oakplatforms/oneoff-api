@@ -9,11 +9,12 @@ export const getPrismaClient = () => {
     try {
       console.log('Initializing Prisma client with connection pooling')
       const pool = new Pool({
-        connectionString: process.env.DATABASE_URL + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'sslmode=require',
+        connectionString: process.env.DATABASE_URL,
         max: 1,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 2_000,
         allowExitOnIdle: true,
+        ssl: { rejectUnauthorized: false },
       })
 
       const adapter = new PrismaPg(pool)
