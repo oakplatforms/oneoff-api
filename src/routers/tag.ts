@@ -5,6 +5,7 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
 
+const prisma = getPrismaClient()
 export const tagRouter = express.Router()
 
 /**
@@ -56,7 +57,7 @@ tagRouter.get('/tags', async (req, res) => {
     const parsedUsePagination = usePagination === 'false' ? false : true
 
     const result = await paginatePrisma({
-      prismaModel: (await getPrismaClient()).tag,
+      prismaModel: prisma.tag,
       where: {},
       include: generateIncludes(include as string),
       page: parsedPage,
