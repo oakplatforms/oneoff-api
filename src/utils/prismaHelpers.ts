@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { Prisma, PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
@@ -8,20 +10,29 @@ export const getPrismaClient = () => {
   if (!prisma) {
     try {
       console.log('Initializing Prisma client with connection pooling')
+
+      const sslConfig = {
+        ca: fs.readFileSync(
+          path.join(__dirname, 'rds-combined-ca-bundle.pem'),
+          'utf8'
+        ),
+        rejectUnauthorized: true,
+      }
+
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         max: 1,
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 2_000,
         allowExitOnIdle: true,
-        ssl: { rejectUnauthorized: false },
+        ssl: sslConfig,
       })
 
       const adapter = new PrismaPg(pool)
       prisma = new PrismaClient({
         adapter,
         log: ['error'],
-        errorFormat: 'pretty'
+        errorFormat: 'pretty',
       })
 
       console.log('Prisma client with connection pooling created successfully')
@@ -30,6 +41,7 @@ export const getPrismaClient = () => {
       throw error
     }
   }
+
   return prisma
 }
 
