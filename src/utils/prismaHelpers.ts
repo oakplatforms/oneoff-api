@@ -4,18 +4,27 @@ import { Pool } from 'pg'
 
 let prisma: PrismaClient
 
-export const getPrismaClient = () => {
+export const getPrismaClient = async () => {
   if (!prisma) {
     try {
       console.log('Initializing Prisma client with client engine')
       console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
 
-      const pool = new Pool({ 
+      const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         max: 1,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
       })
+
+      try {
+        const client = await pool.connect()
+        console.log('Database connection test successful')
+        client.release()
+      } catch (connError) {
+        console.error('Database connection test failed:', connError)
+        throw connError
+      }
 
       const adapter = new PrismaPg(pool)
 
