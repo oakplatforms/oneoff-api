@@ -19,8 +19,8 @@ export const getPrismaClient = () => {
 
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
-        max: 1,
-        idleTimeoutMillis: 30_000,
+        max: 5,
+        idleTimeoutMillis: 120_000,
         connectionTimeoutMillis: 2_000,
         allowExitOnIdle: true,
         ssl: { rejectUnauthorized: false }
