@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { Prisma, PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
@@ -7,23 +9,23 @@ let prisma: PrismaClient
 export const getPrismaClient = () => {
   if (!prisma) {
     try {
-      console.log('Initializing Prisma client with connection pooling')
+      console.log('Initializing Prisma client with SSL certificate and connection pooling')
 
-      //const sslConfig = {
-      //ca: fs.readFileSync(
-      //path.join(__dirname, 'rds-combined-ca-bundle.pem'),
-      //'utf8'
-      //),
-      //rejectUnauthorized: true,
-      //}
+      const sslCert = fs.readFileSync(
+        path.join(__dirname, '../certs/global-bundle.pem'),
+        'utf8'
+      )
 
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
-        max: 5,
-        idleTimeoutMillis: 120_000,
-        connectionTimeoutMillis: 2_000,
+        max: 1,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
         allowExitOnIdle: true,
-        ssl: { rejectUnauthorized: false }
+        ssl: {
+          rejectUnauthorized: true,
+          ca: sslCert,
+        },
       })
 
       const adapter = new PrismaPg(pool)
