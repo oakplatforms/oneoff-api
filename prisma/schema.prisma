@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  engineType = "client"  
+  engineType = "library"
 }
 generator json {
   provider = "prisma-json-schema-generator"

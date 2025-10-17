@@ -2,17 +2,48 @@ import { Prisma, PrismaClient } from '@prisma/client'
 
 let prisma: PrismaClient
 
+const getDatabaseUrl = () => {
+  //Use RDS Proxy endpoint if available, otherwise fall back to direct DATABASE_URL
+  const proxyEndpoint = process.env.RDS_PROXY_ENDPOINT
+  const databaseUrl = process.env.DATABASE_URL
+
+  if (proxyEndpoint && databaseUrl) {
+    //Replace the host in DATABASE_URL with the RDS Proxy endpoint
+    const url = new URL(databaseUrl)
+    url.hostname = proxyEndpoint
+    return url.toString()
+  }
+
+  return databaseUrl
+}
+
 export const getPrismaClient = () => {
   if (!prisma) {
     try {
       console.log('Initializing Prisma client')
-      prisma = new PrismaClient()
+      const databaseUrl = getDatabaseUrl()
+      console.log('Using database URL:', databaseUrl?.replace(/\/\/.*@/, '//***:***@'))
+      prisma = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+        datasources: {
+          db: {
+            url: databaseUrl
+          }
+        }
+      })
     } catch (error) {
       console.error('Prisma client initialization error:', error)
       throw error
     }
   }
   return prisma
+}
+
+export const disconnectPrisma = async () => {
+  if (prisma) {
+    await prisma.$disconnect()
+    prisma = undefined as unknown as PrismaClient
+  }
 }
 
 export const generatePrismaError = (err: unknown) => {
