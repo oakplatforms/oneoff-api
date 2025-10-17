@@ -228,8 +228,23 @@ resources:
               Principal:
                 Service: rds.amazonaws.com
               Action: sts:AssumeRole
-        ManagedPolicyArns:
-          - arn:aws:iam::aws:policy/service-role/AmazonRDSProxyServiceRolePolicy
+        Policies:
+          - PolicyName: RDSProxyPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - secretsmanager:GetSecretValue
+                    - secretsmanager:DescribeSecret
+                  Resource: ${env:RDS_SECRET_ARN}
+                - Effect: Allow
+                  Action:
+                    - kms:Decrypt
+                  Resource: '*'
+                  Condition:
+                    StringEquals:
+                      kms:ViaService: secretsmanager.${aws:region}.amazonaws.com
 
     RDSProxyEndpoint:
       Type: AWS::RDS::DBProxyEndpoint
