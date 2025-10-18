@@ -206,9 +206,9 @@ resources:
             SecretArn: ${env:RDS_SECRET_ARN}
             IAMAuth: DISABLED
         RoleArn: !GetAtt RDSProxyRole.Arn
-        TargetGroup:
-          DBInstanceIdentifiers:
-            - ${env:RDS_INSTANCE_IDENTIFIER}
+        TargetGroups:
+          - DBInstanceIdentifiers:
+              - ${env:RDS_INSTANCE_IDENTIFIER}
         VpcSubnetIds:
           - ${env:SUBNET_ID_1}
           - ${env:SUBNET_ID_2}
