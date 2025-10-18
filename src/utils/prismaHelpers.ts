@@ -1,55 +1,48 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { Prisma, PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 let prisma: PrismaClient
-
-const getDatabaseUrl = () => {
-  //Use RDS Proxy endpoint if available, otherwise fall back to direct DATABASE_URL
-  const proxyEndpoint = process.env.RDS_PROXY_ENDPOINT
-  const databaseUrl = process.env.DATABASE_URL
-
-  if (proxyEndpoint && databaseUrl) {
-    //Replace the host in DATABASE_URL with the RDS Proxy endpoint
-    const url = new URL(databaseUrl)
-    url.hostname = proxyEndpoint
-    //Ensure port is set (RDS Proxy uses port 5432)
-    url.port = '5432'
-    console.log('Using RDS Proxy endpoint:', proxyEndpoint)
-    return url.toString()
-  }
-
-  console.log('Using direct database connection (no RDS Proxy)')
-  return databaseUrl
-}
 
 export const getPrismaClient = () => {
   if (!prisma) {
     try {
-      console.log('Initializing Prisma client')
-      const databaseUrl = getDatabaseUrl()
-      console.log('Using database URL:', databaseUrl?.replace(/\/\/.*@/, '//***:***@'))
-      console.log('RDS Proxy endpoint:', process.env.RDS_PROXY_ENDPOINT)
-      console.log('Original DATABASE_URL:', process.env.DATABASE_URL?.replace(/\/\/.*@/, '//***:***@'))
-      prisma = new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
-        datasources: {
-          db: {
-            url: databaseUrl
-          }
-        }
+      console.log('Initializing Prisma client with SSL certificate and connection pooling')
+
+      const sslCert = fs.readFileSync(
+        path.join(__dirname, '../certs/global-bundle.pem'),
+        'utf8'
+      )
+
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        max: 1,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+        allowExitOnIdle: true,
+        ssl: {
+          rejectUnauthorized: true,
+          ca: sslCert,
+        },
       })
+
+      const adapter = new PrismaPg(pool)
+      prisma = new PrismaClient({
+        adapter,
+        log: ['error'],
+        errorFormat: 'pretty',
+      })
+
+      console.log('Prisma client with connection pooling created successfully')
     } catch (error) {
       console.error('Prisma client initialization error:', error)
       throw error
     }
   }
-  return prisma
-}
 
-export const disconnectPrisma = async () => {
-  if (prisma) {
-    await prisma.$disconnect()
-    prisma = undefined as unknown as PrismaClient
-  }
+  return prisma
 }
 
 export const generatePrismaError = (err: unknown) => {

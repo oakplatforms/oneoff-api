@@ -51,11 +51,6 @@ provider:
           Resource: 
             - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:CONSUMER_USER_POOL_ID}
             - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:ADMIN_USER_POOL_ID}
-        - Effect: Allow
-          Action:
-            - rds-db:connect
-          Resource: 
-            - arn:aws:rds-db:us-east-1:${aws:accountId}:dbuser:${self:custom.rdsProxyName.${sls:stage}}/*
 
 functions:
   api:
@@ -94,7 +89,6 @@ functions:
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      RDS_PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
       S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
@@ -136,7 +130,6 @@ functions:
         - ${env:SUBNET_ID_2}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      RDS_PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
@@ -156,7 +149,6 @@ functions:
         - ${env:SUBNET_ID_2}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      RDS_PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
       SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
       SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
     events:
@@ -175,11 +167,6 @@ custom:
     dev: tcgx-dev
     stage: tcgx-stage
     prod: tcgx-prod
-  
-  rdsProxyName:
-    dev: tcgx-dev-proxy
-    stage: tcgx-stage-proxy
-    prod: tcgx-prod-proxy
   
   provisionedConcurrency:
     dev: 0
@@ -213,60 +200,7 @@ custom:
       - sharp
 
 resources:
-  Resources:
-    RDSProxy:
-      Type: AWS::RDS::DBProxy
-      Properties:
-        DBProxyName: ${self:custom.rdsProxyName.${sls:stage}}
-        EngineFamily: POSTGRESQL
-        Auth:
-          - AuthScheme: SECRETS
-            SecretArn: ${env:RDS_SECRET_ARN}
-            IAMAuth: DISABLED
-        RoleArn: !GetAtt RDSProxyRole.Arn
-        VpcSubnetIds:
-          - ${env:SUBNET_ID_1}
-          - ${env:SUBNET_ID_2}
-        RequireTLS: true
-
-    RDSProxyRole:
-      Type: AWS::IAM::Role
-      Properties:
-        RoleName: ${self:service}-${sls:stage}-rds-proxy-role
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service: rds.amazonaws.com
-              Action: sts:AssumeRole
-        Policies:
-          - PolicyName: RDSProxyPolicy
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - secretsmanager:GetSecretValue
-                    - secretsmanager:DescribeSecret
-                  Resource: ${env:RDS_SECRET_ARN}
-                - Effect: Allow
-                  Action:
-                    - kms:Decrypt
-                  Resource: '*'
-                  Condition:
-                    StringEquals:
-                      kms:ViaService: secretsmanager.${aws:region}.amazonaws.com
-
-    RDSProxyTargetGroup:
-      Type: AWS::RDS::DBProxyTargetGroup
-      Properties:
-        DBProxyName: !Ref RDSProxy
-        TargetGroupName: default
-        DBInstanceIdentifiers:
-          - ${env:RDS_INSTANCE_IDENTIFIER}
-
-package:
+  Resources:package:
   individually: true
   patterns:
     - node_modules/@prisma/client/**
