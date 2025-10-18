@@ -11,6 +11,8 @@ const getDatabaseUrl = () => {
     //Replace the host in DATABASE_URL with the RDS Proxy endpoint
     const url = new URL(databaseUrl)
     url.hostname = proxyEndpoint
+    //Ensure port is set (RDS Proxy uses port 5432)
+    url.port = '5432'
     return url.toString()
   }
 
@@ -23,6 +25,8 @@ export const getPrismaClient = () => {
       console.log('Initializing Prisma client')
       const databaseUrl = getDatabaseUrl()
       console.log('Using database URL:', databaseUrl?.replace(/\/\/.*@/, '//***:***@'))
+      console.log('RDS Proxy endpoint:', process.env.RDS_PROXY_ENDPOINT)
+      console.log('Original DATABASE_URL:', process.env.DATABASE_URL?.replace(/\/\/.*@/, '//***:***@'))
       prisma = new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
         datasources: {
