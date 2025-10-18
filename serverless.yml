@@ -206,9 +206,6 @@ resources:
             SecretArn: ${env:RDS_SECRET_ARN}
             IAMAuth: DISABLED
         RoleArn: !GetAtt RDSProxyRole.Arn
-        TargetGroups:
-          - DBInstanceIdentifiers:
-              - ${env:RDS_INSTANCE_IDENTIFIER}
         VpcSubnetIds:
           - ${env:SUBNET_ID_1}
           - ${env:SUBNET_ID_2}
@@ -242,6 +239,14 @@ resources:
                   Condition:
                     StringEquals:
                       kms:ViaService: secretsmanager.${aws:region}.amazonaws.com
+
+    RDSProxyTargetGroup:
+      Type: AWS::RDS::DBProxyTargetGroup
+      Properties:
+        DBProxyName: !Ref RDSProxy
+        TargetGroupName: default
+        DBInstanceIdentifiers:
+          - ${env:RDS_INSTANCE_IDENTIFIER}
 
     RDSProxyEndpoint:
       Type: AWS::RDS::DBProxyEndpoint
