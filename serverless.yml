@@ -88,7 +88,7 @@ functions:
     provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      RDS_PROXY_ENDPOINT: !GetAtt RDSProxyEndpoint.Endpoint
+      RDS_PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
       S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
@@ -124,7 +124,7 @@ functions:
     handler: lambdas/stripeWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      RDS_PROXY_ENDPOINT: !GetAtt RDSProxyEndpoint.Endpoint
+      RDS_PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
@@ -138,7 +138,7 @@ functions:
     handler: lambdas/shippoWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      RDS_PROXY_ENDPOINT: !GetAtt RDSProxyEndpoint.Endpoint
+      RDS_PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
       SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
       SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
     events:
@@ -247,18 +247,6 @@ resources:
         TargetGroupName: default
         DBInstanceIdentifiers:
           - ${env:RDS_INSTANCE_IDENTIFIER}
-
-    RDSProxyEndpoint:
-      Type: AWS::RDS::DBProxyEndpoint
-      Properties:
-        DBProxyName: !Ref RDSProxy
-        DBProxyEndpointName: ${self:custom.rdsProxyName.${sls:stage}}-endpoint
-        VpcSubnetIds:
-          - ${env:SUBNET_ID_1}
-          - ${env:SUBNET_ID_2}
-        VpcSecurityGroupIds:
-          - ${env:RDS_SECURITY_GROUP_ID}
-        TargetRole: READ_WRITE
 
 package:
   individually: true
