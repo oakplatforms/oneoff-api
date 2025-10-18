@@ -3,20 +3,21 @@ import { Prisma, PrismaClient } from '@prisma/client'
 let prisma: PrismaClient
 
 const getDatabaseUrl = () => {
-  //Use RDS Proxy endpoint if available, otherwise fall back to direct DATABASE_URL
-  const proxyEndpoint = process.env.RDS_PROXY_ENDPOINT
+  //Temporarily bypass RDS Proxy to test basic Prisma fix
+  //const proxyEndpoint = process.env.RDS_PROXY_ENDPOINT
   const databaseUrl = process.env.DATABASE_URL
 
-  if (proxyEndpoint && databaseUrl) {
-    //Replace the host in DATABASE_URL with the RDS Proxy endpoint
-    const url = new URL(databaseUrl)
-    url.hostname = proxyEndpoint
-    //Ensure port is set (RDS Proxy uses port 5432)
-    url.port = '5432'
-    return url.toString()
-  }
-
+  //For now, always use direct connection to test Prisma fix
+  console.log('Bypassing RDS Proxy for testing - using direct connection')
   return databaseUrl
+
+  //Original RDS Proxy logic (commented out for testing)
+  //if (proxyEndpoint && databaseUrl) {
+  //const url = new URL(databaseUrl)
+  //url.hostname = proxyEndpoint
+  //url.port = '5432'
+  //return url.toString()
+  //}
 }
 
 export const getPrismaClient = () => {
