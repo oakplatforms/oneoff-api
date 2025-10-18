@@ -158,7 +158,7 @@ custom:
   memorySize:
     dev: 1024
     stage: 1024
-    prod: 2048
+    prod: 3072
   
   storageSize:
     dev: 512
