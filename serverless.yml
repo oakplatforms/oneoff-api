@@ -213,8 +213,6 @@ resources:
           - ${env:SUBNET_ID_1}
           - ${env:SUBNET_ID_2}
         RequireTLS: true
-        IdleClientTimeout: 1800
-        MaxConnectionsPercent: 100
 
     RDSProxyRole:
       Type: AWS::IAM::Role
