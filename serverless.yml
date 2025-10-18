@@ -60,12 +60,6 @@ functions:
     ephemeralStorageSize: ${self:custom.storageSize.${sls:stage}}
     layers:
       - arn:aws:lambda:us-east-1:992382609315:layer:sharp-arm64:1
-    vpc:
-      securityGroupIds:
-        - ${env:RDS_SECURITY_GROUP_ID}
-      subnetIds:
-        - ${env:SUBNET_ID_1}
-        - ${env:SUBNET_ID_2}
     events:
       - httpApi:
           path: /{proxy+}
@@ -122,12 +116,6 @@ functions:
   stripeWebhook:
     name: tcgx-api-stripe-webhook-${sls:stage}
     handler: lambdas/stripeWebhookHandler.handler
-    vpc:
-      securityGroupIds:
-        - ${env:RDS_SECURITY_GROUP_ID}
-      subnetIds:
-        - ${env:SUBNET_ID_1}
-        - ${env:SUBNET_ID_2}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
@@ -141,12 +129,6 @@ functions:
   shippoWebhook:
     name: tcgx-api-shippo-webhook-${sls:stage}
     handler: lambdas/shippoWebhookHandler.handler
-    vpc:
-      securityGroupIds:
-        - ${env:RDS_SECURITY_GROUP_ID}
-      subnetIds:
-        - ${env:SUBNET_ID_1}
-        - ${env:SUBNET_ID_2}
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
       SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}

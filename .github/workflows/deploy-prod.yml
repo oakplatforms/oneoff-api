@@ -54,11 +54,6 @@ jobs:
       run: serverless deploy --stage prod --verbose
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
-        RDS_SECRET_ARN: ${{ secrets.RDS_SECRET_ARN_PROD }}
-        RDS_INSTANCE_IDENTIFIER: ${{ secrets.RDS_INSTANCE_IDENTIFIER_PROD }}
-        RDS_SECURITY_GROUP_ID: ${{ secrets.RDS_SECURITY_GROUP_ID_PROD }}
-        SUBNET_ID_1: ${{ secrets.SUBNET_ID_1_PROD }}
-        SUBNET_ID_2: ${{ secrets.SUBNET_ID_2_PROD }}
         STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_PROD }}
         STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_PROD }}
         SHIPPO_SECRET_KEY: ${{ secrets.SHIPPO_SECRET_KEY_PROD }}
