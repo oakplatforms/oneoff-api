@@ -1837,6 +1837,20 @@
             "null"
           ]
         },
+        "pricingStatus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "CREATED",
+            "DELETED",
+            "PENDING",
+            "COMPLETED",
+            "CANCELED",
+            "FAILED"
+          ]
+        },
         "entity": {
           "$ref": "#/definitions/Entity"
         },

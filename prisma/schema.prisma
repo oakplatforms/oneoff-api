@@ -605,6 +605,7 @@ model Product {
   sku              String?
   number           String?
   price            Decimal? @db.Decimal(10, 2)
+  pricingStatus    ProcessStatus?
 
   // relations
   entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 
@@ -115,7 +115,10 @@ productRouter.put('/product/update-price', async (req, res) => {
 
     const updatedProduct = await prisma.product.update({
       where: { entityId },
-      data: { price: numericPrice },
+      data: {
+        price: numericPrice,
+        pricingStatus: ProcessStatus.COMPLETED
+      },
       select: {
         id: true,
         entityId: true,

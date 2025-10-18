@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -1240,7 +1240,7 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
  *                   example: Failed to process entities
  */
 entityRouter.post('/entities/process-batch', async (req, res) => {
-  const { batchSize = 100, maxBatches } = req.body
+  const { batchSize = 100, maxBatches, onlyPending = false } = req.body
 
   try {
     const stateMachineArn = process.env.PRICING_ENGINE_ARN
@@ -1257,10 +1257,20 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
       throw new Error('Max batches must be at least 1')
     }
 
-    console.log('Starting entity batch processing...')
+    console.log(`Starting entity batch processing... (onlyPending: ${onlyPending})`)
+
+    //Build the where clause based on onlyPending flag
+    const whereClause = onlyPending
+      ? {
+        product: {
+          pricingStatus: ProcessStatus.PENDING
+        }
+      }
+      : {}
 
     //Fetch all entities with required relationships
     const entities = await prisma.entity.findMany({
+      where: whereClause,
       include: {
         brand: {
           select: {
@@ -1275,7 +1285,8 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
         product: {
           select: {
             number: true,
-            price: true
+            price: true,
+            pricingStatus: true
           }
         },
         entityTags: {
@@ -1291,6 +1302,27 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
     })
 
     console.log(`Found ${entities.length} entities to process`)
+
+    //Only update to PENDING if we're not filtering by PENDING status
+    if (!onlyPending) {
+      const entityIds = entities.map(entity => entity.id)
+      await prisma.product.updateMany({
+        where: {
+          entity: {
+            id: {
+              in: entityIds
+            }
+          }
+        },
+        data: {
+          pricingStatus: ProcessStatus.PENDING
+        }
+      })
+
+      console.log(`Updated pricing status to PENDING for ${entityIds.length} products`)
+    } else {
+      console.log(`Processing only PENDING products (${entities.length} found)`)
+    }
 
     if (maxBatches) {
       const maxEntities = maxBatches * batchSize
@@ -1354,5 +1386,98 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('PROCESS_ENTITIES_BATCH_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to process entities.' })
+  }
+})
+
+/**
+ * @swagger
+ * /entities/pricing-status:
+ *   get:
+ *     summary: Get pricing status summary
+ *     tags: [Entity]
+ *     responses:
+ *       200:
+ *         description: Pricing status summary
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: number
+ *                   example: 1000
+ *                 pending:
+ *                   type: number
+ *                   example: 50
+ *                 completed:
+ *                   type: number
+ *                   example: 950
+ *                 pendingEntities:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       pricingStatus:
+ *                         type: string
+ *                         enum: [PENDING, COMPLETED]
+ */
+entityRouter.get('/entities/pricing-status', async (req, res) => {
+  try {
+    const { batchSize = 100, maxBatches } = req.query
+
+    //Get pricing status counts
+    const statusCounts = await prisma.product.groupBy({
+      by: ['pricingStatus'],
+      _count: {
+        pricingStatus: true
+      }
+    })
+
+    // Calculate limit based on batchSize and maxBatches
+    let limit = parseInt(batchSize as string)
+    if (maxBatches) {
+      limit = parseInt(batchSize as string) * parseInt(maxBatches as string)
+    }
+
+    //Get entities with PENDING pricing status for retry
+    const pendingEntities = await prisma.entity.findMany({
+      where: {
+        product: {
+          pricingStatus: ProcessStatus.PENDING
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        product: {
+          select: {
+            pricingStatus: true
+          }
+        }
+      },
+      take: limit
+    })
+
+    const summary = {
+      total: statusCounts.reduce((sum, item) => sum + item._count.pricingStatus, 0),
+      pending: statusCounts.find(item => item.pricingStatus === ProcessStatus.PENDING)?._count.pricingStatus || 0,
+      completed: statusCounts.find(item => item.pricingStatus === ProcessStatus.COMPLETED)?._count.pricingStatus || 0,
+      pendingEntities: pendingEntities.map(entity => ({
+        id: entity.id,
+        name: entity.displayName || entity.name,
+        pricingStatus: entity.product?.pricingStatus
+      }))
+    }
+
+    res.json(summary)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('PRICING_STATUS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to get pricing status.' })
   }
 })
