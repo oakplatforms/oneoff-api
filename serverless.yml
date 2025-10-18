@@ -215,7 +215,6 @@ resources:
         RequireTLS: true
         IdleClientTimeout: 1800
         MaxConnectionsPercent: 100
-        MaxIdleConnectionsPercent: 50
 
     RDSProxyRole:
       Type: AWS::IAM::Role
