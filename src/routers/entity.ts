@@ -1286,7 +1286,8 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
           select: {
             number: true,
             price: true,
-            pricingStatus: true
+            pricingStatus: true,
+            sku: true
           }
         },
         entityTags: {
@@ -1301,9 +1302,6 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
       }
     })
 
-    console.log(`Found ${entities.length} entities to process`)
-
-    //Only update to PENDING if we're not filtering by PENDING status
     if (!onlyPending) {
       const entityIds = entities.map(entity => entity.id)
       await prisma.product.updateMany({
@@ -1355,7 +1353,7 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
         entityId: entity.id,
         brand: entity.brand?.displayName || '',
         name: entity.displayName || entity.name,
-        number: entity.product?.number || '',
+        number: entity.product?.sku || '',
         rarity: rarity || '',
         color: color || '',
         set: entity.set?.displayName || '',
@@ -1437,7 +1435,6 @@ entityRouter.get('/entities/pricing-status', async (req, res) => {
       }
     })
 
-    // Calculate limit based on batchSize and maxBatches
     let limit = parseInt(batchSize as string)
     if (maxBatches) {
       limit = parseInt(batchSize as string) * parseInt(maxBatches as string)
