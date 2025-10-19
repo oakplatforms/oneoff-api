@@ -37,6 +37,12 @@ export const setRouter = express.Router()
  *         required: false
  *         description: Filter sets by code (exact match).
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Search term to match against set name, displayName, code, or description.
+ *       - in: query
  *         name: usePagination
  *         schema:
  *           type: string
@@ -88,7 +94,7 @@ export const setRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 setRouter.get('/sets', async (req, res) => {
-  const { include, name, code, usePagination, page, limit } = req.query
+  const { include, name, code, search, usePagination, page, limit } = req.query
 
   try {
     const parsedLimit = parseInt(limit as string) || 10
@@ -105,6 +111,13 @@ setRouter.get('/sets', async (req, res) => {
 
     if (code) {
       where.code = code as string
+    }
+
+    if (search) {
+      where.OR = [
+        { displayName: { contains: search as string, mode: 'insensitive' } },
+        { code: { contains: search as string, mode: 'insensitive' } },
+      ]
     }
 
     const result = await paginatePrisma({
@@ -526,14 +539,13 @@ setRouter.delete('/set/:id', async (req, res) => {
       throw new Error('Set ID is required')
     }
 
-    // First, get the set with its images before deleting
     const setToDelete = await prisma.set.findUnique({
       where: { id },
-      select: { 
-        id: true, 
-        banner: true, 
+      select: {
+        id: true,
+        banner: true,
         logo: true,
-        entities: true 
+        entities: true
       }
     })
 
@@ -541,24 +553,21 @@ setRouter.delete('/set/:id', async (req, res) => {
       throw new Error('Set not found')
     }
 
-    // Delete the set from database
     const deletedSet = await prisma.set.delete({
       where: { id },
       include: generateIncludes(['entities'])
     })
 
-    // Delete associated images from S3 if they exist
     const imageDeletions = []
-    
+
     if (setToDelete.banner) {
       imageDeletions.push(deleteImage(setToDelete.banner))
     }
-    
+
     if (setToDelete.logo) {
       imageDeletions.push(deleteImage(setToDelete.logo))
     }
 
-    // Wait for all image deletions to complete
     if (imageDeletions.length > 0) {
       await Promise.all(imageDeletions)
       console.log(`Deleted ${imageDeletions.length} image(s) from S3 for set ${id}`)

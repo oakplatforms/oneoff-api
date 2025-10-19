@@ -148,7 +148,8 @@ entityRouter.get('/entities', async (req, res) => {
             {
               OR: [
                 { displayName: { contains: search as string, mode: 'insensitive' } },
-                { name: { contains: search as string, mode: 'insensitive' } }
+                { name: { contains: search as string, mode: 'insensitive' } },
+                { product: { number: { contains: search as string, mode: 'insensitive' } } }
               ]
             } as Prisma.EntityWhereInput
           ]
