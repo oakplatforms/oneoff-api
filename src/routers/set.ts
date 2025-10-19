@@ -526,10 +526,43 @@ setRouter.delete('/set/:id', async (req, res) => {
       throw new Error('Set ID is required')
     }
 
+    // First, get the set with its images before deleting
+    const setToDelete = await prisma.set.findUnique({
+      where: { id },
+      select: { 
+        id: true, 
+        banner: true, 
+        logo: true,
+        entities: true 
+      }
+    })
+
+    if (!setToDelete) {
+      throw new Error('Set not found')
+    }
+
+    // Delete the set from database
     const deletedSet = await prisma.set.delete({
       where: { id },
       include: generateIncludes(['entities'])
     })
+
+    // Delete associated images from S3 if they exist
+    const imageDeletions = []
+    
+    if (setToDelete.banner) {
+      imageDeletions.push(deleteImage(setToDelete.banner))
+    }
+    
+    if (setToDelete.logo) {
+      imageDeletions.push(deleteImage(setToDelete.logo))
+    }
+
+    // Wait for all image deletions to complete
+    if (imageDeletions.length > 0) {
+      await Promise.all(imageDeletions)
+      console.log(`Deleted ${imageDeletions.length} image(s) from S3 for set ${id}`)
+    }
 
     res.json(deletedSet)
   } catch (error) {
