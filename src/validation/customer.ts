@@ -47,10 +47,6 @@ export const validateNewCustomer = (reqBody: NewCustomerRequest) => {
     throw new Error('Last name is required and must be a non-empty string')
   }
 
-  if (!phone || typeof phone !== 'string' || phone.trim().length === 0) {
-    throw new Error('Phone number is required and must be a non-empty string')
-  }
-
   if (!address || typeof address !== 'string' || address.trim().length === 0) {
     throw new Error('Address is required and must be a non-empty string')
   }
