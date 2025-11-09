@@ -34,7 +34,6 @@ export const customerRouter = express.Router()
  *             required:
  *               - firstName
  *               - lastName
- *               - phone
  *               - address
  *               - city
  *               - state
@@ -43,8 +42,6 @@ export const customerRouter = express.Router()
  *               firstName:
  *                 type: string
  *               lastName:
- *                 type: string
- *               phone:
  *                 type: string
  *               address:
  *                 type: string
@@ -82,7 +79,7 @@ export const customerRouter = express.Router()
  */
 customerRouter.post('/customer/:accountId', async (req, res) => {
   const { accountId } = req.params
-  const { firstName, lastName, phone, address, city, state, zipCode } = req.body
+  const { firstName, lastName, address, city, state, zipCode } = req.body
 
   try {
     await validateNewCustomer(req.body)
@@ -107,7 +104,6 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
       const stripeCustomer = await stripe.customers.create({
         email: existingAccount.email || undefined,
         name: `${firstName} ${lastName}`.trim() || undefined,
-        phone: phone || undefined,
         address: {
           line1: address,
           city,
@@ -121,7 +117,6 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
           account: { connect: { id: accountId } },
           firstName,
           lastName,
-          phone,
           address,
           city,
           state,
@@ -176,8 +171,6 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
  *                 type: string
  *               lastName:
  *                 type: string
- *               phone:
- *                 type: string
  *               address:
  *                 type: string
  *               zipCode:
@@ -219,7 +212,6 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
   const {
     firstName,
     lastName,
-    phone,
     address,
     zipCode,
     city,
@@ -235,7 +227,6 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
         data: {
           firstName,
           lastName,
-          phone,
           address,
           zipCode,
           city,
@@ -249,7 +240,6 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
 
       const stripeUpdatedCustomerData: Stripe.CustomerUpdateParams = {
         ...(firstName || lastName ? { name: `${firstName} ${lastName}`.trim() } : {}),
-        ...(phone ? { phone } : {}),
         ...(address || zipCode || city || state
           ? {
             address: {
@@ -371,7 +361,6 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
  *             required:
  *               - firstName
  *               - lastName
- *               - phone
  *               - address
  *               - city
  *               - state
@@ -381,8 +370,6 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
  *               firstName:
  *                 type: string
  *               lastName:
- *                 type: string
- *               phone:
  *                 type: string
  *               address:
  *                 type: string
@@ -429,15 +416,17 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
  */
 customerRouter.post('/customer/with-payment-method/:accountId', async (req, res) => {
   const { accountId } = req.params
-  const { firstName, lastName, phone, address, city, state, zipCode, paymentMethodId } = req.body
+  const { firstName, lastName, address, city, state, zipCode, paymentMethodId } = req.body
 
   if (!accountId || !paymentMethodId) {
     return res.status(400).send({ errorMessage: 'Missing required parameters: accountId and paymentMethodId' })
   }
 
   try {
-    await validateNewCustomer({ firstName, lastName, phone, address, city, state, zipCode })
+    const validatedData = validateNewCustomer({ firstName, lastName, address, city, state, zipCode })
     await validateAccount(req.user as AuthenticatedUser, accountId, 'sellerOrRegistered')
+
+    const { firstName: validatedFirstName, lastName: validatedLastName, address: validatedAddress, city: validatedCity, state: validatedState, zipCode: validatedZipCode } = validatedData
 
     const result = await prisma.$transaction(async (tx) => {
       const existingAccount = await tx.account.findUnique({
@@ -462,13 +451,12 @@ customerRouter.post('/customer/with-payment-method/:accountId', async (req, res)
 
         const stripeCustomer = await stripe.customers.create({
           email: existingAccount.email || undefined,
-          name: `${firstName} ${lastName}`.trim() || undefined,
-          phone: phone || undefined,
+          name: `${validatedFirstName} ${validatedLastName}`.trim() || undefined,
           address: {
-            line1: address,
-            city,
-            state,
-            postal_code: zipCode,
+            line1: validatedAddress,
+            city: validatedCity,
+            state: validatedState,
+            postal_code: validatedZipCode,
           },
         })
 
@@ -477,13 +465,12 @@ customerRouter.post('/customer/with-payment-method/:accountId', async (req, res)
         customer = await tx.customer.create({
           data: {
             account: { connect: { id: accountId } },
-            firstName,
-            lastName,
-            phone,
-            address,
-            city,
-            state,
-            zipCode,
+            firstName: validatedFirstName,
+            lastName: validatedLastName,
+            address: validatedAddress,
+            city: validatedCity,
+            state: validatedState,
+            zipCode: validatedZipCode,
             paymentAccountId: stripeCustomerId,
             paymentAccountStatus: 'COMPLETED',
             hasPaymentMethod: false,
@@ -498,24 +485,22 @@ customerRouter.post('/customer/with-payment-method/:accountId', async (req, res)
         customer = await tx.customer.update({
           where: { id: customer.id },
           data: {
-            firstName,
-            lastName,
-            phone,
-            address,
-            city,
-            state,
-            zipCode,
+            firstName: validatedFirstName,
+            lastName: validatedLastName,
+            address: validatedAddress,
+            city: validatedCity,
+            state: validatedState,
+            zipCode: validatedZipCode,
           },
         })
 
         await stripe.customers.update(stripeCustomerId, {
-          name: `${firstName} ${lastName}`.trim() || undefined,
-          phone: phone || undefined,
+          name: `${validatedFirstName} ${validatedLastName}`.trim() || undefined,
           address: {
-            line1: address,
-            city,
-            state,
-            postal_code: zipCode,
+            line1: validatedAddress,
+            city: validatedCity,
+            state: validatedState,
+            postal_code: validatedZipCode,
           },
         })
       }

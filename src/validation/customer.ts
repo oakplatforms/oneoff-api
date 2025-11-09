@@ -29,7 +29,6 @@ export const validateCustomer = async (accountId?: string) => {
 interface NewCustomerRequest {
   firstName?: string
   lastName?: string
-  phone?: string
   address?: string
   city?: string
   state?: string
@@ -37,7 +36,7 @@ interface NewCustomerRequest {
 }
 
 export const validateNewCustomer = (reqBody: NewCustomerRequest) => {
-  const { firstName, lastName, phone, address, city, state, zipCode } = reqBody
+  const { firstName, lastName, address, city, state, zipCode } = reqBody
 
   if (!firstName || typeof firstName !== 'string' || firstName.trim().length === 0) {
     throw new Error('First name is required and must be a non-empty string')
@@ -66,7 +65,6 @@ export const validateNewCustomer = (reqBody: NewCustomerRequest) => {
   return {
     firstName: firstName.trim(),
     lastName: lastName.trim(),
-    phone: phone.trim(),
     address: address.trim(),
     city: city.trim(),
     state: state.trim(),
