@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express'
+import express, { Request, Response } from 'express'
 import router from './routers/all_routes'
 
 declare module 'express-serve-static-core' {
@@ -48,13 +48,13 @@ app.use((req, res, next) => {
 
 app.use('/api/v1', router)
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, req: Request, res: Response) => {
   if (!res.headersSent) {
     res.status(err.message ? 400 : 500).json({
       errorMessage: err.message || 'Internal Server Error',
     })
   }
-  next()
+  //Don't call next() after sending response - this can cause the request to hang
 })
 
 export { app }
