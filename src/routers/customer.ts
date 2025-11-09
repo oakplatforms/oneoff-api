@@ -349,6 +349,211 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
 
 /**
  * @openapi
+ * /customer/with-payment-method/{accountId}:
+ *   post:
+ *     tags:
+ *       - Customer
+ *     summary: Create customer and add payment method in one call
+ *     description: Creates a customer profile (if it doesn't exist) and attaches a payment method in a single transaction. Ideal for Apple Pay and other payment methods that provide customer information and payment method together.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the account to associate with the customer.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - phone
+ *               - address
+ *               - city
+ *               - state
+ *               - zipCode
+ *               - paymentMethodId
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               zipCode:
+ *                 type: string
+ *               paymentMethodId:
+ *                 type: string
+ *                 example: pm_1JX8Yb2eZvKYlo2CJfXZ1234
+ *     responses:
+ *       '200':
+ *         description: Customer created/updated and payment method successfully added.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 customer:
+ *                   $ref: '#/components/schemas/Customer'
+ *                 success:
+ *                   type: string
+ *                   example: Customer and payment method were successfully created
+ *       '400':
+ *         description: Missing required parameters or validation error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       '500':
+ *         description: Error occurred while creating customer or adding payment method.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
+customerRouter.post('/customer/with-payment-method/:accountId', async (req, res) => {
+  const { accountId } = req.params
+  const { firstName, lastName, phone, address, city, state, zipCode, paymentMethodId } = req.body
+
+  if (!accountId || !paymentMethodId) {
+    return res.status(400).send({ errorMessage: 'Missing required parameters: accountId and paymentMethodId' })
+  }
+
+  try {
+    await validateNewCustomer({ firstName, lastName, phone, address, city, state, zipCode })
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'sellerOrRegistered')
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existingAccount = await tx.account.findUnique({
+        where: { id: accountId },
+        include: { user: true, customer: true }
+      })
+
+      if (!existingAccount) {
+        throw new Error('Account not found.')
+      }
+
+      let customer = existingAccount.customer
+      let stripeCustomerId: string
+
+      if (!customer) {
+        if (existingAccount.type !== 'SELLER') {
+          await tx.account.update({
+            where: { id: accountId },
+            data: { type: 'CUSTOMER' },
+          })
+        }
+
+        const stripeCustomer = await stripe.customers.create({
+          email: existingAccount.email || undefined,
+          name: `${firstName} ${lastName}`.trim() || undefined,
+          phone: phone || undefined,
+          address: {
+            line1: address,
+            city,
+            state,
+            postal_code: zipCode,
+          },
+        })
+
+        stripeCustomerId = stripeCustomer.id
+
+        customer = await tx.customer.create({
+          data: {
+            account: { connect: { id: accountId } },
+            firstName,
+            lastName,
+            phone,
+            address,
+            city,
+            state,
+            zipCode,
+            paymentAccountId: stripeCustomerId,
+            paymentAccountStatus: 'COMPLETED',
+            hasPaymentMethod: false,
+          },
+        })
+      } else {
+        if (!customer.paymentAccountId) {
+          throw new Error('Customer exists but does not have a payment account ID.')
+        }
+        stripeCustomerId = customer.paymentAccountId
+
+        customer = await tx.customer.update({
+          where: { id: customer.id },
+          data: {
+            firstName,
+            lastName,
+            phone,
+            address,
+            city,
+            state,
+            zipCode,
+          },
+        })
+
+        await stripe.customers.update(stripeCustomerId, {
+          name: `${firstName} ${lastName}`.trim() || undefined,
+          phone: phone || undefined,
+          address: {
+            line1: address,
+            city,
+            state,
+            postal_code: zipCode,
+          },
+        })
+      }
+
+      await stripe.paymentMethods.attach(paymentMethodId, { customer: stripeCustomerId })
+
+      await stripe.customers.update(stripeCustomerId, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      })
+
+      customer = await tx.customer.update({
+        where: { id: customer.id },
+        data: {
+          hasPaymentMethod: true,
+        },
+      })
+
+      if (existingAccount.user) {
+        try {
+          await promoteUserToCustomer(existingAccount.user.authId)
+        } catch (error) {
+          console.error('Failed to promote user to customer role:', error)
+        }
+      }
+
+      return { customer, success: 'Customer and payment method were successfully created' }
+    }, { timeout: 60000 })
+
+    res.json(result)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_CUSTOMER_WITH_PAYMENT_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create customer with payment method.' })
+  }
+})
+
+/**
+ * @openapi
  * /customer/payment-method/{customerId}:
  *   post:
  *     tags:
