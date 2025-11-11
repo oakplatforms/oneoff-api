@@ -147,30 +147,43 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       })
 
       const shipmentRecord = pendingOrder.shipments.find(s => s.status === 'CREATED')
-      if (!shipmentRecord || !shipmentRecord.externalShipmentRateId) {
-        throw new Error('Valid CREATED shipment with external rate not found')
+      if (!shipmentRecord) {
+        throw new Error('Valid CREATED shipment not found')
       }
 
-      const transaction = await shippo.transactions.create({
-        rate: shipmentRecord.externalShipmentRateId,
-        labelFileType: 'PDF',
-        async: false,
-      })
+      if (shipmentRecord.shipmentAccountType === 'NON_REFUNDABLE') {
+        await tx.shipment.update({
+          where: { id: shipmentRecord.id },
+          data: {
+            status: 'PENDING',
+          },
+        })
+      } else {
+        if (!shipmentRecord.externalShipmentRateId) {
+          throw new Error('Valid CREATED shipment with external rate not found')
+        }
 
-      const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
-      if (transactionStatus !== 'SUCCESS') {
-        throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
+        const transaction = await shippo.transactions.create({
+          rate: shipmentRecord.externalShipmentRateId,
+          labelFileType: 'PDF',
+          async: false,
+        })
+
+        const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+        if (transactionStatus !== 'SUCCESS') {
+          throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
+        }
+
+        await tx.shipment.update({
+          where: { id: shipmentRecord.id },
+          data: {
+            status: 'PENDING',
+            trackingStatus: 'PRE_TRANSIT',
+            trackingNumber,
+            labelUrl,
+          },
+        })
       }
-
-      await tx.shipment.update({
-        where: { id: shipmentRecord.id },
-        data: {
-          status: 'PENDING',
-          trackingStatus: 'PRE_TRANSIT',
-          trackingNumber,
-          labelUrl,
-        },
-      })
 
       await createPaymentIntent(pendingOrder as OrderWithRelations)
     }
