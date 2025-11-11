@@ -124,6 +124,7 @@ enum ShippingParcelType {
 
 enum ShipmentAccountType {
   SHIPPO
+  NON_REFUNDABLE
 }
 
 enum ShipmentType {

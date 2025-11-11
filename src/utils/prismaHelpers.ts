@@ -11,10 +11,22 @@ export const getPrismaClient = () => {
     try {
       console.log('Initializing Prisma client with SSL certificate and connection pooling')
 
-      const sslCert = fs.readFileSync(
-        path.join(__dirname, '../certs/global-bundle.pem'),
-        'utf8'
-      )
+      const certPath = path.join(__dirname, '../../certs/global-bundle.pem')
+      let sslConfig: { rejectUnauthorized: boolean; ca?: string } | false = false
+
+      if (fs.existsSync(certPath)) {
+        const sslCert = fs.readFileSync(certPath, 'utf8')
+        sslConfig = {
+          rejectUnauthorized: true,
+          ca: sslCert,
+        }
+        console.log('SSL certificate found, using secure connection')
+      } else {
+        console.log('SSL certificate not found, using connection without SSL verification (local dev)')
+        sslConfig = {
+          rejectUnauthorized: false,
+        }
+      }
 
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
@@ -22,10 +34,7 @@ export const getPrismaClient = () => {
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
         allowExitOnIdle: true,
-        ssl: {
-          rejectUnauthorized: true,
-          ca: sslCert,
-        },
+        ssl: sslConfig,
       })
 
       const adapter = new PrismaPg(pool)

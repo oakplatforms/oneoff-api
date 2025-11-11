@@ -2732,7 +2732,8 @@
           "type": "string",
           "default": "SHIPPO",
           "enum": [
-            "SHIPPO"
+            "SHIPPO",
+            "NON_REFUNDABLE"
           ]
         },
         "status": {

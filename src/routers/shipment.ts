@@ -290,8 +290,8 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
  *   post:
  *     tags:
  *       - Shipments
- *     summary: Create a shipment using a selected Shippo rate
- *     description: Stores a new shipment in the database using a selected rate retrieved from Shippo by its rate ID.
+ *     summary: Create a shipment using a selected Shippo rate or non-refundable option
+ *     description: Stores a new shipment in the database using a selected rate retrieved from Shippo by its rate ID, or creates a non-refundable shipment if rateId is not provided.
  *     requestBody:
  *       required: true
  *       content:
@@ -304,10 +304,9 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
  *                 description: The ID of the order the shipment is for.
  *               rateId:
  *                 type: string
- *                 description: The Shippo rate object ID selected by the user.
+ *                 description: The Shippo rate object ID selected by the user. If not provided, a non-refundable shipment will be created.
  *             required:
  *               - orderId
- *               - rateId
  *     responses:
  *       '200':
  *         description: Successfully created shipment and stored rate details.
@@ -351,8 +350,8 @@ shipmentRouter.post('/shipment', async (req, res) => {
 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-    if (!orderId || !rateId) {
-      throw new Error('Missing orderId or rateId.')
+    if (!orderId) {
+      throw new Error('Missing orderId.')
     }
 
     const order = await prisma.order.findUnique({ where: { id: orderId } })
@@ -361,26 +360,45 @@ shipmentRouter.post('/shipment', async (req, res) => {
       throw new Error('Order not found.')
     }
 
-    const rate = await fetchRateById(rateId)
+    let newShipment
 
-    if (!rate || !rate.amount || !rate.shipment) {
-      throw new Error('Invalid or incomplete rate.')
+    if (!rateId) {
+      newShipment = await prisma.shipment.create({
+        data: {
+          displayName: 'Non-Refundable Shipping',
+          name: 'NON_REFUNDABLE',
+          description: 'Mail delivered in 1–5 days',
+          orderId: order.id,
+          type: 'OUTBOUND',
+          shipmentAccountType: 'NON_REFUNDABLE',
+          status: 'CREATED',
+          rate: new Prisma.Decimal('0.78'),
+          externalShipmentId: null,
+          externalShipmentRateId: null,
+        },
+      })
+    } else {
+      const rate = await fetchRateById(rateId)
+
+      if (!rate || !rate.amount || !rate.shipment) {
+        throw new Error('Invalid or incomplete rate.')
+      }
+
+      newShipment = await prisma.shipment.create({
+        data: {
+          displayName: `${rate.provider} ${rate.servicelevel.name}`,
+          name: rate.servicelevel.token,
+          description: `${rate?.estimated_days} business ${rate?.estimated_days === 1 ? 'day' : 'days'}`,
+          orderId: order.id,
+          type: 'OUTBOUND',
+          shipmentAccountType: 'SHIPPO',
+          status: 'CREATED',
+          rate: new Prisma.Decimal(rate.amount),
+          externalShipmentId: rate.shipment,
+          externalShipmentRateId: rate.object_id,
+        },
+      })
     }
-
-    const newShipment = await prisma.shipment.create({
-      data: {
-        displayName: `${rate.provider} ${rate.servicelevel.name}`,
-        name: rate.servicelevel.token,
-        description: `${rate?.estimated_days} business ${rate?.estimated_days === 1 ? 'day' : 'days'}`,
-        orderId: order.id,
-        type: 'OUTBOUND',
-        shipmentAccountType: 'SHIPPO',
-        status: 'CREATED',
-        rate: new Prisma.Decimal(rate.amount),
-        externalShipmentId: rate.shipment,
-        externalShipmentRateId: rate.object_id,
-      },
-    })
 
     return res.json({ shipment: newShipment })
   } catch (error) {
