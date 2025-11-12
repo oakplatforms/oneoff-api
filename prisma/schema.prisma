@@ -109,7 +109,6 @@ enum ShippingCarrierType {
 }
 
 enum ShippingParcelType {
-  Custom_Cheapest
   USPS_FlatRateEnvelope
   USPS_GroundAdvantage
   USPS_SoftPack
@@ -380,6 +379,7 @@ model ShippingMethod {
   name             String
   displayName      String?
   description      String?
+  isTracked        Boolean? @default(true)
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?

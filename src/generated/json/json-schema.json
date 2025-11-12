@@ -963,6 +963,13 @@
             "null"
           ]
         },
+        "isTracked": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": true
+        },
         "createdBy": {
           "anyOf": [
             {
@@ -1039,7 +1046,6 @@
         "type": {
           "type": "string",
           "enum": [
-            "Custom_Cheapest",
             "USPS_FlatRateEnvelope",
             "USPS_GroundAdvantage",
             "USPS_SoftPack",

@@ -228,22 +228,10 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
         if (shippingParcel) {
           //eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let parcelConfig: any
-          if (shippingParcel.type === 'Custom_Cheapest') {
-            parcelConfig = {
-              length: '11.5',
-              width: '6.125',
-              height: '0.25',
-              distanceUnit: 'in',
-              weight: orderWeight?.toString(),
-              massUnit: 'oz',
-            }
-          } else {
-            parcelConfig = {
-              template: shippingParcel.type,
-              weight: orderWeight?.toString(),
-              massUnit: 'oz',
-            }
+          const parcelConfig: any = {
+            template: shippingParcel.type,
+            weight: orderWeight?.toString(),
+            massUnit: 'oz',
           }
 
           const shippoShipment = await shippo.shipments.create({
