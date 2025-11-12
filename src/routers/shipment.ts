@@ -221,6 +221,19 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
       const allShipments = []
       const orderWeight = calculateOrderWeight(order as OrderPayload)
 
+      //Parcel types that are valid Shippo templates
+      const validTemplateTypes = [
+        'USPS_FlatRateEnvelope',
+        'USPS_SoftPack',
+        'UPS_Box_10kg',
+        'UPS_Box_25kg',
+        'UPS_Pad_Pak',
+        'FedEx_Envelope',
+        'FedEx_Padded_Pak',
+        'FedEx_Box_10kg',
+        'FedEx_Box_25kg',
+      ]
+
       for (const carrier of supportedCarriers) {
         const shippingParcel = order.shippingMethod?.parcels.find(
           parcel => parcel.carrier === carrier
@@ -229,9 +242,19 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         if (shippingParcel) {
           //eslint-disable-next-line @typescript-eslint/no-explicit-any
           const parcelConfig: any = {
-            template: shippingParcel.type,
             weight: orderWeight?.toString(),
             massUnit: 'oz',
+          }
+
+          //Use template if it's a valid template type, otherwise use dimensions
+          if (validTemplateTypes.includes(shippingParcel.type)) {
+            parcelConfig.template = shippingParcel.type
+          } else {
+            //For non-template types (like USPS_GroundAdvantage), use default dimensions
+            parcelConfig.length = '11.5'
+            parcelConfig.width = '6.125'
+            parcelConfig.height = '0.25'
+            parcelConfig.distanceUnit = 'in'
           }
 
           const shippoShipment = await shippo.shipments.create({
