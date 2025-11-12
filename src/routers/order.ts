@@ -555,6 +555,7 @@ orderRouter.put('/order/:id', async (req, res) => {
         } as Prisma.OrderUpdateInput,
         include: {
           shipments: true,
+          shippingMethod: true,
         },
       })
 
@@ -571,6 +572,21 @@ orderRouter.put('/order/:id', async (req, res) => {
           await prisma.shipment.delete({
             where: { id: shipmentRecord.id },
           })
+
+          //Also remove the shippingMethod association from the order
+          if (updatedOrder.shippingMethodId) {
+            const orderWithoutShippingMethod = await prisma.order.update({
+              where: { id },
+              data: {
+                shippingMethod: { disconnect: true },
+              },
+              include: {
+                shipments: true,
+                shippingMethod: true,
+              },
+            })
+            return orderWithoutShippingMethod
+          }
         }
       }
 
