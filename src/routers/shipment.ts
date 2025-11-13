@@ -163,6 +163,11 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
             include: {
               account: { include: { profile: true } },
               sellerShippingMethods: { include: { shippingMethod: true } },
+              sellerShippingOptions: {
+                include: {
+                  shippingOption: true,
+                },
+              },
             },
           },
           orderListings: {
@@ -176,11 +181,6 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
                   },
                 },
               },
-            },
-          },
-          orderShippingOptions: {
-            include: {
-              shippingOption: true,
             },
           },
           shippingMethod: {

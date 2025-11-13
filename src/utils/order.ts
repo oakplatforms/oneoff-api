@@ -8,16 +8,19 @@ export type OrderPayload = Prisma.OrderGetPayload<{
         account: true,
       },
     },
-    seller: true,
+    seller: {
+      include: {
+        sellerShippingOptions: {
+          include: {
+            shippingOption: true,
+          },
+        },
+      },
+    },
     shipments: true,
     shippingMethod: {
       include: {
         shippingOptions: true,
-      },
-    },
-    orderShippingOptions: {
-      include: {
-        shippingOption: true,
       },
     },
     orderListings: {
@@ -33,11 +36,6 @@ export type OrderPayload = Prisma.OrderGetPayload<{
         },
         order: {
           include: {
-            orderShippingOptions: {
-              include: {
-                shippingOption: true,
-              },
-            },
             shippingMethod: {
               include: {
                 shippingOptions: true,
@@ -63,7 +61,7 @@ export const calculateOrderWeight = (order: OrderPayload) => {
     return total + (listing.quantity || 1)
   }, 0)
 
-  for (const option of order.orderShippingOptions || []) {
+  for (const option of order.seller?.sellerShippingOptions || []) {
     const weight = option.shippingOption?.weight || 0
     const maxQuantity = option.shippingOption?.maxQuantity || 1
 
@@ -83,6 +81,6 @@ export const calculateOrderShipping = (order: OrderPayload, orderListings: Order
   return (
     calculateShippingRate(order.shipments) +
     calculateShippingMethodRate(order) +
-    calculateShippingOptionsRate(orderListings)
+    calculateShippingOptionsRate(orderListings, order)
   )
 }
