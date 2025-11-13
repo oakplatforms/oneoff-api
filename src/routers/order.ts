@@ -574,3 +574,133 @@ orderRouter.put('/order/:id', async (req, res) => {
   }
 })
 
+/**
+ * @openapi
+ * /order/remove-shipping:
+ *   delete:
+ *     tags:
+ *       - Order
+ *     summary: Remove shipping from an order.
+ *     description: Deletes a shipment and removes the shipping method association from the order.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderId
+ *               - shipmentId
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *                 description: The ID of the order to remove shipping from.
+ *               shipmentId:
+ *                 type: string
+ *                 description: The ID of the shipment to delete.
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *     responses:
+ *       '200':
+ *         description: Successfully removed shipping from the order.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 order:
+ *                   $ref: '#/components/schemas/Order'
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters or invalid request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Order or shipment not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during removal.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+orderRouter.delete('/order/remove-shipping', async (req, res) => {
+  const { orderId, shipmentId, accountId } = req.body
+
+  try {
+    if (!orderId || !shipmentId) {
+      throw new Error('Order ID and shipment ID are required.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+    const result = await prisma.$transaction(async (tx) => {
+      //Verify the order exists
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          shipments: true,
+        },
+      })
+
+      if (!order) {
+        throw new Error('Order not found.')
+      }
+
+      //Verify the shipment exists and belongs to the order
+      const shipment = await tx.shipment.findUnique({
+        where: { id: shipmentId },
+      })
+
+      if (!shipment) {
+        throw new Error('Shipment not found.')
+      }
+
+      if (shipment.orderId !== orderId) {
+        throw new Error('Shipment does not belong to the specified order.')
+      }
+
+      //Delete the shipment
+      await tx.shipment.delete({
+        where: { id: shipmentId },
+      })
+
+      //Remove the shippingMethod association from the order
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          shippingMethod: { disconnect: true },
+        },
+        include: {
+          shipments: true,
+          shippingMethod: true,
+        },
+      })
+
+      return updatedOrder
+    })
+
+    res.json({ order: result, message: 'Shipping removed from order successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('REMOVE_SHIPPING_FROM_ORDER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to remove shipping from order.' })
+  }
+})
+
