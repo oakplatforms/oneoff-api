@@ -563,33 +563,6 @@ orderRouter.put('/order/:id', async (req, res) => {
         throw new Error('Order update failed — no order returned.')
       }
 
-      if (updatedOrder.shipments?.length) {
-        const shipmentRecord = updatedOrder.shipments.find(
-          (s) => s.status === 'CREATED'
-        )
-
-        if (shipmentRecord) {
-          await prisma.shipment.delete({
-            where: { id: shipmentRecord.id },
-          })
-
-          //Also remove the shippingMethod association from the order
-          if (updatedOrder.shippingMethodId) {
-            const orderWithoutShippingMethod = await prisma.order.update({
-              where: { id },
-              data: {
-                shippingMethod: { disconnect: true },
-              },
-              include: {
-                shipments: true,
-                shippingMethod: true,
-              },
-            })
-            return orderWithoutShippingMethod
-          }
-        }
-      }
-
       return updatedOrder
     })
 
