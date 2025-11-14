@@ -376,9 +376,9 @@ shipmentRouter.post('/shipment', async (req, res) => {
     if (!rateId) {
       newShipment = await prisma.shipment.create({
         data: {
-          displayName: 'Non-Refundable Shipping',
-          name: 'NON_REFUNDABLE',
-          description: 'Mail delivered in 1–5 days',
+          displayName: 'USPS First Class Mail',
+          name: 'usps-first-class-mail',
+          description: 'Mail delivered in 5-10 days',
           orderId: order.id,
           type: 'OUTBOUND',
           shipmentAccountType: 'NON_REFUNDABLE',
