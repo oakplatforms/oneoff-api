@@ -970,6 +970,24 @@
           ],
           "default": true
         },
+        "fixedRate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maxQuantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "warning": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "createdBy": {
           "anyOf": [
             {
@@ -2739,7 +2757,7 @@
           "default": "SHIPPO",
           "enum": [
             "SHIPPO",
-            "NON_REFUNDABLE"
+            "UNTRACKED"
           ]
         },
         "status": {

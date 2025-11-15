@@ -151,7 +151,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         throw new Error('Valid CREATED shipment not found')
       }
 
-      if (shipmentRecord.shipmentAccountType === 'NON_REFUNDABLE') {
+      if (shipmentRecord.shipmentAccountType === 'UNTRACKED') {
         await tx.shipment.update({
           where: { id: shipmentRecord.id },
           data: {

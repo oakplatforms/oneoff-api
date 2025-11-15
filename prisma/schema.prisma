@@ -123,7 +123,7 @@ enum ShippingParcelType {
 
 enum ShipmentAccountType {
   SHIPPO
-  NON_REFUNDABLE
+  UNTRACKED
 }
 
 enum ShipmentType {
@@ -380,6 +380,10 @@ model ShippingMethod {
   displayName      String?
   description      String?
   isTracked        Boolean? @default(true)
+  fixedRate        Decimal? @db.Decimal(10, 2)
+  maxQuantity      Int?
+  warning          String?
+  
   // relations
   createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?

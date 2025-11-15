@@ -381,7 +381,7 @@ shipmentRouter.post('/shipment', async (req, res) => {
           description: 'Mail delivered in 5-10 days',
           orderId: order.id,
           type: 'OUTBOUND',
-          shipmentAccountType: 'NON_REFUNDABLE',
+          shipmentAccountType: 'UNTRACKED',
           status: 'CREATED',
           rate: new Prisma.Decimal('0.78'),
           externalShipmentId: null,
