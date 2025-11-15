@@ -145,6 +145,10 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
     shippingOptions,
     createdById,
     parcels,
+    isTracked,
+    fixedRate,
+    maxQuantity,
+    warning,
   } = req.body
 
   try {
@@ -154,6 +158,10 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
         name,
         displayName,
         description,
+        isTracked,
+        fixedRate,
+        maxQuantity,
+        warning,
         createdBy: { connect: { id: createdById } },
         parcels: parcels?.create?.length
           ? {
@@ -258,7 +266,7 @@ shippingMethodRouter.post('/shipping-method', async (req, res) => {
  */
 shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
   const { id } = req.params
-  const { shippingOptions, parcels, lastModifiedById } = req.body
+  const { shippingOptions, parcels, lastModifiedById, isTracked, fixedRate, maxQuantity, warning } = req.body
 
   try {
     await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
@@ -268,6 +276,10 @@ shippingMethodRouter.put(`/shipping-method/:id`, async (req, res) => {
         ...(req.body.name !== undefined && { name: req.body.name }),
         ...(req.body.displayName !== undefined && { displayName: req.body.displayName }),
         ...(req.body.description !== undefined && { description: req.body.description }),
+        ...(isTracked !== undefined && { isTracked }),
+        ...(fixedRate !== undefined && { fixedRate }),
+        ...(maxQuantity !== undefined && { maxQuantity }),
+        ...(warning !== undefined && { warning }),
         parcels: parcels
           ? {
             create: parcels.create?.map((parcel: { carrier: ShippingCarrierType; type: ShippingParcelType }) => ({
