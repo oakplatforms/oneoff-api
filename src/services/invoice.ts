@@ -97,8 +97,8 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       }
 
       const orderListings = order.orderListings
-      const tax = calculateOrderTax(order as OrderPayload)
-      const shipping = calculateOrderShipping(order as OrderPayload, orderListings as OrderPayload['orderListings'])
+      const tax = calculateOrderTax(order as unknown as OrderPayload)
+      const shipping = calculateOrderShipping(order as unknown as OrderPayload, orderListings as unknown as OrderPayload['orderListings'])
       const total = Number(order.subTotal || 0) + tax + shipping
 
       for (const orderListing of orderListings) {
