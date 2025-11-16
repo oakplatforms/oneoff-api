@@ -1,7 +1,7 @@
 import express from 'express'
 import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
 import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
-import { Prisma } from '@prisma/client'
+import { Prisma, ShipmentAccountType, ShipmentType, ProcessStatus } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 
@@ -380,9 +380,9 @@ shipmentRouter.post('/shipment', async (req, res) => {
           name: 'usps-first-class-mail',
           description: 'Mail delivered in 5-10 days',
           orderId: order.id,
-          type: 'OUTBOUND',
-          shipmentAccountType: 'UNTRACKED',
-          status: 'CREATED',
+          type: ShipmentType.OUTBOUND,
+          shipmentAccountType: ShipmentAccountType.UNTRACKED,
+          status: ProcessStatus.CREATED,
           rate: new Prisma.Decimal('0.78'),
           externalShipmentId: null,
           externalShipmentRateId: null,
@@ -401,9 +401,9 @@ shipmentRouter.post('/shipment', async (req, res) => {
           name: rate.servicelevel.token,
           description: `${rate?.estimated_days} business ${rate?.estimated_days === 1 ? 'day' : 'days'}`,
           orderId: order.id,
-          type: 'OUTBOUND',
-          shipmentAccountType: 'SHIPPO',
-          status: 'CREATED',
+          type: ShipmentType.OUTBOUND,
+          shipmentAccountType: ShipmentAccountType.SHIPPO,
+          status: ProcessStatus.CREATED,
           rate: new Prisma.Decimal(rate.amount),
           externalShipmentId: rate.shipment,
           externalShipmentRateId: rate.object_id,
