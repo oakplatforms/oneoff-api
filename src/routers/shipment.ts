@@ -365,10 +365,31 @@ shipmentRouter.post('/shipment', async (req, res) => {
       throw new Error('Missing orderId.')
     }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } })
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        shippingMethod: true,
+        orderListings: true,
+      },
+    })
 
     if (!order) {
       throw new Error('Order not found.')
+    }
+
+    if (!order.shippingMethod) {
+      throw new Error('Order shipping method not found.')
+    }
+
+    const totalQuantity = order.orderListings.reduce(
+      (sum, orderListing) => sum + (orderListing.quantity ?? 0),
+      0
+    )
+
+    if (order.shippingMethod.maxQuantity !== null && totalQuantity > order.shippingMethod.maxQuantity) {
+      throw new Error(
+        `Order quantity (${totalQuantity}) exceeds the maximum quantity (${order.shippingMethod.maxQuantity}) allowed for this shipping method.`
+      )
     }
 
     let newShipment
@@ -376,14 +397,13 @@ shipmentRouter.post('/shipment', async (req, res) => {
     if (!rateId) {
       newShipment = await prisma.shipment.create({
         data: {
-          displayName: 'USPS First Class Mail',
-          name: 'usps-first-class-mail',
-          description: 'Mail delivered in 5-10 days',
+          displayName: order.shippingMethod.displayName || order.shippingMethod.name,
+          name: order.shippingMethod.name,
           orderId: order.id,
           type: ShipmentType.OUTBOUND,
           shipmentAccountType: ShipmentAccountType.UNTRACKED,
           status: ProcessStatus.CREATED,
-          rate: new Prisma.Decimal('0.78'),
+          rate: order.shippingMethod.fixedRate || new Prisma.Decimal('0'),
           externalShipmentId: null,
           externalShipmentRateId: null,
         },
