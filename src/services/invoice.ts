@@ -78,12 +78,6 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         orderListings: {
           include: {
             listing: true,
-            order: {
-              include: {
-                shippingMethod: { include: { shippingOptions: true } },
-                orderShippingOptions: { include: { shippingOption: true } },
-              },
-            },
           },
         },
         shippingMethod: { include: { shippingOptions: true } },

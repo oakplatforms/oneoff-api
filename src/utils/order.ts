@@ -34,15 +34,11 @@ export type OrderPayload = Prisma.OrderGetPayload<{
             },
           },
         },
-        order: {
-          include: {
-            shippingMethod: {
-              include: {
-                shippingOptions: true,
-              },
-            },
-          },
-        },
+      },
+    },
+    orderShippingOptions: {
+      include: {
+        shippingOption: true,
       },
     },
   },

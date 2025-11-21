@@ -25,17 +25,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
   try {
     const tracking = JSON.parse(event.body || '{}')
-    console.log('Shippo event received:', tracking)
 
     switch (tracking.event) {
     case 'track_updated': {
       const result = await handleShippoTrackingUpdated(tracking)
-
+      console.log('TEST WITH TAHIR', JSON.stringify(result, null, 2))
       if (result && result.orderId && result.trackingStatus && result.statusChanged) {
+        console.log('TRIGGER EVENTS')
         await triggerTrackingStatusEvents(result.orderId, result.trackingStatus)
       }
-
-      console.log('track_updated event processed')
       break
     }
     default:
@@ -69,28 +67,21 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
 async function triggerTrackingStatusEvents(orderId: string, trackingStatus: string) {
   try {
-    let detailType: string | null = null
     switch (trackingStatus) {
     case 'DELIVERED':
       await Promise.all([
         triggerEvent(orderId, 'order.delivered.customer'),
         triggerEvent(orderId, 'order.delivered.seller')
       ])
-      break
-    case 'RETURNED':
-      await Promise.all([
-        triggerEvent(orderId, 'order.refund.customer'),
-        triggerEvent(orderId, 'order.refund.seller')
-      ])
       return
     case 'TRANSIT':
-      detailType = 'order.transit.customer'
+      await Promise.all([
+        triggerEvent(orderId, 'order.transit.customer'),
+        triggerEvent(orderId, 'order.transit.seller')
+      ])
       return
     default:
       return
-    }
-    if (detailType) {
-      await triggerEvent(orderId, detailType)
     }
   } catch (err) {
     console.error(`Failed to trigger tracking status event for order ${orderId}:`, err)
