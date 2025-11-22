@@ -125,13 +125,13 @@ listRouter.get('/lists', async (req, res) => {
     }
 
     //Check if entityList.entity is included to add listings and bids
-    const includeString = include as string
-    const includesEntityListEntity = includeString && (
-      includeString.includes('entityList.entity') ||
-      includeString.split(',').some(inc => {
-        const trimmed = inc.trim()
-        return trimmed === 'entityList' || trimmed.startsWith('entityList.')
-      })
+    const includeArray = Array.isArray(include) ? include : include ? [include] : []
+    const includeStrings = includeArray
+      .filter(inc => typeof inc === 'string')
+      .flatMap(inc => (inc as string).split(','))
+      .map(inc => inc.trim())
+    const includesEntityListEntity = includeStrings.some(inc =>
+      inc === 'entityList.entity' || inc === 'entityList' || inc.startsWith('entityList.')
     )
 
     const baseIncludes = generateIncludes(include as string)
