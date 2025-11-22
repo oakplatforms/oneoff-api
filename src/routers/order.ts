@@ -112,6 +112,7 @@ orderRouter.get('/orders', async (req, res) => {
       prismaModel: prisma.order,
       where,
       include: generateIncludes(include as string),
+      orderBy: { createdAt: 'desc' },
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
