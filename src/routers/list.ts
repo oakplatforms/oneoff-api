@@ -124,16 +124,135 @@ listRouter.get('/lists', async (req, res) => {
       ...(accountId ? { accountId: accountId as string } : {}),
     }
 
+    //Check if entityList.entity is included to add listings and bids
+    const includeString = include as string
+    const includesEntityListEntity = includeString && (
+      includeString.includes('entityList.entity') ||
+      includeString.split(',').some(inc => {
+        const trimmed = inc.trim()
+        return trimmed === 'entityList' || trimmed.startsWith('entityList.')
+      })
+    )
+
+    const baseIncludes = generateIncludes(include as string)
+
+    //If entityList.entity is included, add listings and bids to the entity
+    if (includesEntityListEntity && baseIncludes.entityList) {
+      //Ensure entityList has include structure
+      if (baseIncludes.entityList === true) {
+        baseIncludes.entityList = { include: { entity: true } }
+      } else if (typeof baseIncludes.entityList === 'object') {
+        if (!baseIncludes.entityList.include) {
+          baseIncludes.entityList.include = {}
+        }
+
+        //Ensure entity is included
+        if (!baseIncludes.entityList.include.entity) {
+          baseIncludes.entityList.include.entity = true
+        }
+
+        //Add listings and bids to entity
+        const entityInclude = baseIncludes.entityList.include.entity
+        if (entityInclude === true) {
+          baseIncludes.entityList.include.entity = {
+            include: {
+              listings: {
+                where: {
+                  AND: [
+                    { status: 'ACTIVE' },
+                    {
+                      OR: [
+                        { isOffer: false },
+                        { isOffer: null }
+                      ]
+                    }
+                  ]
+                },
+                orderBy: { price: 'asc' },
+                take: 1,
+                select: { price: true }
+              },
+              bids: {
+                where: { status: 'ACTIVE' },
+                orderBy: { price: 'desc' },
+                take: 1,
+                select: { price: true }
+              }
+            }
+          }
+        } else if (typeof entityInclude === 'object') {
+          if (!entityInclude.include) {
+            entityInclude.include = {}
+          }
+          entityInclude.include.listings = {
+            where: {
+              AND: [
+                { status: 'ACTIVE' },
+                {
+                  OR: [
+                    { isOffer: false },
+                    { isOffer: null }
+                  ]
+                }
+              ]
+            },
+            orderBy: { price: 'asc' },
+            take: 1,
+            select: { price: true }
+          }
+          entityInclude.include.bids = {
+            where: { status: 'ACTIVE' },
+            orderBy: { price: 'desc' },
+            take: 1,
+            select: { price: true }
+          }
+        }
+      }
+    }
+
     const result = await paginatePrisma({
       prismaModel: prisma.list,
       where,
-      include: generateIncludes(include as string),
+      include: baseIncludes,
       page: parsedPage,
       limit: parsedLimit,
       usePagination: usePagination === 'false' ? false : true,
     })
 
-    res.json(result)
+    //Transform result to add lowestAsk and highestBid to entityList.entity if included
+    if (includesEntityListEntity && result.data) {
+      const transformedData = result.data.map((list: Record<string, unknown>) => {
+        if (list.entityList && Array.isArray(list.entityList)) {
+          return {
+            ...list,
+            entityList: list.entityList.map((entityList: Record<string, unknown>) => {
+              if (entityList.entity && typeof entityList.entity === 'object') {
+                const entity = entityList.entity as Record<string, unknown>
+                return {
+                  ...entityList,
+                  entity: {
+                    ...entity,
+                    lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
+                    highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
+                    listings: undefined,
+                    bids: undefined
+                  }
+                }
+              }
+              return entityList
+            })
+          }
+        }
+        return list
+      })
+
+      res.json({
+        ...result,
+        data: transformedData
+      })
+    } else {
+      res.json(result)
+    }
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('GET_LISTS_ERROR:', prismaError, customError)
