@@ -646,10 +646,10 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
  *             properties:
  *               tokenId:
  *                 type: string
- *                 description: A Stripe token (tok_...) representing the external payment method. For Connect accounts, payment method IDs (pm_...) cannot be used directly - they must be converted to tokens using Stripe.js on the frontend first.
+ *                 description: A Stripe token representing the external payment method.
  *               paymentMethodId:
  *                 type: string
- *                 description: Alternative parameter name for tokenId. Note: If a payment method ID (pm_...) is provided, the API will return an error instructing the frontend to create a token from it first.
+ *                 description: Alternative parameter name for tokenId.
  *     responses:
  *       '200':
  *         description: Successfully added external account.
@@ -691,14 +691,6 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
 
     if (!accountId || !providedTokenId) {
       throw new Error('Missing required parameters: accountId and either tokenId or paymentMethodId.')
-    }
-
-    if (providedTokenId.startsWith('pm_')) {
-      throw new Error(
-        'Payment method IDs (pm_...) cannot be used directly for Connect accounts. ' +
-        'For seller external accounts, you need to create a token from the payment method using Stripe.js on the frontend. ' +
-        'Please use Stripe.js to create a token and send the tokenId (tok_...) instead.'
-      )
     }
 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
