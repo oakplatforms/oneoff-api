@@ -687,14 +687,12 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
   const { tokenId, paymentMethodId } = req.body
 
   try {
-    // Support both tokenId and paymentMethodId parameter names
     const providedTokenId = tokenId || paymentMethodId
-    
+
     if (!accountId || !providedTokenId) {
       throw new Error('Missing required parameters: accountId and either tokenId or paymentMethodId.')
     }
-    
-    // Check if the provided value is a payment method ID (starts with pm_) instead of a token (starts with tok_)
+
     if (providedTokenId.startsWith('pm_')) {
       throw new Error(
         'Payment method IDs (pm_...) cannot be used directly for Connect accounts. ' +
@@ -702,7 +700,7 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
         'Please use Stripe.js to create a token and send the tokenId (tok_...) instead.'
       )
     }
-    
+
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
     const result = await prisma.$transaction(async (tx) => {
