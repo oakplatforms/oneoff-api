@@ -646,7 +646,10 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
  *             properties:
  *               tokenId:
  *                 type: string
- *                 description: A Stripe token representing the external payment method.
+ *                 description: A Stripe token (tok_...) representing the external payment method. For Connect accounts, payment method IDs (pm_...) cannot be used directly - they must be converted to tokens using Stripe.js on the frontend first.
+ *               paymentMethodId:
+ *                 type: string
+ *                 description: Alternative parameter name for tokenId. Note: If a payment method ID (pm_...) is provided, the API will return an error instructing the frontend to create a token from it first.
  *     responses:
  *       '200':
  *         description: Successfully added external account.
@@ -681,12 +684,25 @@ sellerRouter.get('/seller/payment-methods/:sellerId', async (req, res) => {
  */
 sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
   const { accountId } = req.params
-  const { tokenId } = req.body
+  const { tokenId, paymentMethodId } = req.body
 
   try {
-    if (!accountId || !tokenId) {
-      throw new Error('Missing required parameters.')
+    // Support both tokenId and paymentMethodId parameter names
+    const providedTokenId = tokenId || paymentMethodId
+    
+    if (!accountId || !providedTokenId) {
+      throw new Error('Missing required parameters: accountId and either tokenId or paymentMethodId.')
     }
+    
+    // Check if the provided value is a payment method ID (starts with pm_) instead of a token (starts with tok_)
+    if (providedTokenId.startsWith('pm_')) {
+      throw new Error(
+        'Payment method IDs (pm_...) cannot be used directly for Connect accounts. ' +
+        'For seller external accounts, you need to create a token from the payment method using Stripe.js on the frontend. ' +
+        'Please use Stripe.js to create a token and send the tokenId (tok_...) instead.'
+      )
+    }
+    
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
     const result = await prisma.$transaction(async (tx) => {
@@ -699,9 +715,10 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
       if (!updatedSeller.paymentAccountId) {
         throw new Error('Seller does not have a payment account ID.')
       }
+
       await stripe.accounts.createExternalAccount(
         updatedSeller.paymentAccountId,
-        { external_account: tokenId }
+        { external_account: providedTokenId }
       )
       return { success: 'Payment method was successfully added'}
     }, { timeout: 60000 })
