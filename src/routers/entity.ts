@@ -1241,7 +1241,7 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
  *                   example: Failed to process entities
  */
 entityRouter.post('/entities/process-batch', async (req, res) => {
-  const { batchSize = 100, maxBatches, onlyPending = false } = req.body
+  const { batchSize = 100, maxBatches, onlyPending = false, increment = 0 } = req.body
 
   try {
     const stateMachineArn = process.env.PRICING_ENGINE_ARN
@@ -1258,6 +1258,10 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
       throw new Error('Max batches must be at least 1')
     }
 
+    if (!Number.isInteger(increment) || increment < 0) {
+      throw new Error('Increment must be a non-negative integer')
+    }
+
     console.log(`Starting entity batch processing... (onlyPending: ${onlyPending})`)
 
     //Build the where clause based on onlyPending flag
@@ -1269,9 +1273,34 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
       }
       : {}
 
-    //Fetch all entities with required relationships
+    const totalEntities = await prisma.entity.count({ where: whereClause })
+    const offset = increment * batchSize
+
+    if (offset >= totalEntities) {
+      throw new Error(`Increment ${increment} exceeds total available entities (${totalEntities})`)
+    }
+
+    const batchesToProcess = maxBatches ?? 1
+    const maxEntities = batchesToProcess * batchSize
+    const remainingEntities = totalEntities - offset
+    const entitiesToProcess = Math.min(remainingEntities, maxEntities)
+
+    if (entitiesToProcess <= 0) {
+      throw new Error('No entities available to process for the provided increment')
+    }
+
+    console.log(
+      `Processing increment ${increment} (offset ${offset}), targeting ${entitiesToProcess} entities across ${batchesToProcess} batch(es)`
+    )
+
+    //Fetch paginated entities with required relationships
     const entities = await prisma.entity.findMany({
       where: whereClause,
+      skip: offset,
+      take: entitiesToProcess,
+      orderBy: {
+        id: 'asc'
+      },
       include: {
         brand: {
           select: {
@@ -1323,12 +1352,6 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
       console.log(`Processing only PENDING products (${entities.length} found)`)
     }
 
-    if (maxBatches) {
-      const maxEntities = maxBatches * batchSize
-      const entitiesToProcess = Math.min(entities.length, maxEntities)
-      console.log(`Limiting to ${maxBatches} batches (max ${maxEntities} entities), will process ${entitiesToProcess} entities`)
-    }
-
     //Transform entities to the required format
     const processedEntities: EntityProcessingInput[] = entities.map(entity => {
       //Find rarity tag value
@@ -1376,7 +1399,10 @@ entityRouter.post('/entities/process-batch', async (req, res) => {
 
     res.json({
       message: 'Entity batch processing started successfully',
-      totalEntities: processedEntities.length,
+      totalEntities,
+      entitiesProcessed: processedEntities.length,
+      increment,
+      offset,
       totalBatches,
       executionArns
     })
