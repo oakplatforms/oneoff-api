@@ -291,6 +291,11 @@ orderRouter.post('/order', async (req, res) => {
       throw new Error('Missing required fields in request body.')
     }
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+    if (!accountId) {
+      throw new Error('Account ID is required.')
+    }
+
     let subTotal = 0
     const listingIds = listingsInOrder.create.map((item) => item.listingId)
     const listings = await prisma.listing.findMany({
@@ -302,6 +307,11 @@ orderRouter.post('/order', async (req, res) => {
 
       if (!listing?.price || !item.quantityInOrder) {
         throw new Error(`Order failed: Missing listing data or invalid quantity for ${item.listingId}`)
+      }
+
+      //Validate that the customer is not adding their own listings
+      if (listing.accountId === accountId) {
+        throw new Error(`Order failed: Cannot add your own listing ${listing.id} to an order.`)
       }
 
       const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
@@ -440,6 +450,11 @@ orderRouter.put('/order/:id', async (req, res) => {
       throw new Error('Order ID is required')
     }
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+    if (!accountId) {
+      throw new Error('Account ID is required.')
+    }
+
     const result = await prisma.$transaction(async (prisma) => {
       const existingOrder = await prisma.order.findUnique({
         where: { id },
@@ -475,6 +490,11 @@ orderRouter.put('/order/:id', async (req, res) => {
 
           if (!listing?.price || !item.quantityInOrder) {
             throw new Error(`Order failed: Missing listing data or invalid quantity`)
+          }
+
+          //Validate that the customer is not adding their own listings
+          if (listing.accountId === accountId) {
+            throw new Error(`Order failed: Cannot add your own listing ${listing.id} to an order.`)
           }
 
           const previous = existingOrder.orderListings.find(
