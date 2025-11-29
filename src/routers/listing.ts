@@ -1,4 +1,4 @@
-import { Prisma, Status } from '@prisma/client'
+import { Prisma, Status, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -686,12 +686,44 @@ listingRouter.delete(`/listing/:accountId/:id`, async (req, res) => {
       throw new Error('Listing ID is required')
     }
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-    const listing = await prisma.listing.delete({
-      where: { id },
+
+    const result = await prisma.$transaction(async (tx) => {
+      //Find all orders with status CREATED that contain this listing
+      const ordersWithListing = await tx.order.findMany({
+        where: {
+          status: ProcessStatus.CREATED,
+          orderListings: {
+            some: {
+              listingId: id,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      })
+
+      //Delete all orders with status CREATED that contain this listing
+      if (ordersWithListing.length > 0) {
+        await tx.order.deleteMany({
+          where: {
+            id: {
+              in: ordersWithListing.map((order) => order.id),
+            },
+          },
+        })
+      }
+
+      //Delete the listing
+      const listing = await tx.listing.delete({
+        where: { id },
+      })
+
+      return listing
     })
 
-    if (listing) {
-      res.json(listing)
+    if (result) {
+      res.json(result)
     } else {
       throw new Error('No listing ID found')
     }
