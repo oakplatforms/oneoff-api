@@ -14,8 +14,6 @@ export const getPrismaClient = () => {
 
   if (!prisma) {
     try {
-      console.log('Initializing Prisma client with SSL certificate and connection pooling')
-
       if (!process.env.DATABASE_URL) {
         const error = new Error('DATABASE_URL environment variable is not set')
         initializationError = error
@@ -31,9 +29,7 @@ export const getPrismaClient = () => {
           rejectUnauthorized: true,
           ca: sslCert,
         }
-        console.log('SSL certificate found, using secure connection')
       } else {
-        console.log('SSL certificate not found, using connection without SSL verification (local dev)')
         sslConfig = {
           rejectUnauthorized: false,
         }
@@ -54,8 +50,6 @@ export const getPrismaClient = () => {
         log: ['error'],
         errorFormat: 'pretty',
       })
-
-      console.log('Prisma client with connection pooling created successfully')
     } catch (error) {
       console.error('Prisma client initialization error:', error)
       if (error instanceof Error) {
