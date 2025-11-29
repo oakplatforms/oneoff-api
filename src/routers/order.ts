@@ -306,22 +306,22 @@ orderRouter.post('/order', async (req, res) => {
       const listing = listings.find((l) => l.id === item.listingId)
 
       if (!listing?.price || !item.quantityInOrder) {
-        throw new Error(`Order failed: Missing listing data or invalid quantity for ${item.listingId}`)
+        throw new Error(`Missing listing data or invalid quantity`)
       }
 
       //Validate that the customer is not adding their own listings
       if (listing.accountId === accountId) {
-        throw new Error(`Order failed: Cannot add your own listing ${listing.id} to an order.`)
+        throw new Error(`Cannot add your own listing to an order.`)
       }
 
       const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
 
       if (remainingQuantity < 0) {
-        throw new Error(`Order failed: Insufficient quantity for listing ${listing.id}.`)
+        throw new Error(`Insufficient quantity for listing.`)
       }
 
       if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
-        throw new Error(`Order failed: You must purchase all items for single-seller listing ${listing.id}.`)
+        throw new Error(`You must purchase all items for single-seller listing.`)
       }
 
       subTotal += Number(listing.price) * item.quantityInOrder
@@ -489,12 +489,12 @@ orderRouter.put('/order/:id', async (req, res) => {
           const listing = listings.find((l) => l.id === item.listingId)
 
           if (!listing?.price || !item.quantityInOrder) {
-            throw new Error(`Order failed: Missing listing data or invalid quantity`)
+            throw new Error(`Missing listing data or invalid quantity`)
           }
 
           //Validate that the customer is not adding their own listings
           if (listing.accountId === accountId) {
-            throw new Error(`Order failed: Cannot add your own listing ${listing.id} to an order.`)
+            throw new Error(`Cannot add your own listing to an order.`)
           }
 
           const previous = existingOrder.orderListings.find(
@@ -512,11 +512,11 @@ orderRouter.put('/order/:id', async (req, res) => {
           const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
 
           if (remainingQuantity < 0) {
-            throw new Error(`Order failed: Insufficient quantity for listing.`)
+            throw new Error(`Insufficient quantity for listing.`)
           }
 
           if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
-            throw new Error(`Order failed: You must purchase all items for single-seller listing ${listing.id}.`)
+            throw new Error(`You must purchase all items for single-seller listing ${listing.id}.`)
           }
         }
       }
