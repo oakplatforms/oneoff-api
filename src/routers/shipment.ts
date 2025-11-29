@@ -1,7 +1,7 @@
 import express from 'express'
 import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
 import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
-import { Prisma, ShipmentAccountType, ShipmentType, ProcessStatus } from '@prisma/client'
+import { Prisma, ShipmentAccountType, ShipmentType, ProcessStatus, TrackingStatus } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 
@@ -436,6 +436,100 @@ shipmentRouter.post('/shipment', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CREATE_SHIPMENT_ERROR:', prismaError || customError)
     return res.status(statusCode).json({ errorMessage: customError || 'Failed to create shipment.' })
+  }
+})
+
+/**
+ * @openapi
+ * /shipment/{id}:
+ *   put:
+ *     tags:
+ *       - Shipments
+ *     summary: Update a shipment's tracking status
+ *     description: Updates the tracking status of an existing shipment.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the shipment to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               trackingStatus:
+ *                 type: string
+ *                 enum: [UNKNOWN, PRE_TRANSIT, TRANSIT, OUT_FOR_DELIVERY, DELIVERED, RETURNED, FAILURE]
+ *                 description: The new tracking status for the shipment.
+ *             required:
+ *               - trackingStatus
+ *     responses:
+ *       '200':
+ *         description: Successfully updated shipment tracking status.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 shipment:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Internal shipment ID.
+ *                     trackingStatus:
+ *                       type: string
+ *                       enum: [UNKNOWN, PRE_TRANSIT, TRANSIT, OUT_FOR_DELIVERY, DELIVERED, RETURNED, FAILURE]
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       '400':
+ *         description: Missing or invalid trackingStatus.
+ *       '404':
+ *         description: Shipment not found.
+ *       '500':
+ *         description: Failed to update shipment.
+ */
+shipmentRouter.put('/shipment/:id', async (req, res) => {
+  const { id } = req.params
+  const { trackingStatus, accountId } = req.body
+
+  try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+    if (!trackingStatus) {
+      throw new Error('trackingStatus is required.')
+    }
+
+    const validStatuses = ['UNKNOWN', 'PRE_TRANSIT', 'TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RETURNED', 'FAILURE']
+    if (!validStatuses.includes(trackingStatus)) {
+      throw new Error(`Invalid trackingStatus. Must be one of: ${validStatuses.join(', ')}`)
+    }
+
+    const existingShipment = await prisma.shipment.findUnique({
+      where: { id },
+    })
+
+    if (!existingShipment) {
+      throw new Error('Shipment not found.')
+    }
+
+    const updatedShipment = await prisma.shipment.update({
+      where: { id },
+      data: {
+        trackingStatus: trackingStatus as TrackingStatus,
+      },
+    })
+
+    return res.json({ shipment: updatedShipment })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPDATE_SHIPMENT_ERROR:', prismaError || customError)
+    return res.status(statusCode).json({ errorMessage: customError || 'Failed to update shipment.' })
   }
 })
 
