@@ -1,16 +1,16 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "client"
 }
+
 generator json {
-  provider = "prisma-json-schema-generator"
-  output = "../src/generated/json"
+  provider                 = "prisma-json-schema-generator"
+  output                   = "../src/generated/json"
   keepRelationScalarFields = "true"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
 }
 
 enum EntityType {
@@ -132,81 +132,81 @@ enum ShipmentType {
 }
 
 model User {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  status        Status @default(ACTIVE)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
 
   // custom
-  authId        String
-  isAdmin       Boolean? @default(false)
+  authId  String
+  isAdmin Boolean? @default(false)
 
   // relations
-  account       Account?
-  admin         Admin?
+  account Account?
+  admin   Admin?
 
   @@index([authId])
   @@index([status])
 }
 
 model Admin {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  status        Status @default(ACTIVE)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
 
   // custom
-  email         String? @unique
+  email String? @unique
 
   // relations
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        String  @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 
   // created by and last modified by relations
-  createdBrands  Brand[] @relation(name: "CreatedBy")
-  lastModifiedBrands Brand[] @relation(name: "LastModifiedBy")
-  createdThemes Theme[] @relation(name: "CreatedBy")
-  lastModifiedThemes Theme[] @relation(name: "LastModifiedBy")
-  createdCategories Category[] @relation(name: "CreatedBy")
-  lastModifiedCategories Category[] @relation(name: "LastModifiedBy")
-  createdTags   Tag[] @relation(name: "CreatedBy")
-  lastModifiedTags Tag[] @relation(name: "LastModifiedBy")
-  createdSupportedTagValues SupportedTagValue[] @relation(name: "CreatedBy")
+  createdBrands                  Brand[]             @relation(name: "CreatedBy")
+  lastModifiedBrands             Brand[]             @relation(name: "LastModifiedBy")
+  createdThemes                  Theme[]             @relation(name: "CreatedBy")
+  lastModifiedThemes             Theme[]             @relation(name: "LastModifiedBy")
+  createdCategories              Category[]          @relation(name: "CreatedBy")
+  lastModifiedCategories         Category[]          @relation(name: "LastModifiedBy")
+  createdTags                    Tag[]               @relation(name: "CreatedBy")
+  lastModifiedTags               Tag[]               @relation(name: "LastModifiedBy")
+  createdSupportedTagValues      SupportedTagValue[] @relation(name: "CreatedBy")
   lastModifiedSupportedTagValues SupportedTagValue[] @relation(name: "LastModifiedBy")
-  createdEntities Entity[] @relation(name: "CreatedBy")
-  lastModifiedEntities Entity[] @relation(name: "LastModifiedBy")
-  createdLists List[] @relation(name: "CreatedBy")
-  lastModifiedLists List[] @relation(name: "LastModifiedBy")
-  createdShippingMethods ShippingMethod[] @relation(name: "CreatedBy")
-  lastModifiedShippingMethods ShippingMethod[] @relation(name: "LastModifiedBy")
-  createdShippingOptions ShippingOption[] @relation(name: "CreatedBy")
-  lastModifiedShippingOptions ShippingOption[] @relation(name: "LastModifiedBy")
+  createdEntities                Entity[]            @relation(name: "CreatedBy")
+  lastModifiedEntities           Entity[]            @relation(name: "LastModifiedBy")
+  createdLists                   List[]              @relation(name: "CreatedBy")
+  lastModifiedLists              List[]              @relation(name: "LastModifiedBy")
+  createdShippingMethods         ShippingMethod[]    @relation(name: "CreatedBy")
+  lastModifiedShippingMethods    ShippingMethod[]    @relation(name: "LastModifiedBy")
+  createdShippingOptions         ShippingOption[]    @relation(name: "CreatedBy")
+  lastModifiedShippingOptions    ShippingOption[]    @relation(name: "LastModifiedBy")
 
   @@index([userId])
 }
 
 model Account {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  status        Status @default(ACTIVE)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
 
   // custom
-  type          AccountType @default(REGISTERED)
-  email         String? @unique
+  type  AccountType @default(REGISTERED)
+  email String?     @unique
 
   // relations
-  carts         Cart[]
-  seller        Seller?
-  customer      Customer?
-  profile       Profile?
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        String  @unique
-  lists List[]
-  reviews Review[]
-  bids Bid[]
-  listings Listing[]
-  payouts Payout[]
+  carts        Cart[]
+  seller       Seller?
+  customer     Customer?
+  profile      Profile?
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String        @unique
+  lists        List[]
+  reviews      Review[]
+  bids         Bid[]
+  listings     Listing[]
+  payouts      Payout[]
   transactions Transaction[]
 
   @@index([userId])
@@ -217,40 +217,40 @@ model Account {
 }
 
 model Cart {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  isPrimary     Boolean? @default(false)
+  isPrimary Boolean? @default(false)
 
   // relations
-  account       Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId     String?
-  orders        Order[]
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String?
+  orders    Order[]
 }
 
 model Customer {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  status        Status @default(ACTIVE)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
 
-  paymentAccountId  String? @unique
-  paymentAccountType PaymentAccountType @default(STRIPE)
+  paymentAccountId     String?            @unique
+  paymentAccountType   PaymentAccountType @default(STRIPE)
   paymentAccountStatus ProcessStatus?
-  hasPaymentMethod Boolean? @default(false)
+  hasPaymentMethod     Boolean?           @default(false)
 
-  firstName     String?
-  lastName      String?
-  phone         String?
-  address       String?
-  city          String?
-  state         String?
-  zipCode       String?
+  firstName String?
+  lastName  String?
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
 
   // relations
-  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId     String  @unique
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String  @unique
   orders    Order[]
 
   @@index([accountId])
@@ -259,257 +259,257 @@ model Customer {
 }
 
 model Seller {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  status        Status @default(ACTIVE)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
 
-  paymentAccountId  String? @unique
-  paymentAccountType PaymentAccountType @default(STRIPE)
-  paymentAccountStatus ProcessStatus?
-  isPaymentAccountVerified Boolean? @default(false)
-  hasPaymentMethod Boolean? @default(false)
-  sellerType    SellerType?
-  taxRate       Decimal? @db.Decimal(10, 2)
+  paymentAccountId         String?            @unique
+  paymentAccountType       PaymentAccountType @default(STRIPE)
+  paymentAccountStatus     ProcessStatus?
+  isPaymentAccountVerified Boolean?           @default(false)
+  hasPaymentMethod         Boolean?           @default(false)
+  sellerType               SellerType?
+  taxRate                  Decimal?           @db.Decimal(10, 2)
 
-  firstName     String?
-  lastName      String?
-  phone         String?
-  address       String?
-  city          String?
-  state         String?
-  zipCode       String?
-  businessName  String?
-  website       String?
+  firstName            String?
+  lastName             String?
+  phone                String?
+  address              String?
+  city                 String?
+  state                String?
+  zipCode              String?
+  businessName         String?
+  website              String?
   shippingCarrierTypes ShippingCarrierType[]
 
   // relations
-  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId     String  @unique
+  account               Account                @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId             String                 @unique
   sellerShippingMethods SellerShippingMethod[]
   sellerShippingOptions SellerShippingOption[]
-  orders    Order[]
+  orders                Order[]
 
   @@index([accountId])
   @@index([status])
 }
 
 model Profile {
-  id            String   @id @default(cuid()) 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  username      String? @unique
-  avatar        String?
-  banner        String?
-  description   String?
-  qrCode        String?
+  username    String? @unique
+  avatar      String?
+  banner      String?
+  description String?
+  qrCode      String?
 
   // relations
-  account       Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId     String?  @unique
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String?  @unique
 
   @@index([accountId])
 }
 
 model Brand {
-  id               String  @id @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String  @unique
-  displayName      String?
-  logo             String?
-  legalDisclaimer  String?
+  name            String  @unique
+  displayName     String?
+  logo            String?
+  legalDisclaimer String?
 
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
   theme            Theme?
   entities         Entity[]
 }
 
 model Theme {
-  id               String  @id @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  logo             String?
-  primaryColor     String?
-  secondaryColor   String?
-  
+  logo           String?
+  primaryColor   String?
+  secondaryColor String?
+
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?  @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?  @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  brand            Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand            Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
   brandId          String  @unique
 }
 
 model Category {
-  id               String  @id @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String  @unique 
-  displayName      String?
-  description      String?
+  name        String  @unique
+  displayName String?
+  description String?
 
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
   entities         Entity[]
 }
 
 model ShippingMethod {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String
-  displayName      String?
-  description      String?
-  isTracked        Boolean? @default(true)
-  fixedRate        Decimal? @db.Decimal(10, 2)
-  maxQuantity      Int?
-  warning          String?
-  
+  name        String
+  displayName String?
+  description String?
+  isTracked   Boolean? @default(true)
+  fixedRate   Decimal? @db.Decimal(10, 2)
+  maxQuantity Int?
+  warning     String?
+
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  orders           Order[]
-  parcels          Parcel[]
-  shippingOptions  ShippingOption[]
+  createdBy             Admin?                 @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById           String?
+  lastModifiedBy        Admin?                 @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById      String?
+  orders                Order[]
+  parcels               Parcel[]
+  shippingOptions       ShippingOption[]
   sellerShippingMethods SellerShippingMethod[]
 }
 
 model Parcel {
-  id               String              @id @default(cuid())
-  carrier          ShippingCarrierType
-  type             ShippingParcelType
+  id      String              @id @default(cuid())
+  carrier ShippingCarrierType
+  type    ShippingParcelType
 
   shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
   shippingMethodId String?
 }
 
 model ShippingOption {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String
-  displayName      String?
-  description      String?
-  weight           Float?
-  rate             Decimal @db.Decimal(10, 2)
-  isStandalone     Boolean? @default(false)
-  maxQuantity      Int?
+  name         String
+  displayName  String?
+  description  String?
+  weight       Float?
+  rate         Decimal  @db.Decimal(10, 2)
+  isStandalone Boolean? @default(false)
+  maxQuantity  Int?
 
   // relations
-  createdBy         Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById       String?
-  lastModifiedBy    Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById  String?
-  shippingMethod    ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId  String?
+  createdBy             Admin?                 @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById           String?
+  lastModifiedBy        Admin?                 @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById      String?
+  shippingMethod        ShippingMethod?        @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId      String?
   sellerShippingOptions SellerShippingOption[]
   orderShippingOptions  OrderShippingOption[]
 }
 
 model Tag {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String  @unique
-  displayName      String?
+  name        String  @unique
+  displayName String?
 
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  entityTags       EntityTag[]
+  createdBy          Admin?              @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById        String?
+  lastModifiedBy     Admin?              @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById   String?
+  entityTags         EntityTag[]
   supportedTagValues SupportedTagValue[]
 }
 
 model SupportedTagValue {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String
-  displayName      String?
-  banner           String?
-  logo             String?
-  description      String?
+  name        String
+  displayName String?
+  banner      String?
+  logo        String?
+  description String?
 
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?  @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?  @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tag              Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId            String
 }
 
 model Set {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  banner           String?
-  logo             String?
-  description      String?
-  name             String @unique
-  displayName      String?
-  code             String
-  
+  banner      String?
+  logo        String?
+  description String?
+  name        String  @unique
+  displayName String?
+  code        String
+
   // relations
-  entities         Entity[]
+  entities Entity[]
 }
 
 model List {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String
-  displayName      String?
-  banner           String?
-  logo             String?
-  description      String?
-  type             ListType?
-  isPrivate        Boolean? @default(false)
-  navigation       Json?
-  index            Int?
+  name        String
+  displayName String?
+  banner      String?
+  logo        String?
+  description String?
+  type        ListType?
+  isPrivate   Boolean?  @default(false)
+  navigation  Json?
+  index       Int?
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId        String?
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  
-  entityList       EntityList[]
+
+  entityList EntityList[]
 
   @@index([accountId])
   @@index([type])
@@ -517,26 +517,26 @@ model List {
 }
 
 model Entity {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String
-  displayName      String?
-  description      String?
-  type             EntityType @default(PRODUCT)
-  image            String?
-  secondaryImage   String?
+  name           String
+  displayName    String?
+  description    String?
+  type           EntityType @default(PRODUCT)
+  image          String?
+  secondaryImage String?
 
   // relations
-  createdBy        Admin? @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?       @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin? @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?       @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  category         Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category         Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId       String?
-  brand            Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  brand            Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
   brandId          String?
   product          Product?
   entityTags       EntityTag[]
@@ -544,7 +544,7 @@ model Entity {
   reviews          Review[]
   bids             Bid[]
   listings         Listing[]
-  set              Set? @relation(fields: [setId], references: [id], onDelete: Cascade)
+  set              Set?         @relation(fields: [setId], references: [id], onDelete: Cascade)
   setId            String?
 
   @@index([categoryId])
@@ -556,18 +556,18 @@ model Entity {
 }
 
 model EntityList {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  quantity         Int?
-  
+  quantity Int?
+
   // relations
-  list             List @relation(fields: [listId], references: [id], onDelete: Cascade)
-  listId           String
-  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId         String
+  list     List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listId   String
+  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId String
 
   @@id([listId, entityId])
   @@index([listId])
@@ -575,20 +575,20 @@ model EntityList {
 }
 
 model EntityTag {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  tagValue         String
-  isPrimary        Boolean?
-  index            Int?
+  tagValue  String
+  isPrimary Boolean?
+  index     Int?
 
   // relations
-  tag              Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  tagId            String
-  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId         String
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId    String
+  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId String
 
   @@index([tagId])
   @@index([entityId])
@@ -596,41 +596,41 @@ model EntityTag {
 }
 
 model Product {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  type             ProductType @default(CARD)
-  releaseDate      DateTime?
-  weight           Float?
-  width            Float?
-  length           Float?
-  height           Float?
-  sku              String?
-  number           String?
-  price            Decimal? @db.Decimal(10, 2)
-  pricingStatus    ProcessStatus?
+  type          ProductType    @default(CARD)
+  releaseDate   DateTime?
+  weight        Float?
+  width         Float?
+  length        Float?
+  height        Float?
+  sku           String?
+  number        String?
+  price         Decimal?       @db.Decimal(10, 2)
+  pricingStatus ProcessStatus?
 
   // relations
-  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId         String  @unique
+  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId String @unique
 }
 
 model Review {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  rating           Float
-  description      String
+  rating      Float
+  description String
 
   // relations
-  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId        String?
-  entity           Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId         String
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId String?
+  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId  String
 
   @@index([accountId])
   @@index([entityId])
@@ -638,60 +638,60 @@ model Review {
 }
 
 model Payout {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  status           ProcessStatus
-  total            Decimal? @db.Decimal(10, 2)
-  last4            String? 
+  status ProcessStatus
+  total  Decimal?      @db.Decimal(10, 2)
+  last4  String?
 
   // relations
-  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId        String?
-  transactions     Transaction[]
+  account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId    String?
+  transactions Transaction[]
 }
 
 model Condition {
-  id               String   @id @default(cuid()) 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  name             String   @unique
-  displayName      String
-  description      String?
+  name        String  @unique
+  displayName String
+  description String?
 
   // relations
-  listings         Listing[]
-  bids             Bid[]
+  listings Listing[]
+  bids     Bid[]
 }
 
 model Listing {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  price            Decimal @db.Decimal(10, 2)
-  quantity         Int
-  status           Status
-  multiTransactionsEnabled Boolean @default(false) 
-  isPrimary        Boolean? @default(false)
-  isOffer          Boolean? @default(false)
-  image            String?
-  imageCaption     String?
+  price                    Decimal  @db.Decimal(10, 2)
+  quantity                 Int
+  status                   Status
+  multiTransactionsEnabled Boolean  @default(false)
+  isPrimary                Boolean? @default(false)
+  isOffer                  Boolean? @default(false)
+  image                    String?
+  imageCaption             String?
 
   // relations
-  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId        String?
-  entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
-  entityId         String?
-  condition        Condition? @relation(fields: [conditionId], references: [id], onDelete: SetNull)
-  conditionId      String?
-  orderListings    OrderListing[]
-  offer            Offer?
+  account       Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId     String?
+  entity        Entity?        @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  entityId      String?
+  condition     Condition?     @relation(fields: [conditionId], references: [id], onDelete: SetNull)
+  conditionId   String?
+  orderListings OrderListing[]
+  offer         Offer?
 
   @@index([accountId])
   @@index([entityId])
@@ -704,24 +704,23 @@ model Listing {
 }
 
 model Bid {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  price            Decimal @db.Decimal(10, 2)
-  quantity         Int
-  status           Status
-  multiTransactionsEnabled Boolean? @default(false) 
-
+  price                    Decimal  @db.Decimal(10, 2)
+  quantity                 Int
+  status                   Status
+  multiTransactionsEnabled Boolean? @default(false)
 
   // relations
-  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId        String?
-  entity           Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
-  entityId         String?
-  offers           Offer[]
-  conditions       Condition[]
+  account    Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId  String?
+  entity     Entity?     @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  entityId   String?
+  offers     Offer[]
+  conditions Condition[]
 
   @@index([accountId])
   @@index([entityId])
@@ -729,19 +728,19 @@ model Bid {
 }
 
 model Offer {
-  id               String   @id @default(cuid())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  status           OfferStatus  @default(PENDING)
+  status OfferStatus @default(PENDING)
 
   // relations
-  bid              Bid? @relation(fields: [bidId], references: [id], onDelete: Cascade)
-  bidId            String?
-  listing          Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId        String? @unique
-  order            Order?
+  bid       Bid?     @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  bidId     String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String?  @unique
+  order     Order?
 
   @@index([bidId])
   @@index([listingId])
@@ -749,46 +748,46 @@ model Offer {
 }
 
 model Invoice {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  status           Status @default(ACTIVE)
+  status Status @default(ACTIVE)
 
   // relations
-  orders           Order[]
+  orders Order[]
 }
 
 model Order {
-  id               String  @id @default(cuid()) 
-  updatedAt        DateTime  @updatedAt
-  createdAt        DateTime  @default(now())
+  id        String   @id @default(cuid())
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 
   // custom
-  status           ProcessStatus
-  subTotal         Decimal? @db.Decimal(10, 2)
-  tax              Decimal? @db.Decimal(10, 2)
-  shipping         Decimal? @db.Decimal(10, 2)
-  total            Decimal? @db.Decimal(10, 2)
+  status   ProcessStatus
+  subTotal Decimal?      @db.Decimal(10, 2)
+  tax      Decimal?      @db.Decimal(10, 2)
+  shipping Decimal?      @db.Decimal(10, 2)
+  total    Decimal?      @db.Decimal(10, 2)
 
   // relations
-  cart             Cart? @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  cartId           String?
-  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  customerId       String?
-  seller           Seller? @relation(fields: [sellerId], references: [id], onDelete: SetNull)
-  sellerId         String?
-  transactions     Transaction[]
-  shipments        Shipment[]
-  invoice          Invoice? @relation(fields: [invoiceId], references: [id])
-  invoiceId        String?
-  orderListings    OrderListing[]
-  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId String?
+  cart                 Cart?                 @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId               String?
+  customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId           String?
+  seller               Seller?               @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  sellerId             String?
+  transactions         Transaction[]
+  shipments            Shipment[]
+  invoice              Invoice?              @relation(fields: [invoiceId], references: [id])
+  invoiceId            String?
+  orderListings        OrderListing[]
+  shippingMethod       ShippingMethod?       @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  shippingMethodId     String?
   orderShippingOptions OrderShippingOption[]
-  offer            Offer? @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  offerId          String? @unique
+  offer                Offer?                @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  offerId              String?               @unique
 
   @@index([customerId])
   @@index([sellerId])
@@ -800,45 +799,45 @@ model Order {
 }
 
 model OrderListing {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  quantity         Int?
+  quantity Int?
 
   // relations
-  order            Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId          String
-  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId        String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
 
   @@id([orderId, listingId])
 }
 
 model Transaction {
-  id               String  @id @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
-  amount           Decimal @db.Decimal(10, 2)
-  refundedAmount   Decimal? @db.Decimal(10, 2)
-  transactionType  TransactionType @default(PAYMENT)
-  description      String?
-  currency         Currency @default(USD)
+  amount          Decimal         @db.Decimal(10, 2)
+  refundedAmount  Decimal?        @db.Decimal(10, 2)
+  transactionType TransactionType @default(PAYMENT)
+  description     String?
+  currency        Currency        @default(USD)
 
-  paymentId        String?
+  paymentId          String?
   paymentAccountType PaymentAccountType @default(STRIPE)
-  paymentMethodType PaymentMethodType @default(CARD)
+  paymentMethodType  PaymentMethodType  @default(CARD)
 
   // relations
-  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId        String?
-  order            Order? @relation(fields: [orderId], references: [id])
-  orderId          String?
-  payout           Payout? @relation(fields: [payoutId], references: [id])
-  payoutId         String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId String?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  orderId   String?
+  payout    Payout?  @relation(fields: [payoutId], references: [id])
+  payoutId  String?
 
   @@index([accountId])
   @@index([orderId])
@@ -849,12 +848,12 @@ model Transaction {
 }
 
 model SellerShippingMethod {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // relations
-  seller           Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  seller           Seller         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId         String
   shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
   shippingMethodId String
@@ -863,12 +862,12 @@ model SellerShippingMethod {
 }
 
 model SellerShippingOption {
-  id               String  @unique @default(cuid()) 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // relations
-  seller           Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  seller           Seller         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId         String
   shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
   shippingOptionId String
@@ -877,42 +876,42 @@ model SellerShippingOption {
 }
 
 model Shipment {
-  id                 String  @id @default(cuid()) 
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // custom
   name                String?
   displayName         String?
   description         String?
-  type                ShipmentType @default(OUTBOUND)
+  type                ShipmentType        @default(OUTBOUND)
   shipmentAccountType ShipmentAccountType @default(SHIPPO)
   status              ProcessStatus
-  rate                Decimal @db.Decimal(10, 2)
+  rate                Decimal             @db.Decimal(10, 2)
   trackingNumber      String?
-  trackingStatus      TrackingStatus? @default(UNKNOWN)
+  trackingStatus      TrackingStatus?     @default(UNKNOWN)
   labelUrl            String?
 
-  externalShipmentId  String?
-  externalShipmentRateId String?
+  externalShipmentId        String?
+  externalShipmentRateId    String?
   externalShipmentServiceId String?
   externalShipmentCarrierId String?
 
   // relations
-  order               Order? @relation(fields: [orderId], references: [id])
-  orderId             String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+  orderId String?
 }
 
 model OrderShippingOption {
-  id                 String  @unique @default(cuid()) 
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // relations
-  order              Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId            String
-  shippingOption     ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
-  shippingOptionId   String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId          String
+  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
+  shippingOptionId String
 
   @@id([orderId, shippingOptionId])
 }

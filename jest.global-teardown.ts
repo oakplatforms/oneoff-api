@@ -1,7 +1,14 @@
 import { execSync } from 'child_process'
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
-const prisma = new PrismaClient()
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+})
+
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 export default async function globalTeardown() {
   console.log('🧹 Global Teardown: Disconnecting and Dropping Test DB...')
