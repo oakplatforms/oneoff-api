@@ -533,6 +533,17 @@ orderRouter.put('/order/:id', async (req, res) => {
 
       const isDeleted = listingsInOrder?.delete?.length === existingOrder.orderListings.length
 
+      if (isDeleted) {
+        const deletedOrder = await prisma.order.delete({
+          where: { id },
+          include: {
+            shipments: true,
+            shippingMethod: true,
+          },
+        })
+        return deletedOrder
+      }
+
       const updatedOrder = await prisma.order.update({
         where: { id },
         data: {
@@ -542,7 +553,6 @@ orderRouter.put('/order/:id', async (req, res) => {
           ...(shippingMethodId && {
             shippingMethod: { connect: { id: shippingMethodId } }
           }),
-          ...(isDeleted && { status: 'DELETED' }),
           ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
             subTotal,
             orderListings: listingsInOrder

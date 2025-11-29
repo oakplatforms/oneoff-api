@@ -33,17 +33,11 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
     return null
   }
 
-  const statusMap: Record<string, 'UNKNOWN' | 'PRE_TRANSIT' | 'TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'RETURNED' | 'FAILURE'> = {
-    'UNKNOWN': 'UNKNOWN',
-    'PRE_TRANSIT': 'PRE_TRANSIT',
-    'TRANSIT': 'TRANSIT',
-    'OUT_FOR_DELIVERY': 'OUT_FOR_DELIVERY',
-    'DELIVERED': 'DELIVERED',
-    'RETURNED': 'RETURNED',
-    'FAILURE': 'FAILURE',
-  }
-
-  const mappedStatus = statusMap[trackingStatus.toUpperCase()] ?? 'UNKNOWN'
+  const validStatuses = ['UNKNOWN', 'PRE_TRANSIT', 'TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RETURNED', 'FAILURE'] as const
+  const upperStatus = trackingStatus.toUpperCase()
+  const mappedStatus = validStatuses.includes(upperStatus as typeof validStatuses[number])
+    ? (upperStatus as typeof validStatuses[number])
+    : 'UNKNOWN'
 
   const shipment = await prisma.shipment.findFirst({
     where: { trackingNumber },

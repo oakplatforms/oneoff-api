@@ -172,7 +172,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           where: { id: shipmentRecord.id },
           data: {
             status: 'PENDING',
-            trackingStatus: 'PRE_TRANSIT',
+            trackingStatus: 'UNKNOWN',
             trackingNumber,
             labelUrl,
           },
