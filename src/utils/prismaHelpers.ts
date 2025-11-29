@@ -4,12 +4,23 @@ import { Prisma, PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
-let prisma: PrismaClient
+let prisma: PrismaClient | null = null
+let initializationError: Error | null = null
 
 export const getPrismaClient = () => {
+  if (initializationError) {
+    throw initializationError
+  }
+
   if (!prisma) {
     try {
       console.log('Initializing Prisma client with SSL certificate and connection pooling')
+
+      if (!process.env.DATABASE_URL) {
+        const error = new Error('DATABASE_URL environment variable is not set')
+        initializationError = error
+        throw error
+      }
 
       const certPath = path.join(__dirname, '../../certs/global-bundle.pem')
       let sslConfig: { rejectUnauthorized: boolean; ca?: string } | false = false
@@ -47,6 +58,11 @@ export const getPrismaClient = () => {
       console.log('Prisma client with connection pooling created successfully')
     } catch (error) {
       console.error('Prisma client initialization error:', error)
+      if (error instanceof Error) {
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+        initializationError = error
+      }
       throw error
     }
   }
