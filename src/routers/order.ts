@@ -1,4 +1,4 @@
-import { Prisma, ProcessStatus } from '@prisma/client'
+import { Prisma, ProcessStatus, TrackingStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -602,6 +602,124 @@ orderRouter.put('/order/:id', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPDATE_ORDER_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to update order.' })
+  }
+})
+
+/**
+ * @openapi
+ * /order/cancel-order:
+ *   put:
+ *     tags:
+ *       - Order
+ *     summary: Cancel an order.
+ *     description: Cancels an order by setting its status to CANCELED. The order must be in PENDING status and the first shipment must have UNKNOWN tracking status.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderId
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *                 description: The ID of the order to cancel.
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *     responses:
+ *       '200':
+ *         description: Successfully canceled the order.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 order:
+ *                   $ref: '#/components/schemas/Order'
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters, invalid request, or order cannot be canceled (not in PENDING status or shipment tracking status is not UNKNOWN).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Order not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during cancellation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+orderRouter.put('/order/cancel-order', async (req, res) => {
+  const { orderId, accountId } = req.body
+
+  try {
+    if (!orderId) {
+      throw new Error('Order ID is required.')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          shipments: true,
+        },
+      })
+
+      if (!order) {
+        throw new Error('Order not found.')
+      }
+
+      if (order.status !== ProcessStatus.PENDING) {
+        throw new Error(`Order cannot be canceled. Order status must be PENDING, but current status is ${order.status}.`)
+      }
+
+      if (!order.shipments || order.shipments.length === 0) {
+        throw new Error('Order cannot be canceled. Order must have at least one shipment.')
+      }
+
+      if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
+        throw new Error(`Order cannot be canceled. Shipment tracking status must be UNKNOWN, but current status is ${order.shipments[0].trackingStatus}.`)
+      }
+
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: ProcessStatus.CANCELED,
+        },
+        include: {
+          shipments: true,
+          shippingMethod: true,
+        },
+      })
+
+      return updatedOrder
+    })
+
+    res.json({ order: result, message: 'Order canceled successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CANCEL_ORDER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to cancel order.' })
   }
 })
 
