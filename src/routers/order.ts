@@ -607,12 +607,19 @@ orderRouter.put('/order/:id', async (req, res) => {
 
 /**
  * @openapi
- * /order/cancel-order:
+ * /order/{id}/cancel-order:
  *   put:
  *     tags:
  *       - Order
  *     summary: Cancel an order.
  *     description: Cancels an order by setting its status to CANCELED. The order must be in PENDING status and the first shipment must have UNKNOWN tracking status.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the order to cancel.
  *     requestBody:
  *       required: true
  *       content:
@@ -620,11 +627,8 @@ orderRouter.put('/order/:id', async (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - orderId
+ *               - accountId
  *             properties:
- *               orderId:
- *                 type: string
- *                 description: The ID of the order to cancel.
  *               accountId:
  *                 type: string
  *                 description: The account ID for validation.
@@ -668,18 +672,20 @@ orderRouter.put('/order/:id', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  */
-orderRouter.put('/order/cancel-order', async (req, res) => {
-  const { orderId, accountId } = req.body
+orderRouter.put('/order/:id/cancel-order', async (req, res) => {
+  const { id } = req.params
+  const { accountId } = req.body
 
   try {
-    if (!orderId) {
+    if (!id) {
       throw new Error('Order ID is required.')
     }
+
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
 
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
-        where: { id: orderId },
+        where: { id },
         include: {
           shipments: true,
         },
@@ -702,7 +708,7 @@ orderRouter.put('/order/cancel-order', async (req, res) => {
       }
 
       const updatedOrder = await tx.order.update({
-        where: { id: orderId },
+        where: { id },
         data: {
           status: ProcessStatus.CANCELED,
         },
