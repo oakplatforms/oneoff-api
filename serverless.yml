@@ -145,8 +145,8 @@ functions:
       DATABASE_URL: ${env:DATABASE_URL}
     events:
       - schedule:
-          rate: rate(1 minute)
-          description: Cancel unshipped orders (runs every 1 minute for testing)
+          rate: cron(0 17 * * ? *)
+          description: Cancel unshipped orders older than 72 hours (runs daily at noon EST)
 
 custom:
   dotenv:

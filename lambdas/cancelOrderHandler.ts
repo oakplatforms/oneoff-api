@@ -10,9 +10,15 @@ export const handler = async (event: ScheduledEvent): Promise<void> => {
   console.log('Starting cancelOrder cron job:', JSON.stringify(event, null, 2))
 
   try {
+    const seventyTwoHoursAgo = new Date()
+    seventyTwoHoursAgo.setHours(seventyTwoHoursAgo.getHours() - 72)
+
     const ordersToCancel = await prisma.order.findMany({
       where: {
         status: ProcessStatus.PENDING,
+        createdAt: {
+          lt: seventyTwoHoursAgo
+        },
         shipments: {
           some: {
             trackingStatus: {
