@@ -676,7 +676,7 @@ orderRouter.put('/order/:id', async (req, res) => {
  */
 orderRouter.put('/order/:id/cancel-order', async (req, res) => {
   const { id } = req.params
-  const { accountId, cancellationReason } = req.body
+  const { accountId } = req.body
 
   try {
     if (!id) {
@@ -706,7 +706,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
       }
 
       if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
-        throw new Error(`Order cannot be canceled. Shipment tracking status must be UNKNOWN, but current status is ${order.shipments[0].trackingStatus}.`)
+        throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
       }
 
       const updatedOrder = await tx.order.update({
@@ -733,7 +733,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
             Detail: JSON.stringify({
               orderId: result.id,
               type: 'order.canceled.customer',
-              cancellationReason: cancellationReason || 'Customer canceled the order before shipping was processed.'
+              cancellationReason: 'Customer canceled the order before shipping was processed.'
             }),
             EventBusName: 'default',
           },
@@ -743,7 +743,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
             Detail: JSON.stringify({
               orderId: result.id,
               type: 'order.canceled.seller',
-              cancellationReason: cancellationReason || 'Customer canceled the order before shipping was processed.'
+              cancellationReason: 'Customer canceled the order before shipping was processed.'
             }),
             EventBusName: 'default',
           },

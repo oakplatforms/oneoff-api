@@ -138,6 +138,16 @@ functions:
           path: /webhook/shippo
           method: POST
 
+  cancelOrder:
+    name: tcgx-api-cancel-order-${sls:stage}
+    handler: lambdas/cancelOrderHandler.handler
+    environment:
+      DATABASE_URL: ${env:DATABASE_URL}
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          description: Cancel unshipped orders (runs every 10 minutes for testing)
+
 custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}
