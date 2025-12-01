@@ -4,6 +4,8 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
+import eventBridge from '../utils/eventBridge'
+import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
@@ -674,7 +676,7 @@ orderRouter.put('/order/:id', async (req, res) => {
  */
 orderRouter.put('/order/:id/cancel-order', async (req, res) => {
   const { id } = req.params
-  const { accountId } = req.body
+  const { accountId, cancellationReason } = req.body
 
   try {
     if (!id) {
@@ -720,6 +722,36 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
 
       return updatedOrder
     })
+
+    //Send EventBridge notifications for customer and seller
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'order.canceled.customer',
+            Detail: JSON.stringify({
+              orderId: result.id,
+              type: 'order.canceled.customer',
+              cancellationReason: cancellationReason || 'Customer canceled the order before shipping was processed.'
+            }),
+            EventBusName: 'default',
+          },
+          {
+            Source: 'tcgx',
+            DetailType: 'order.canceled.seller',
+            Detail: JSON.stringify({
+              orderId: result.id,
+              type: 'order.canceled.seller',
+              cancellationReason: cancellationReason || 'Customer canceled the order before shipping was processed.'
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (err) {
+      console.warn(`Failed to send cancellation notifications for order ${result.id}:`, err)
+    }
 
     res.json({ order: result, message: 'Order canceled successfully.' })
   } catch (error) {
