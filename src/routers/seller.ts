@@ -245,6 +245,13 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           url: website,
           mcc: mcc,
         },
+        settings: {
+          payouts: {
+            schedule: {
+              interval: 'manual',
+            },
+          },
+        },
         ...(agreedToTerms ? { tos_acceptance: {
           date: Math.floor(Date.now() / 1000),
           ip: req.ip,
