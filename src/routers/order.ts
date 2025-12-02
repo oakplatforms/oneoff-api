@@ -1,4 +1,4 @@
-import { Prisma, ProcessStatus, TrackingStatus } from '@prisma/client'
+import { Prisma, ProcessStatus, TrackingStatus, ShipmentAccountType } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -707,6 +707,10 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
 
       if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
         throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
+      }
+
+      if (order.shipments[0].shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+        throw new Error(`Order cannot be canceled. Orders with untracked shipments cannot be canceled.`)
       }
 
       const updatedOrder = await tx.order.update({

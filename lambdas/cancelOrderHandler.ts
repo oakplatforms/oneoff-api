@@ -1,13 +1,11 @@
-import { ScheduledEvent } from 'aws-lambda'
-import { ProcessStatus, TrackingStatus } from '@prisma/client'
+import { ProcessStatus, TrackingStatus, ShipmentAccountType } from '@prisma/client'
 import { getPrismaClient } from '../src/utils/prismaHelpers'
 import eventBridge from '../src/utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 
 const prisma = getPrismaClient()
 
-export const handler = async (event: ScheduledEvent): Promise<void> => {
-  console.log('Starting cancelOrder cron job:', JSON.stringify(event, null, 2))
+export const handler = async (): Promise<void> => {
 
   try {
     const seventyTwoHoursAgo = new Date()
@@ -33,13 +31,9 @@ export const handler = async (event: ScheduledEvent): Promise<void> => {
       },
     })
 
-    console.log(`Found ${ordersToCancel.length} orders to cancel`)
-
     const validOrders = ordersToCancel.filter(
       order => order.shipments && order.shipments.length > 0
     )
-
-    console.log(`Processing ${validOrders.length} valid orders`)
 
     for (const order of validOrders) {
       const firstShipment = order.shipments[0]
@@ -48,6 +42,11 @@ export const handler = async (event: ScheduledEvent): Promise<void> => {
         firstShipment.trackingStatus !== TrackingStatus.PRE_TRANSIT
       ) {
         console.log(`Skipping order ${order.id} - tracking status changed: ${firstShipment.trackingStatus}`)
+        continue
+      }
+
+      if (firstShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+        console.log(`Skipping order ${order.id} - shipment is untracked and cannot be canceled`)
         continue
       }
 
@@ -92,7 +91,6 @@ export const handler = async (event: ScheduledEvent): Promise<void> => {
               },
             ],
           }))
-          console.log(`Successfully canceled order ${updatedOrder.id} and sent notifications`)
         } catch (err) {
           console.warn(`Failed to send cancellation notifications for order ${updatedOrder.id}:`, err)
         }
@@ -100,8 +98,6 @@ export const handler = async (event: ScheduledEvent): Promise<void> => {
         console.error(`Failed to cancel order ${order.id}:`, err)
       }
     }
-
-    console.log(`Completed cancelOrder cron job. Processed ${validOrders.length} orders`)
   } catch (error) {
     console.error('Error in cancelOrder cron job:', error)
     throw error
