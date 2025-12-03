@@ -685,7 +685,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
 
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
         include: {
@@ -709,22 +709,12 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
       }
 
-      if (order.shipments[0].shipmentAccountType === ShipmentAccountType.UNTRACKED) {
-        throw new Error(`Order cannot be canceled. Orders with untracked shipments cannot be canceled.`)
-      }
-
-      const updatedOrder = await tx.order.update({
+      await tx.order.update({
         where: { id },
         data: {
           status: ProcessStatus.CANCELED,
         },
-        include: {
-          shipments: true,
-          shippingMethod: true,
-        },
       })
-
-      return updatedOrder
     })
 
     //Send EventBridge notifications for customer and seller
@@ -735,7 +725,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
             Source: 'tcgx',
             DetailType: 'order.canceled.customer',
             Detail: JSON.stringify({
-              orderId: result.id,
+              orderId: id,
               type: 'order.canceled.customer',
               cancellationReason: 'Customer canceled the order before shipping was processed.'
             }),
@@ -745,7 +735,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
             Source: 'tcgx',
             DetailType: 'order.canceled.seller',
             Detail: JSON.stringify({
-              orderId: result.id,
+              orderId: id,
               type: 'order.canceled.seller',
               cancellationReason: 'Customer canceled the order before shipping was processed.'
             }),
@@ -754,14 +744,158 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         ],
       }))
     } catch (err) {
-      console.warn(`Failed to send cancellation notifications for order ${result.id}:`, err)
+      console.warn(`Failed to send cancellation notifications for order ${id}:`, err)
     }
 
-    res.json({ order: result, message: 'Order canceled successfully.' })
+    res.json({ message: 'Order canceled successfully.' })
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CANCEL_ORDER_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to cancel order.' })
+  }
+})
+
+/**
+ * @openapi
+ * /order/{id}/accept-order:
+ *   put:
+ *     tags:
+ *       - Order
+ *     summary: Accept an order.
+ *     description: Accepts an order by updating the first shipment's tracking status to PRE_TRANSIT. The order must have at least one shipment with UNKNOWN tracking status.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the order to accept.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accountId
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *     responses:
+ *       '200':
+ *         description: Successfully accepted the order.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 order:
+ *                   $ref: '#/components/schemas/Order'
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters, invalid request, or order cannot be accepted (no shipments or shipment tracking status is not UNKNOWN).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Order not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during acceptance.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+orderRouter.put('/order/:id/accept-order', async (req, res) => {
+  const { id } = req.params
+  const { accountId } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('Order ID is required.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          shipments: true,
+        },
+      })
+
+      if (!order) {
+        throw new Error('Order not found.')
+      }
+
+      if (!order.shipments || order.shipments.length === 0) {
+        throw new Error('Order cannot be accepted. Order must have at least one shipment.')
+      }
+
+      if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
+        throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
+      }
+
+      //Update the first shipment's tracking status to PRE_TRANSIT
+      await tx.shipment.update({
+        where: { id: order.shipments[0].id },
+        data: {
+          trackingStatus: TrackingStatus.PRE_TRANSIT,
+        },
+      })
+
+      //If shipment is UNTRACKED, also update order status to COMPLETED
+      if (order.shipments[0].shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+        await tx.order.update({
+          where: { id },
+          data: {
+            status: ProcessStatus.COMPLETED,
+          },
+        })
+      }
+    })
+
+    //Send EventBridge notification for customer only
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'order.accepted.customer',
+            Detail: JSON.stringify({
+              orderId: id,
+              type: 'order.accepted.customer',
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (err) {
+      console.warn(`Failed to send acceptance notification for order ${id}:`, err)
+    }
+
+    res.json({ message: 'Order accepted successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('ACCEPT_ORDER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to accept order.' })
   }
 })
 
