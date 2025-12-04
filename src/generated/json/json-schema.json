@@ -2381,6 +2381,26 @@
             "null"
           ]
         },
+        "paymentIntentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isRefund": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "deliveredAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
         "cart": {
           "anyOf": [
             {

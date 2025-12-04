@@ -1,21 +1,22 @@
-import { ProcessStatus, TrackingStatus, ShipmentAccountType } from '@prisma/client'
+import { ProcessStatus, TrackingStatus } from '@prisma/client'
 import { getPrismaClient } from '../src/utils/prismaHelpers'
 import eventBridge from '../src/utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import stripe from '../src/utils/stripe'
 
 const prisma = getPrismaClient()
 
 export const handler = async (): Promise<void> => {
 
   try {
-    const seventyTwoHoursAgo = new Date()
-    seventyTwoHoursAgo.setHours(seventyTwoHoursAgo.getHours() - 72)
+    const ninetySixHoursAgo = new Date()
+    ninetySixHoursAgo.setHours(ninetySixHoursAgo.getHours() - 96)
 
     const ordersToCancel = await prisma.order.findMany({
       where: {
         status: ProcessStatus.PENDING,
         createdAt: {
-          lt: seventyTwoHoursAgo
+          lt: ninetySixHoursAgo
         },
         shipments: {
           some: {
@@ -45,13 +46,24 @@ export const handler = async (): Promise<void> => {
         continue
       }
 
-      if (firstShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
-        console.log(`Skipping order ${order.id} - shipment is untracked and cannot be canceled`)
-        continue
-      }
-
       try {
         const updatedOrder = await prisma.$transaction(async (tx) => {
+          const orderToCancel = await tx.order.findUnique({
+            where: { id: order.id },
+            include: {
+              shipments: true,
+              shippingMethod: true,
+            },
+          })
+
+          if (!orderToCancel) {
+            throw new Error(`Order ${order.id} not found`)
+          }
+
+          if (orderToCancel.paymentIntentId) {
+            await stripe.paymentIntents.cancel(orderToCancel.paymentIntentId)
+          }
+
           const updated = await tx.order.update({
             where: { id: order.id },
             data: {

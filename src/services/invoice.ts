@@ -50,7 +50,7 @@ const createPaymentIntent = async (
     currency: 'usd',
     customer: customerId,
     payment_method: paymentMethodId as string,
-    confirm: true,
+    capture_method: 'manual',
     description: `Charged by seller ${order?.seller?.firstName ?? ''} ${order?.seller?.lastName ?? ''}`,
     transfer_data: {
       destination: sellerId,
@@ -179,7 +179,14 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         })
       }
 
-      await createPaymentIntent(pendingOrder as OrderWithRelations)
+      const { paymentIntent } = await createPaymentIntent(pendingOrder as OrderWithRelations)
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentIntentId: paymentIntent.id,
+        },
+      })
     }
 
     await tx.invoice.deleteMany({

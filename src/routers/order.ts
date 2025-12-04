@@ -6,6 +6,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import stripe from '../utils/stripe'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
@@ -709,6 +710,10 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
       }
 
+      if (order.paymentIntentId) {
+        await stripe.paymentIntents.cancel(order.paymentIntentId)
+      }
+
       await tx.order.update({
         where: { id },
         data: {
@@ -853,7 +858,12 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
       }
 
-      //Update the first shipment's tracking status to PRE_TRANSIT
+      if (!order.paymentIntentId) {
+        throw new Error('Order payment intent not found. Cannot capture payment.')
+      }
+
+      await stripe.paymentIntents.capture(order.paymentIntentId)
+
       await tx.shipment.update({
         where: { id: order.shipments[0].id },
         data: {

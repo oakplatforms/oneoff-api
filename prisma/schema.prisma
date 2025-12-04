@@ -763,13 +763,15 @@ model Order {
   id        String   @id @default(cuid())
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+  deliveredAt DateTime?
 
   // custom
-  status   ProcessStatus
-  subTotal Decimal?      @db.Decimal(10, 2)
-  tax      Decimal?      @db.Decimal(10, 2)
-  shipping Decimal?      @db.Decimal(10, 2)
-  total    Decimal?      @db.Decimal(10, 2)
+  status         ProcessStatus
+  subTotal       Decimal?      @db.Decimal(10, 2)
+  tax            Decimal?      @db.Decimal(10, 2)
+  shipping       Decimal?      @db.Decimal(10, 2)
+  total          Decimal?      @db.Decimal(10, 2)
+  paymentIntentId String?
 
   // relations
   cart                 Cart?                 @relation(fields: [cartId], references: [id], onDelete: Cascade)
