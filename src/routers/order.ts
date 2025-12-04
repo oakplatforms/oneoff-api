@@ -4,8 +4,6 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
-import eventBridge from '../utils/eventBridge'
-import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import stripe from '../utils/stripe'
 
 const prisma = getPrismaClient()
@@ -610,158 +608,6 @@ orderRouter.put('/order/:id', async (req, res) => {
 
 /**
  * @openapi
- * /order/{id}/cancel-order:
- *   put:
- *     tags:
- *       - Order
- *     summary: Cancel an order.
- *     description: Cancels an order by setting its status to CANCELED. The order must be in PENDING status and the first shipment must have UNKNOWN tracking status.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the order to cancel.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: The account ID for validation.
- *     responses:
- *       '200':
- *         description: Successfully canceled the order.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 order:
- *                   $ref: '#/components/schemas/Order'
- *                 message:
- *                   type: string
- *       '400':
- *         description: Missing required parameters, invalid request, or order cannot be canceled (not in PENDING status or shipment tracking status is not UNKNOWN).
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '404':
- *         description: Order not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Internal Server Error during cancellation.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-orderRouter.put('/order/:id/cancel-order', async (req, res) => {
-  const { id } = req.params
-  const { accountId } = req.body
-
-  try {
-    if (!id) {
-      throw new Error('Order ID is required.')
-    }
-
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-
-    await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id },
-        include: {
-          shipments: true,
-        },
-      })
-
-      if (!order) {
-        throw new Error('Order not found.')
-      }
-
-      if (order.status !== ProcessStatus.PENDING) {
-        throw new Error(`Order cannot be canceled. Order status must be PENDING, but current status is ${order.status}.`)
-      }
-
-      if (!order.shipments || order.shipments.length === 0) {
-        throw new Error('Order cannot be canceled. Order must have at least one shipment.')
-      }
-
-      if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
-        throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
-      }
-
-      if (order.paymentIntentId) {
-        await stripe.paymentIntents.cancel(order.paymentIntentId)
-      }
-
-      await tx.order.update({
-        where: { id },
-        data: {
-          status: ProcessStatus.CANCELED,
-        },
-      })
-    })
-
-    //Send EventBridge notifications for customer and seller
-    try {
-      await eventBridge.send(new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'tcgx',
-            DetailType: 'order.canceled.customer',
-            Detail: JSON.stringify({
-              orderId: id,
-              type: 'order.canceled.customer',
-              cancellationReason: 'Customer canceled the order before shipping was processed.'
-            }),
-            EventBusName: 'default',
-          },
-          {
-            Source: 'tcgx',
-            DetailType: 'order.canceled.seller',
-            Detail: JSON.stringify({
-              orderId: id,
-              type: 'order.canceled.seller',
-              cancellationReason: 'Customer canceled the order before shipping was processed.'
-            }),
-            EventBusName: 'default',
-          },
-        ],
-      }))
-    } catch (err) {
-      console.warn(`Failed to send cancellation notifications for order ${id}:`, err)
-    }
-
-    res.json({ message: 'Order canceled successfully.' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CANCEL_ORDER_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to cancel order.' })
-  }
-})
-
-/**
- * @openapi
  * /order/{id}/accept-order:
  *   put:
  *     tags:
@@ -862,6 +708,10 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order payment intent not found. Cannot capture payment.')
       }
 
+      //Confirm the payment intent first (moves from requires_confirmation to requires_capture)
+      await stripe.paymentIntents.confirm(order.paymentIntentId)
+
+      //Then capture it (moves from requires_capture to succeeded)
       await stripe.paymentIntents.capture(order.paymentIntentId)
 
       await tx.shipment.update({
