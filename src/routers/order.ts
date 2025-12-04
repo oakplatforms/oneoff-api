@@ -869,17 +869,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
               cancellationReason: 'Seller declined to ship the order.'
             }),
             EventBusName: 'default',
-          },
-          {
-            Source: 'tcgx',
-            DetailType: 'order.canceled.seller',
-            Detail: JSON.stringify({
-              orderId: id,
-              type: 'order.canceled.seller',
-              cancellationReason: 'Seller declined to ship the order.'
-            }),
-            EventBusName: 'default',
-          },
+          }
         ],
       }))
     } catch (err) {
