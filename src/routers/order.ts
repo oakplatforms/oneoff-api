@@ -872,25 +872,6 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       }
     })
 
-    //Send EventBridge notification for customer only
-    try {
-      await eventBridge.send(new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'tcgx',
-            DetailType: 'order.accepted.customer',
-            Detail: JSON.stringify({
-              orderId: id,
-              type: 'order.accepted.customer',
-            }),
-            EventBusName: 'default',
-          },
-        ],
-      }))
-    } catch (err) {
-      console.warn(`Failed to send acceptance notification for order ${id}:`, err)
-    }
-
     res.json({ message: 'Order accepted successfully.' })
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
