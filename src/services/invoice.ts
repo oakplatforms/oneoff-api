@@ -20,6 +20,7 @@ export type OrderDetails = {
 type OrderWithRelations = Order & {
  customer: { paymentAccountId: string | null } | null
  seller: { paymentAccountId: string | null, firstName?: string, lastName?: string } | null
+ shipments: Array<{ rate: number | string | { toString(): string }, shipmentAccountType: string }>
 }
 
 const createPaymentIntent = async (
@@ -44,7 +45,18 @@ const createPaymentIntent = async (
     throw new Error('Invalid price format.')
   }
 
-  const totalAmount = Math.round(total * 100)
+  const shipmentRate = order.shipments?.[0]?.rate
+    ? Number(order.shipments[0].rate)
+    : 0
+  const shipmentRateInCents = Math.round(shipmentRate * 100)
+  const totalAmount = Math.round(total * 100) + shipmentRateInCents
+
+  const isUntracked = order.shipments?.[0]?.shipmentAccountType === 'UNTRACKED'
+  const baseApplicationFee = Math.round(totalAmount * 0.05) + 40
+  const application_fee_amount = isUntracked
+    ? baseApplicationFee
+    : baseApplicationFee + shipmentRateInCents
+
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalAmount,
     currency: 'usd',
@@ -55,7 +67,7 @@ const createPaymentIntent = async (
     transfer_data: {
       destination: sellerId,
     },
-    application_fee_amount: Math.round(totalAmount * 0.05) + 40,
+    application_fee_amount,
     automatic_payment_methods: {
       enabled: true,
       allow_redirects: 'never',

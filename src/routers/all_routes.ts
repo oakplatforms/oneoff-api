@@ -28,6 +28,7 @@ import { conditionRouter } from './condition'
 import { productRouter } from './product'
 import { setRouter } from './set'
 import { warmupRouter } from './warmup'
+import { refundRouter } from './refund'
 
 router.use(warmupRouter)
 router.use(userRouter)
@@ -57,5 +58,6 @@ router.use(profileRouter)
 router.use(conditionRouter)
 router.use(productRouter)
 router.use(setRouter)
+router.use(refundRouter)
 
 export default router

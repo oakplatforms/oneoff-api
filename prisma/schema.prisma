@@ -131,6 +131,22 @@ enum ShipmentType {
   RETURN
 }
 
+enum RefundType {
+  DAMAGE
+  WRONG_PRODUCT
+  COUNTERFEIT
+  NOT_AS_DESCRIBED
+  DEFECTIVE
+  MISSING_ITEMS
+  OTHER
+}
+
+enum RefundStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 model User {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -790,6 +806,7 @@ model Order {
   orderShippingOptions OrderShippingOption[]
   offer                Offer?                @relation(fields: [offerId], references: [id], onDelete: Cascade)
   offerId              String?               @unique
+  refund               Refund?
 
   @@index([customerId])
   @@index([sellerId])
@@ -916,4 +933,26 @@ model OrderShippingOption {
   shippingOptionId String
 
   @@id([orderId, shippingOptionId])
+}
+
+model Refund {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // custom
+  description        String?
+  reason             String?
+  type               RefundType
+  status             RefundStatus @default(PENDING)
+  image              String?
+  sellerDeclineReason String?
+
+  // relations
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String @unique
+
+  @@index([orderId])
+  @@index([status])
+  @@index([type])
 }
