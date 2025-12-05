@@ -45,17 +45,8 @@ const createPaymentIntent = async (
     throw new Error('Invalid price format.')
   }
 
-  const shipmentRate = order.shipments?.[0]?.rate
-    ? Number(order.shipments[0].rate)
-    : 0
-  const shipmentRateInCents = Math.round(shipmentRate * 100)
-  const totalAmount = Math.round(total * 100) + shipmentRateInCents
-
-  const isUntracked = order.shipments?.[0]?.shipmentAccountType === 'UNTRACKED'
-  const baseApplicationFee = Math.round(totalAmount * 0.05) + 40
-  const application_fee_amount = isUntracked
-    ? baseApplicationFee
-    : baseApplicationFee + shipmentRateInCents
+  const totalAmount = Math.round(total * 100)
+  const application_fee_amount = Math.round(totalAmount * 0.05) + 40
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalAmount,
