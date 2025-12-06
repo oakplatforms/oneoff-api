@@ -279,7 +279,8 @@ orderRouter.post('/order', async (req, res) => {
     cartId,
     listingsInOrder,
     offerId,
-    accountId
+    accountId,
+    status
   }: {
     customerId?: string
     sellerId?: string
@@ -287,9 +288,13 @@ orderRouter.post('/order', async (req, res) => {
     listingsInOrder?: ListingsInOrder
     offerId?: string
     accountId?: string
+    status?: ProcessStatus
   } = req.body
 
   try {
+    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED) {
+      throw new Error(`Cannot create an order with ${status} status.`)
+    }
     if (!customerId || !sellerId || !listingsInOrder) {
       throw new Error('Missing required fields in request body.')
     }
@@ -437,7 +442,8 @@ orderRouter.put('/order/:id', async (req, res) => {
     shippingMethodId,
     listingsInOrder,
     orderShippingOptions,
-    accountId
+    accountId,
+    status
   }: {
     customerId?: string
     sellerId?: string
@@ -446,9 +452,13 @@ orderRouter.put('/order/:id', async (req, res) => {
     listingsInOrder?: ListingsInOrder
     orderShippingOptions?: OrderShippingOptionsPayload
     accountId?: string
+    status?: ProcessStatus
   } = req.body
 
   try {
+    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED) {
+      throw new Error(`Cannot update an order to ${status} status via PUT endpoint.`)
+    }
     if (!id) {
       throw new Error('Order ID is required')
     }
