@@ -1,3 +1,4 @@
+import { ProcessStatus } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 
 const prisma = getPrismaClient()
@@ -63,6 +64,17 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
     })
 
     console.log(`Updated Shipment ${shipment.id}: trackingStatus ${previousStatus} → ${mappedStatus}`)
+
+    //If status changed to DELIVERED, update order status to COMPLETED
+    if (mappedStatus === 'DELIVERED' && shipment.orderId) {
+      await prisma.order.update({
+        where: { id: shipment.orderId },
+        data: {
+          status: ProcessStatus.COMPLETED,
+        },
+      })
+      console.log(`Updated Order ${shipment.orderId}: status → COMPLETED`)
+    }
 
     return {
       orderId: shipment.orderId,

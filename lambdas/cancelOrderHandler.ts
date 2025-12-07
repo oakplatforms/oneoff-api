@@ -9,14 +9,14 @@ const prisma = getPrismaClient()
 export const handler = async (): Promise<void> => {
 
   try {
-    const ninetySixHoursAgo = new Date()
-    ninetySixHoursAgo.setHours(ninetySixHoursAgo.getHours() - 96)
+    const eightyFourHoursAgo = new Date()
+    eightyFourHoursAgo.setHours(eightyFourHoursAgo.getHours() - 84)
 
     const ordersToCancel = await prisma.order.findMany({
       where: {
         status: ProcessStatus.PENDING,
         createdAt: {
-          lt: ninetySixHoursAgo
+          lt: eightyFourHoursAgo
         },
         shipments: {
           some: {

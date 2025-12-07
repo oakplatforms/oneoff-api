@@ -4,6 +4,8 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
+import eventBridge from '../utils/eventBridge'
+import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 
 const prisma = getPrismaClient()
 export const refundRouter = express.Router()
@@ -145,11 +147,15 @@ refundRouter.get('/refunds', async (req, res) => {
  *         description: Internal Server Error.
  */
 refundRouter.post('/refund', async (req, res) => {
-  const { orderId, type, reason, image, accountId } = req.body
+  const { orderId, type, reason, image, accountId, status } = req.body
 
   try {
     if (!orderId || !type || !accountId) {
       throw new Error('Missing required fields: orderId, type, and accountId are required.')
+    }
+
+    if (status === RefundStatus.ACCEPTED || status === RefundStatus.DECLINED) {
+      throw new Error(`Cannot create a refund with ${status} status.`)
     }
 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
@@ -195,6 +201,25 @@ refundRouter.post('/refund', async (req, res) => {
         order: true,
       },
     })
+
+    //Send EventBridge notification to seller
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'order.refund.request.seller',
+            Detail: JSON.stringify({
+              orderId: newRefund.orderId,
+              type: 'order.refund.request.seller',
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (err) {
+      console.warn(`Failed to send refund request notification to seller for refund ${newRefund.id}:`, err)
+    }
 
     res.json(newRefund)
   } catch (error) {
@@ -269,7 +294,7 @@ refundRouter.get('/refund/:id', async (req, res) => {
  *     tags:
  *       - Refund
  *     summary: Update a refund request
- *     description: Updates a refund request. Sellers can accept or decline refunds. Customers can update their refund request if it's still pending.
+ *     description: Updates a refund request. Customers can update their refund request if it's still pending. Status cannot be set to ACCEPTED or DECLINED via this endpoint; use the accept-refund or decline-refund endpoints instead.
  *     parameters:
  *       - in: path
  *         name: id
@@ -286,11 +311,8 @@ refundRouter.get('/refund/:id', async (req, res) => {
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [PENDING, ACCEPTED, DECLINED]
- *                 description: New status for the refund (only sellers can change to ACCEPTED or DECLINED).
- *               sellerDeclineReason:
- *                 type: string
- *                 description: Reason for declining the refund (required when status is DECLINED).
+ *                 enum: [PENDING]
+ *                 description: New status for the refund. Cannot be set to ACCEPTED or DECLINED via this endpoint.
  *               reason:
  *                 type: string
  *                 description: Updated reason (only if status is PENDING).
@@ -308,7 +330,7 @@ refundRouter.get('/refund/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Refund'
  *       '400':
- *         description: Invalid request (e.g., missing sellerDeclineReason when declining).
+ *         description: Invalid request (e.g., attempting to set status to ACCEPTED or DECLINED).
  *       '404':
  *         description: Refund not found.
  *       '500':
@@ -316,11 +338,15 @@ refundRouter.get('/refund/:id', async (req, res) => {
  */
 refundRouter.put('/refund/:id', async (req, res) => {
   const { id } = req.params
-  const { status, sellerDeclineReason, reason, image, accountId } = req.body
+  const { status, reason, image, accountId } = req.body
 
   try {
     if (!id) {
       throw new Error('Refund ID is required.')
+    }
+
+    if (status === RefundStatus.ACCEPTED || status === RefundStatus.DECLINED) {
+      throw new Error(`Cannot update a refund to ${status} status via PUT endpoint.`)
     }
 
     if (!accountId) {
@@ -362,23 +388,7 @@ refundRouter.put('/refund/:id', async (req, res) => {
     const updateData: Prisma.RefundUpdateInput = {}
 
     if (status) {
-      const newStatus = status as RefundStatus
-
-      //Only sellers can accept or decline
-      if ((newStatus === RefundStatus.ACCEPTED || newStatus === RefundStatus.DECLINED) && !isSeller) {
-        throw new Error('Only sellers can accept or decline refund requests.')
-      }
-
-      //If declining, require a decline reason
-      if (newStatus === RefundStatus.DECLINED && !sellerDeclineReason) {
-        throw new Error('sellerDeclineReason is required when declining a refund.')
-      }
-
-      updateData.status = newStatus
-
-      if (newStatus === RefundStatus.DECLINED && sellerDeclineReason) {
-        updateData.sellerDeclineReason = sellerDeclineReason
-      }
+      updateData.status = status as RefundStatus
     }
 
     //Customers can only update reason or image if status is PENDING
@@ -407,6 +417,313 @@ refundRouter.put('/refund/:id', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPDATE_REFUND_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to update refund.' })
+  }
+})
+
+/**
+ * @openapi
+ * /refund/{id}/accept-refund:
+ *   put:
+ *     tags:
+ *       - Refund
+ *     summary: Accept a refund request.
+ *     description: Accepts a refund request by updating its status to ACCEPTED. Only sellers can accept refund requests for their orders. The refund must be in PENDING status.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the refund to accept.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accountId
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *     responses:
+ *       '200':
+ *         description: Successfully accepted the refund.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 refund:
+ *                   $ref: '#/components/schemas/Refund'
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters, invalid request, or refund cannot be accepted (not in PENDING status).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Refund not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during acceptance.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
+  const { id } = req.params
+  const { accountId } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('Refund ID is required.')
+    }
+
+    if (!accountId) {
+      throw new Error('Account ID is required.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    let refundOrderId: string | undefined
+
+    await prisma.$transaction(async (tx) => {
+      const refund = await tx.refund.findUnique({
+        where: { id },
+        include: {
+          order: {
+            include: {
+              seller: {
+                include: {
+                  account: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      if (!refund) {
+        throw new Error('Refund not found.')
+      }
+
+      refundOrderId = refund.orderId
+
+      if (refund.order?.seller?.accountId !== accountId) {
+        throw new Error('You can only accept refund requests for your own orders.')
+      }
+
+      if (refund.status !== RefundStatus.PENDING) {
+        throw new Error(`Refund cannot be accepted. Refund status must be PENDING, but current status is ${refund.status}.`)
+      }
+
+      await tx.refund.update({
+        where: { id },
+        data: {
+          status: RefundStatus.ACCEPTED,
+        },
+      })
+    })
+
+    //Send EventBridge notification to customer
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'order.refund.accepted.customer',
+            Detail: JSON.stringify({
+              orderId: refundOrderId,
+              type: 'order.refund.accepted.customer',
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (err) {
+      console.warn(`Failed to send refund accepted notification to customer for refund ${id}:`, err)
+    }
+
+    res.json({ message: 'Refund accepted successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('ACCEPT_REFUND_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to accept refund.' })
+  }
+})
+
+/**
+ * @openapi
+ * /refund/{id}/decline-refund:
+ *   put:
+ *     tags:
+ *       - Refund
+ *     summary: Decline a refund request.
+ *     description: Declines a refund request by updating its status to DECLINED. Only sellers can decline refund requests for their orders. The refund must be in PENDING status and a sellerDeclineReason is required.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the refund to decline.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accountId
+ *               - sellerDeclineReason
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *               sellerDeclineReason:
+ *                 type: string
+ *                 description: Reason for declining the refund request.
+ *     responses:
+ *       '200':
+ *         description: Successfully declined the refund.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 refund:
+ *                   $ref: '#/components/schemas/Refund'
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters, invalid request, or refund cannot be declined (not in PENDING status or missing sellerDeclineReason).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Refund not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during decline.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+refundRouter.put('/refund/:id/decline-refund', async (req, res) => {
+  const { id } = req.params
+  const { accountId, sellerDeclineReason } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('Refund ID is required.')
+    }
+
+    if (!accountId) {
+      throw new Error('Account ID is required.')
+    }
+
+    if (!sellerDeclineReason) {
+      throw new Error('sellerDeclineReason is required when declining a refund.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    let refundOrderId: string | undefined
+
+    await prisma.$transaction(async (tx) => {
+      const refund = await tx.refund.findUnique({
+        where: { id },
+        include: {
+          order: {
+            include: {
+              seller: {
+                include: {
+                  account: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      if (!refund) {
+        throw new Error('Refund not found.')
+      }
+
+      refundOrderId = refund.orderId
+
+      if (refund.order?.seller?.accountId !== accountId) {
+        throw new Error('You can only decline refund requests for your own orders.')
+      }
+
+      if (refund.status !== RefundStatus.PENDING) {
+        throw new Error(`Refund cannot be declined. Refund status must be PENDING, but current status is ${refund.status}.`)
+      }
+
+      await tx.refund.update({
+        where: { id },
+        data: {
+          status: RefundStatus.DECLINED,
+          sellerDeclineReason,
+        },
+      })
+    })
+
+    //Send EventBridge notification to customer
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'order.refund.declined.customer',
+            Detail: JSON.stringify({
+              orderId: refundOrderId,
+              type: 'order.refund.declined.customer',
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (err) {
+      console.warn(`Failed to send refund declined notification to customer for refund ${id}:`, err)
+    }
+
+    res.json({ message: 'Refund declined successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DECLINE_REFUND_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to decline refund.' })
   }
 })
 
