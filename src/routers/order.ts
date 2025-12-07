@@ -701,11 +701,20 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         where: { id },
         include: {
           shipments: true,
+          seller: {
+            include: {
+              account: true,
+            },
+          },
         },
       })
 
       if (!order) {
         throw new Error('Order not found.')
+      }
+
+      if (order.seller?.accountId !== accountId) {
+        throw new Error('You can only accept orders for your own listings.')
       }
 
       if (!order.shipments || order.shipments.length === 0) {
@@ -835,11 +844,20 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         where: { id },
         include: {
           shipments: true,
+          seller: {
+            include: {
+              account: true,
+            },
+          },
         },
       })
 
       if (!order) {
         throw new Error('Order not found.')
+      }
+
+      if (order.seller?.accountId !== accountId) {
+        throw new Error('You can only cancel orders for your own listings.')
       }
 
       if (order.status !== ProcessStatus.PENDING) {
