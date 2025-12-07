@@ -834,6 +834,28 @@ model OrderListing {
   @@id([orderId, listingId])
 }
 
+model Refund {
+  id                  String   @id @default(cuid())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  refundedAt          DateTime?
+
+  // custom
+  reason              String?
+  type                RefundType
+  status              RefundStatus @default(PENDING)
+  image               String?
+
+  // relations
+  order               Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId             String @unique
+
+  @@index([orderId])
+  @@index([status])
+  @@index([type])
+}
+
+
 model Transaction {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -933,26 +955,4 @@ model OrderShippingOption {
   shippingOptionId String
 
   @@id([orderId, shippingOptionId])
-}
-
-model Refund {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  description        String?
-  reason             String?
-  type               RefundType
-  status             RefundStatus @default(PENDING)
-  image              String?
-  sellerDeclineReason String?
-
-  // relations
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId String @unique
-
-  @@index([orderId])
-  @@index([status])
-  @@index([type])
 }

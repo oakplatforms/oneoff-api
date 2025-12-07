@@ -2560,6 +2560,68 @@
         }
       }
     },
+    "Refund": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "refundedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "DAMAGE",
+            "WRONG_PRODUCT",
+            "COUNTERFEIT",
+            "NOT_AS_DESCRIBED",
+            "DEFECTIVE",
+            "MISSING_ITEMS",
+            "OTHER"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "default": "PENDING",
+          "enum": [
+            "PENDING",
+            "ACCEPTED",
+            "DECLINED"
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "order": {
+          "$ref": "#/definitions/Order"
+        },
+        "orderId": {
+          "type": "string"
+        }
+      }
+    },
     "Transaction": {
       "type": "object",
       "properties": {
@@ -2894,73 +2956,6 @@
           "type": "string"
         }
       }
-    },
-    "Refund": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "description": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "reason": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "DAMAGE",
-            "WRONG_PRODUCT",
-            "COUNTERFEIT",
-            "NOT_AS_DESCRIBED",
-            "DEFECTIVE",
-            "MISSING_ITEMS",
-            "OTHER"
-          ]
-        },
-        "status": {
-          "type": "string",
-          "default": "PENDING",
-          "enum": [
-            "PENDING",
-            "ACCEPTED",
-            "DECLINED"
-          ]
-        },
-        "image": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "sellerDeclineReason": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "order": {
-          "$ref": "#/definitions/Order"
-        },
-        "orderId": {
-          "type": "string"
-        }
-      }
     }
   },
   "type": "object",
@@ -3055,6 +3050,9 @@
     "orderListing": {
       "$ref": "#/definitions/OrderListing"
     },
+    "refund": {
+      "$ref": "#/definitions/Refund"
+    },
     "transaction": {
       "$ref": "#/definitions/Transaction"
     },
@@ -3069,9 +3067,6 @@
     },
     "orderShippingOption": {
       "$ref": "#/definitions/OrderShippingOption"
-    },
-    "refund": {
-      "$ref": "#/definitions/Refund"
     }
   }
 }

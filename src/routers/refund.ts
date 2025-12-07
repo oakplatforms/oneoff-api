@@ -576,7 +576,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
  *     tags:
  *       - Refund
  *     summary: Decline a refund request.
- *     description: Declines a refund request by updating its status to DECLINED. Only sellers can decline refund requests for their orders. The refund must be in PENDING status and a sellerDeclineReason is required.
+ *     description: Declines a refund request by updating its status to DECLINED. Only sellers can decline refund requests for their orders. The refund must be in PENDING status.
  *     parameters:
  *       - in: path
  *         name: id
@@ -592,14 +592,10 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
  *             type: object
  *             required:
  *               - accountId
- *               - sellerDeclineReason
  *             properties:
  *               accountId:
  *                 type: string
  *                 description: The account ID for validation.
- *               sellerDeclineReason:
- *                 type: string
- *                 description: Reason for declining the refund request.
  *     responses:
  *       '200':
  *         description: Successfully declined the refund.
@@ -613,7 +609,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
  *                 message:
  *                   type: string
  *       '400':
- *         description: Missing required parameters, invalid request, or refund cannot be declined (not in PENDING status or missing sellerDeclineReason).
+ *         description: Missing required parameters, invalid request, or refund cannot be declined (not in PENDING status).
  *         content:
  *           application/json:
  *             schema:
@@ -642,7 +638,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
  */
 refundRouter.put('/refund/:id/decline-refund', async (req, res) => {
   const { id } = req.params
-  const { accountId, sellerDeclineReason } = req.body
+  const { accountId } = req.body
 
   try {
     if (!id) {
@@ -651,10 +647,6 @@ refundRouter.put('/refund/:id/decline-refund', async (req, res) => {
 
     if (!accountId) {
       throw new Error('Account ID is required.')
-    }
-
-    if (!sellerDeclineReason) {
-      throw new Error('sellerDeclineReason is required when declining a refund.')
     }
 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
@@ -695,7 +687,6 @@ refundRouter.put('/refund/:id/decline-refund', async (req, res) => {
         where: { id },
         data: {
           status: RefundStatus.DECLINED,
-          sellerDeclineReason,
         },
       })
     })
