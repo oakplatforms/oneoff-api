@@ -1,6 +1,5 @@
 import { ProcessStatus } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
-import stripe from '../utils/stripe'
 
 const prisma = getPrismaClient()
 
@@ -65,16 +64,6 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
     })
 
     console.log(`Updated Shipment ${shipment.id}: trackingStatus ${previousStatus} → ${mappedStatus}`)
-
-    //If status changed to TRANSIT, capture payment
-    if (mappedStatus === 'TRANSIT' && shipment.orderId && shipment.order?.paymentIntentId) {
-      //Confirm the payment intent first (moves from requires_confirmation to requires_capture)
-      await stripe.paymentIntents.confirm(shipment.order.paymentIntentId)
-
-      //Then capture it (moves from requires_capture to succeeded)
-      await stripe.paymentIntents.capture(shipment.order.paymentIntentId)
-      console.log(`Captured payment for Order ${shipment.orderId}`)
-    }
 
     //If status changed to DELIVERED, update order status to COMPLETED
     if (mappedStatus === 'DELIVERED' && shipment.orderId) {
