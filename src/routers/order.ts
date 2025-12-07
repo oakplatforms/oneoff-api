@@ -725,16 +725,6 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
       }
 
-      if (!order.paymentIntentId) {
-        throw new Error('Order payment intent not found. Cannot capture payment.')
-      }
-
-      //Confirm the payment intent first (moves from requires_confirmation to requires_capture)
-      await stripe.paymentIntents.confirm(order.paymentIntentId)
-
-      //Then capture it (moves from requires_capture to succeeded)
-      await stripe.paymentIntents.capture(order.paymentIntentId)
-
       await tx.shipment.update({
         where: { id: order.shipments[0].id },
         data: {
@@ -744,6 +734,16 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
 
       //If shipment is UNTRACKED, also update order status to COMPLETED
       if (order.shipments[0].shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+        if (!order.paymentIntentId) {
+          throw new Error('Order payment intent not found. Cannot capture payment.')
+        }
+
+        //Confirm the payment intent first (moves from requires_confirmation to requires_capture)
+        await stripe.paymentIntents.confirm(order.paymentIntentId)
+
+        //Then capture it (moves from requires_capture to succeeded)
+        await stripe.paymentIntents.capture(order.paymentIntentId)
+
         await tx.order.update({
           where: { id },
           data: {
