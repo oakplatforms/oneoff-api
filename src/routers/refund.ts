@@ -522,17 +522,16 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
         )
       }
 
-      //Create Stripe refund with reverse_transfer and refund_application_fee
-      await stripe.refunds.create({
-        payment_intent: refund.order.paymentIntentId,
-        reverse_transfer: true,
-        refund_application_fee: true,
-        metadata: {
-          orderId: refund.orderId,
-          refundId: refund.id,
-          reason: refund.reason || 'Seller accepted refund request',
-        },
-      })
+      //Create Stripe refund with reverse_transfer
+      //await stripe.refunds.create({
+      //payment_intent: refund.order.paymentIntentId,
+      //reverse_transfer: true,
+      //metadata: {
+      //orderId: refund.orderId,
+      //refundId: refund.id,
+      //reason: refund.reason || 'Seller accepted refund request',
+      //},
+      //})
 
       //Update refund status in database
       await tx.refund.update({
@@ -657,11 +656,16 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
         })[0]
 
         externalReturnShipmentId = (returnShippoShipment as Record<string, unknown>)?.object_id as string | undefined
-        externalReturnShipmentRateId = (selectedRate as { object_id?: string })?.object_id
+
+        //Extract rate ID - Shippo rates can have object_id (snake_case) or objectId (camelCase)
+        const rateObj = selectedRate as Record<string, unknown>
+        externalReturnShipmentRateId = (rateObj.object_id || rateObj.objectId || rateObj.rate_id) as string | undefined
         returnShipmentRate = new Prisma.Decimal(selectedRate.amount || '0')
 
         if (!externalReturnShipmentRateId) {
-          throw new Error('Return shipment rate ID is missing. Cannot create return label.')
+          //Log the rate object structure for debugging
+          console.error('Rate object structure:', JSON.stringify(rateObj, null, 2))
+          throw new Error('Return shipment rate ID is missing. Rate object does not contain object_id, objectId, or rate_id.')
         }
 
         //Create Shippo transaction for return label
