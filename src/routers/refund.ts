@@ -490,13 +490,13 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
       }
 
       //Check if payment intent has already been refunded by listing refunds
-      const existingRefunds = await stripe.refunds.list({
-        payment_intent: refund.order.paymentIntentId,
-        limit: 1,
-      })
-      if (existingRefunds.data.length > 0) {
-        throw new Error('Payment intent has already been refunded.')
-      }
+      //const existingRefunds = await stripe.refunds.list({
+      //payment_intent: refund.order.paymentIntentId,
+      //limit: 1,
+      //})
+      //if (existingRefunds.data.length > 0) {
+      //throw new Error('Payment intent has already been refunded.')
+      //}
 
       const refundAmount = paymentIntent.amount
 
