@@ -1,4 +1,4 @@
-import { Prisma, RefundType, RefundStatus, ShipmentType, TransactionType, ProcessStatus, TrackingStatus, ShipmentAccountType } from '@prisma/client'
+import { Prisma, RefundType, RefundStatus, ShipmentType, TransactionType, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -6,8 +6,6 @@ import { AuthenticatedUser, validateAccount } from '../validation/user'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import stripe from '../utils/stripe'
-import shippo, { carrierAccounts, fetchRateById, validShippoTemplateTypes } from '../utils/shippo'
-import { calculateOrderWeight, OrderPayload } from '../utils/order'
 
 const prisma = getPrismaClient()
 export const refundRouter = express.Router()
@@ -490,13 +488,13 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
       }
 
       //Check if payment intent has already been refunded by listing refunds
-      //const existingRefunds = await stripe.refunds.list({
-      //payment_intent: refund.order.paymentIntentId,
-      //limit: 1,
-      //})
-      //if (existingRefunds.data.length > 0) {
-      //throw new Error('Payment intent has already been refunded.')
-      //}
+      const existingRefunds = await stripe.refunds.list({
+        payment_intent: refund.order.paymentIntentId,
+        limit: 1,
+      })
+      if (existingRefunds.data.length > 0) {
+        throw new Error('Payment intent has already been refunded.')
+      }
 
       const refundAmount = paymentIntent.amount
 
@@ -523,15 +521,15 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
       }
 
       //Create Stripe refund with reverse_transfer
-      //await stripe.refunds.create({
-      //payment_intent: refund.order.paymentIntentId,
-      //reverse_transfer: true,
-      //metadata: {
-      //orderId: refund.orderId,
-      //refundId: refund.id,
-      //reason: refund.reason || 'Seller accepted refund request',
-      //},
-      //})
+      await stripe.refunds.create({
+        payment_intent: refund.order.paymentIntentId,
+        reverse_transfer: true,
+        metadata: {
+          orderId: refund.orderId,
+          refundId: refund.id,
+          reason: refund.reason || 'Seller accepted refund request',
+        },
+      })
 
       //Update refund status in database
       await tx.refund.update({
@@ -553,153 +551,19 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
         throw new Error('Original shipment not found for return.')
       }
 
-      const isUntracked = originalShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
-
-      let returnLabelUrl: string | undefined
-      let returnTrackingNumber: string | undefined
-      let returnShipmentRate: Prisma.Decimal = new Prisma.Decimal('0')
-      let externalReturnShipmentId: string | undefined
-      let externalReturnShipmentRateId: string | undefined
-
-      if (!isUntracked) {
-        //Create return shipment with inverted addresses using same config as original
-        if (!order.customer || !order.seller) {
-          throw new Error('Customer or seller information missing for return shipment.')
-        }
-
-        if (!originalShipment.externalShipmentRateId) {
-          throw new Error('Original shipment does not have a rate ID.')
-        }
-
-        //Get the original rate to determine carrier and service level
-        const originalRate = await fetchRateById(originalShipment.externalShipmentRateId)
-        const carrier = originalRate.provider as keyof typeof carrierAccounts
-
-        if (!carrierAccounts[carrier]) {
-          throw new Error(`Carrier ${carrier} not supported for return shipment.`)
-        }
-
-        //Get parcel config from order's shipping method matching the carrier
-        const shippingParcel = order.shippingMethod?.parcels.find(
-          (parcel: { carrier: string }) => parcel.carrier === carrier
-        )
-
-        if (!shippingParcel) {
-          throw new Error(`No parcel configuration found for carrier ${carrier}.`)
-        }
-
-        const fromAddress = {
-          name: `${order.customer.firstName} ${order.customer.lastName}`,
-          street1: order.customer.address ?? undefined,
-          city: order.customer.city ?? undefined,
-          state: order.customer.state ?? undefined,
-          zip: order.customer.zipCode ?? undefined,
-          country: 'US',
-          phone: order.customer.phone ?? undefined,
-          email: order.customer.account.email ?? undefined,
-        }
-
-        const toAddress = {
-          name: `${order.seller.firstName} ${order.seller.lastName}`,
-          street1: order.seller.address ?? undefined,
-          city: order.seller.city ?? undefined,
-          state: order.seller.state ?? undefined,
-          zip: order.seller.zipCode ?? undefined,
-          country: 'US',
-          phone: order.seller.phone ?? undefined,
-          email: order.seller.account.email ?? undefined,
-        }
-
-        //Get order weight
-        const orderWeight = calculateOrderWeight(order as OrderPayload)
-
-        //eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const parcelConfig: any = {
-          weight: orderWeight?.toString(),
-          massUnit: 'oz',
-        }
-
-        //Use template if it's a valid template type, otherwise use dimensions
-        if (validShippoTemplateTypes.includes(shippingParcel.type)) {
-          parcelConfig.template = shippingParcel.type
-        } else {
-          //For non-template types (like USPS_GroundAdvantage), use default dimensions
-          parcelConfig.length = '11.5'
-          parcelConfig.width = '6.125'
-          parcelConfig.height = '0.25'
-          parcelConfig.distanceUnit = 'in'
-        }
-
-        //Create Shippo return shipment with same carrier
-        const returnShippoShipment = await shippo.shipments.create({
-          addressFrom: fromAddress,
-          addressTo: toAddress,
-          parcels: [parcelConfig],
-          carrierAccounts: [carrierAccounts[carrier]],
-          metadata: `{"orderId": "${order.id}", "refundId": "${refund.id}", "type": "RETURN"}`,
-          async: false,
-        })
-
-        if (!returnShippoShipment?.rates || returnShippoShipment.rates.length === 0) {
-          throw new Error('No rates available for return shipment.')
-        }
-
-        //Try to find the same service level, otherwise use cheapest
-        const sameServiceRate = returnShippoShipment.rates.find(
-          (rate: { servicelevel?: { token?: string } }) => rate.servicelevel?.token === originalRate.servicelevel.token
-        )
-
-        const selectedRate = sameServiceRate || returnShippoShipment.rates.sort((a, b) => {
-          const priceA = parseFloat(a.amount || '0')
-          const priceB = parseFloat(b.amount || '0')
-          return priceA - priceB
-        })[0]
-
-        externalReturnShipmentId = (returnShippoShipment as Record<string, unknown>)?.object_id as string | undefined
-
-        //Extract rate ID - Shippo rates can have object_id (snake_case) or objectId (camelCase)
-        const rateObj = selectedRate as Record<string, unknown>
-        externalReturnShipmentRateId = (rateObj.object_id || rateObj.objectId || rateObj.rate_id) as string | undefined
-        returnShipmentRate = new Prisma.Decimal(selectedRate.amount || '0')
-
-        if (!externalReturnShipmentRateId) {
-          //Log the rate object structure for debugging
-          console.error('Rate object structure:', JSON.stringify(rateObj, null, 2))
-          throw new Error('Return shipment rate ID is missing. Rate object does not contain object_id, objectId, or rate_id.')
-        }
-
-        //Create Shippo transaction for return label
-        const returnTransaction = await shippo.transactions.create({
-          rate: externalReturnShipmentRateId,
-          labelFileType: 'PDF',
-          async: false,
-        })
-
-        const { trackingNumber, labelUrl, status: transactionStatus, messages } = returnTransaction || {}
-
-        if (transactionStatus !== 'SUCCESS') {
-          throw new Error(`Return shipment transaction failed: ${messages?.[0]?.text || 'Unknown error'}`)
-        }
-
-        returnLabelUrl = labelUrl
-        returnTrackingNumber = trackingNumber
-      }
-
-      //Create return Shipment record
+      //Create return Shipment record based on original shipment
       await tx.shipment.create({
         data: {
           orderId: order.id,
           type: ShipmentType.RETURN,
-          shipmentAccountType: isUntracked ? ShipmentAccountType.UNTRACKED : ShipmentAccountType.SHIPPO,
+          shipmentAccountType: originalShipment.shipmentAccountType,
           status: ProcessStatus.PENDING,
-          rate: returnShipmentRate,
-          trackingNumber: returnTrackingNumber,
-          trackingStatus: returnTrackingNumber ? TrackingStatus.UNKNOWN : undefined,
-          labelUrl: returnLabelUrl,
-          externalShipmentId: externalReturnShipmentId,
-          externalShipmentRateId: externalReturnShipmentRateId,
+          rate: originalShipment.rate,
           name: originalShipment.name,
           displayName: `Return: ${originalShipment.displayName || originalShipment.name}`,
+          description: originalShipment.description,
+          externalShipmentId: null,
+          externalShipmentRateId: null,
         },
       })
 
@@ -714,7 +578,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
           description: `Refund for order ${order.id}`,
         },
       })
-    }, { timeout: 120000 })
+    }, { timeout: 60000 })
 
     //Send EventBridge notification to customer
     try {
