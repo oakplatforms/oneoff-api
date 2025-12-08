@@ -2,7 +2,6 @@ import { Prisma, RefundType, RefundStatus, ShipmentType, TransactionType, Proces
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
-import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
@@ -12,95 +11,6 @@ import { calculateOrderWeight, OrderPayload } from '../utils/order'
 
 const prisma = getPrismaClient()
 export const refundRouter = express.Router()
-
-/**
- * @openapi
- * /refunds:
- *   get:
- *     tags:
- *       - Refund
- *     summary: Retrieve a list of refunds
- *     description: Fetches a list of refunds based on optional query parameters. You can filter refunds by status, type, or orderId and optionally include related entities.
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [PENDING, ACCEPTED, DECLINED]
- *         description: Filter refunds by status.
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [DAMAGE, WRONG_PRODUCT, COUNTERFEIT, NOT_AS_DESCRIBED, DEFECTIVE, MISSING_ITEMS, OTHER]
- *         description: Filter refunds by type.
- *       - in: query
- *         name: orderId
- *         schema:
- *           type: string
- *         description: Filter refunds by order ID.
- *       - in: query
- *         name: include
- *         schema:
- *           type: string
- *         description: Comma-separated list of related entities to include (e.g., 'order').
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *       - in: query
- *         name: usePagination
- *         schema:
- *           type: boolean
- *     responses:
- *       '200':
- *         description: Successfully retrieved the refunds.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Refund'
- *       '400':
- *         description: Bad request.
- *       '500':
- *         description: Internal Server Error.
- */
-refundRouter.get('/refunds', async (req, res) => {
-  const { include, status, type, orderId, usePagination, page, limit } = req.query
-
-  try {
-    const parsedLimit = parseInt(limit as string) || 10
-    const parsedPage = parseInt(page as string) || 0
-
-    const where: Prisma.RefundWhereInput = {
-      AND: [
-        status ? { status: status as RefundStatus } : {},
-        type ? { type: type as RefundType } : {},
-        orderId ? { orderId: orderId as string } : {},
-      ],
-    }
-
-    const result = await paginatePrisma({
-      prismaModel: prisma.refund,
-      where,
-      include: generateIncludes(include as string),
-      page: parsedPage,
-      limit: parsedLimit,
-      usePagination: usePagination === 'false' ? false : true,
-    })
-
-    res.json(result)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_REFUNDS_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve refunds.' })
-  }
-})
 
 /**
  * @openapi
@@ -747,12 +657,16 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
         })[0]
 
         externalReturnShipmentId = (returnShippoShipment as Record<string, unknown>)?.object_id as string | undefined
-        externalReturnShipmentRateId = (selectedRate as Record<string, unknown>)?.object_id as string | undefined
+        externalReturnShipmentRateId = (selectedRate as { object_id?: string })?.object_id
         returnShipmentRate = new Prisma.Decimal(selectedRate.amount || '0')
+
+        if (!externalReturnShipmentRateId) {
+          throw new Error('Return shipment rate ID is missing. Cannot create return label.')
+        }
 
         //Create Shippo transaction for return label
         const returnTransaction = await shippo.transactions.create({
-          rate: externalReturnShipmentRateId!,
+          rate: externalReturnShipmentRateId,
           labelFileType: 'PDF',
           async: false,
         })
@@ -773,7 +687,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
           orderId: order.id,
           type: ShipmentType.RETURN,
           shipmentAccountType: isUntracked ? ShipmentAccountType.UNTRACKED : ShipmentAccountType.SHIPPO,
-          status: isUntracked ? ProcessStatus.PENDING : ProcessStatus.PENDING,
+          status: ProcessStatus.PENDING,
           rate: returnShipmentRate,
           trackingNumber: returnTrackingNumber,
           trackingStatus: returnTrackingNumber ? TrackingStatus.UNKNOWN : undefined,
