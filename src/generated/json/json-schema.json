@@ -2394,6 +2394,19 @@
             "null"
           ]
         },
+        "inReview": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "resolution": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "cart": {
           "anyOf": [
             {

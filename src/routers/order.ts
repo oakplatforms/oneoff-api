@@ -729,10 +729,8 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order payment intent not found. Cannot capture payment.')
       }
 
-      //Confirm the payment intent first (moves from requires_confirmation to requires_capture)
+      //Confirm and capture the payment intent
       await stripe.paymentIntents.confirm(order.paymentIntentId)
-
-      //Then capture it (moves from requires_capture to succeeded)
       await stripe.paymentIntents.capture(order.paymentIntentId)
 
       await tx.shipment.update({

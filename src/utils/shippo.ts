@@ -1,6 +1,6 @@
 import { Shippo } from 'shippo'
 import axios from 'axios'
-import { ShippingCarrierType } from '@prisma/client'
+import { ShippingCarrierType, ShippingParcelType } from '@prisma/client'
 
 const SHIPPO_SECRET_KEY = process.env.SHIPPO_SECRET_KEY
 
@@ -31,6 +31,22 @@ export const carrierAccounts: Record<ShippingCarrierType, string> = {
   FEDEX: process.env.SHIPPO_CARRIER_ACCOUNT_FEDEX!,
   DHL: process.env.SHIPPO_CARRIER_ACCOUNT_DHL!,
 }
+
+/**
+ * Parcel types that are valid Shippo templates (can use template property)
+ * Non-template types (like USPS_GroundAdvantage) require dimensions instead
+ */
+export const validShippoTemplateTypes: ShippingParcelType[] = [
+  'USPS_FlatRateEnvelope',
+  'USPS_SoftPack',
+  'UPS_Box_10kg',
+  'UPS_Box_25kg',
+  'UPS_Pad_Pak',
+  'FedEx_Envelope',
+  'FedEx_Padded_Pak',
+  'FedEx_Box_10kg',
+  'FedEx_Box_25kg',
+]
 
 const shippo = new Shippo({ apiKeyHeader: SHIPPO_SECRET_KEY })
 

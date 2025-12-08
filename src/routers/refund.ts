@@ -1,4 +1,4 @@
-import { Prisma, RefundType, RefundStatus } from '@prisma/client'
+import { Prisma, RefundType, RefundStatus, ShipmentType, TransactionType, ProcessStatus, TrackingStatus, ShipmentAccountType } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -6,6 +6,9 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import stripe from '../utils/stripe'
+import shippo, { carrierAccounts, fetchRateById, validShippoTemplateTypes } from '../utils/shippo'
+import { calculateOrderWeight, OrderPayload } from '../utils/order'
 
 const prisma = getPrismaClient()
 export const refundRouter = express.Router()
@@ -515,6 +518,30 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
                   account: true,
                 },
               },
+              customer: {
+                include: {
+                  account: true,
+                },
+              },
+              shipments: true,
+              orderListings: {
+                include: {
+                  listing: {
+                    include: {
+                      entity: {
+                        include: {
+                          product: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              shippingMethod: {
+                include: {
+                  parcels: true,
+                },
+              },
             },
           },
         },
@@ -534,13 +561,242 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
         throw new Error(`Refund cannot be accepted. Refund status must be PENDING, but current status is ${refund.status}.`)
       }
 
+      //Validate order has payment intent
+      if (!refund.order?.paymentIntentId) {
+        throw new Error('Order does not have a payment intent. Cannot process refund.')
+      }
+
+      //Validate seller has payment account
+      const sellerPaymentAccountId = refund.order.seller?.paymentAccountId
+      if (!sellerPaymentAccountId) {
+        throw new Error('Seller does not have a payment account configured.')
+      }
+
+      //Retrieve payment intent to get the amount
+      const paymentIntent = await stripe.paymentIntents.retrieve(refund.order.paymentIntentId)
+
+      if (paymentIntent.status !== 'succeeded') {
+        throw new Error(`Payment intent status is ${paymentIntent.status}. Only succeeded payment intents can be refunded.`)
+      }
+
+      //Check if payment intent has already been refunded by listing refunds
+      const existingRefunds = await stripe.refunds.list({
+        payment_intent: refund.order.paymentIntentId,
+        limit: 1,
+      })
+      if (existingRefunds.data.length > 0) {
+        throw new Error('Payment intent has already been refunded.')
+      }
+
+      const refundAmount = paymentIntent.amount
+
+      //Check Connect account balance to ensure seller has sufficient funds
+      //For destination charges, we need to check the connected account's balance
+      const balance = await stripe.balance.retrieve({
+        stripeAccount: sellerPaymentAccountId,
+      })
+
+      //Calculate available balance (pending + available)
+      const availableBalance = balance.available.reduce((sum, bal) => {
+        if (bal.currency === 'usd') {
+          return sum + bal.amount
+        }
+        return sum
+      }, 0)
+
+      //Seller must refund the full amount the customer paid (totalAmount)
+      //This is the entire order total, regardless of application fees or shipping fees
+      if (availableBalance < refundAmount) {
+        throw new Error(
+          `Insufficient funds in seller account. Required: $${(refundAmount / 100).toFixed(2)}, Available: $${(availableBalance / 100).toFixed(2)}`
+        )
+      }
+
+      //Create Stripe refund with reverse_transfer and refund_application_fee
+      await stripe.refunds.create({
+        payment_intent: refund.order.paymentIntentId,
+        reverse_transfer: true,
+        refund_application_fee: true,
+        metadata: {
+          orderId: refund.orderId,
+          refundId: refund.id,
+          reason: refund.reason || 'Seller accepted refund request',
+        },
+      })
+
+      //Update refund status in database
       await tx.refund.update({
         where: { id },
         data: {
           status: RefundStatus.ACCEPTED,
         },
       })
-    })
+
+      //Create return shipment and transaction
+      if (!refund.order) {
+        throw new Error('Order not found for return shipment creation.')
+      }
+
+      const order = refund.order
+      const originalShipment = order.shipments.find((s: { type: string; status: string }) => s.type === ShipmentType.OUTBOUND && s.status !== ProcessStatus.DELETED)
+
+      if (!originalShipment) {
+        throw new Error('Original shipment not found for return.')
+      }
+
+      const isUntracked = originalShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
+
+      let returnLabelUrl: string | undefined
+      let returnTrackingNumber: string | undefined
+      let returnShipmentRate: Prisma.Decimal = new Prisma.Decimal('0')
+      let externalReturnShipmentId: string | undefined
+      let externalReturnShipmentRateId: string | undefined
+
+      if (!isUntracked) {
+        //Create return shipment with inverted addresses using same config as original
+        if (!order.customer || !order.seller) {
+          throw new Error('Customer or seller information missing for return shipment.')
+        }
+
+        if (!originalShipment.externalShipmentRateId) {
+          throw new Error('Original shipment does not have a rate ID.')
+        }
+
+        //Get the original rate to determine carrier and service level
+        const originalRate = await fetchRateById(originalShipment.externalShipmentRateId)
+        const carrier = originalRate.provider as keyof typeof carrierAccounts
+
+        if (!carrierAccounts[carrier]) {
+          throw new Error(`Carrier ${carrier} not supported for return shipment.`)
+        }
+
+        //Get parcel config from order's shipping method matching the carrier
+        const shippingParcel = order.shippingMethod?.parcels.find(
+          (parcel: { carrier: string }) => parcel.carrier === carrier
+        )
+
+        if (!shippingParcel) {
+          throw new Error(`No parcel configuration found for carrier ${carrier}.`)
+        }
+
+        const fromAddress = {
+          name: `${order.customer.firstName} ${order.customer.lastName}`,
+          street1: order.customer.address ?? undefined,
+          city: order.customer.city ?? undefined,
+          state: order.customer.state ?? undefined,
+          zip: order.customer.zipCode ?? undefined,
+          country: 'US',
+          phone: order.customer.phone ?? undefined,
+          email: order.customer.account.email ?? undefined,
+        }
+
+        const toAddress = {
+          name: `${order.seller.firstName} ${order.seller.lastName}`,
+          street1: order.seller.address ?? undefined,
+          city: order.seller.city ?? undefined,
+          state: order.seller.state ?? undefined,
+          zip: order.seller.zipCode ?? undefined,
+          country: 'US',
+          phone: order.seller.phone ?? undefined,
+          email: order.seller.account.email ?? undefined,
+        }
+
+        //Get order weight
+        const orderWeight = calculateOrderWeight(order as OrderPayload)
+
+        //eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parcelConfig: any = {
+          weight: orderWeight?.toString(),
+          massUnit: 'oz',
+        }
+
+        //Use template if it's a valid template type, otherwise use dimensions
+        if (validShippoTemplateTypes.includes(shippingParcel.type)) {
+          parcelConfig.template = shippingParcel.type
+        } else {
+          //For non-template types (like USPS_GroundAdvantage), use default dimensions
+          parcelConfig.length = '11.5'
+          parcelConfig.width = '6.125'
+          parcelConfig.height = '0.25'
+          parcelConfig.distanceUnit = 'in'
+        }
+
+        //Create Shippo return shipment with same carrier
+        const returnShippoShipment = await shippo.shipments.create({
+          addressFrom: fromAddress,
+          addressTo: toAddress,
+          parcels: [parcelConfig],
+          carrierAccounts: [carrierAccounts[carrier]],
+          metadata: `{"orderId": "${order.id}", "refundId": "${refund.id}", "type": "RETURN"}`,
+          async: false,
+        })
+
+        if (!returnShippoShipment?.rates || returnShippoShipment.rates.length === 0) {
+          throw new Error('No rates available for return shipment.')
+        }
+
+        //Try to find the same service level, otherwise use cheapest
+        const sameServiceRate = returnShippoShipment.rates.find(
+          (rate: { servicelevel?: { token?: string } }) => rate.servicelevel?.token === originalRate.servicelevel.token
+        )
+
+        const selectedRate = sameServiceRate || returnShippoShipment.rates.sort((a, b) => {
+          const priceA = parseFloat(a.amount || '0')
+          const priceB = parseFloat(b.amount || '0')
+          return priceA - priceB
+        })[0]
+
+        externalReturnShipmentId = (returnShippoShipment as Record<string, unknown>)?.object_id as string | undefined
+        externalReturnShipmentRateId = (selectedRate as Record<string, unknown>)?.object_id as string | undefined
+        returnShipmentRate = new Prisma.Decimal(selectedRate.amount || '0')
+
+        //Create Shippo transaction for return label
+        const returnTransaction = await shippo.transactions.create({
+          rate: externalReturnShipmentRateId!,
+          labelFileType: 'PDF',
+          async: false,
+        })
+
+        const { trackingNumber, labelUrl, status: transactionStatus, messages } = returnTransaction || {}
+
+        if (transactionStatus !== 'SUCCESS') {
+          throw new Error(`Return shipment transaction failed: ${messages?.[0]?.text || 'Unknown error'}`)
+        }
+
+        returnLabelUrl = labelUrl
+        returnTrackingNumber = trackingNumber
+      }
+
+      //Create return Shipment record
+      await tx.shipment.create({
+        data: {
+          orderId: order.id,
+          type: ShipmentType.RETURN,
+          shipmentAccountType: isUntracked ? ShipmentAccountType.UNTRACKED : ShipmentAccountType.SHIPPO,
+          status: isUntracked ? ProcessStatus.PENDING : ProcessStatus.PENDING,
+          rate: returnShipmentRate,
+          trackingNumber: returnTrackingNumber,
+          trackingStatus: returnTrackingNumber ? TrackingStatus.UNKNOWN : undefined,
+          labelUrl: returnLabelUrl,
+          externalShipmentId: externalReturnShipmentId,
+          externalShipmentRateId: externalReturnShipmentRateId,
+          name: originalShipment.name,
+          displayName: `Return: ${originalShipment.displayName || originalShipment.name}`,
+        },
+      })
+
+      //Create return Transaction record
+      await tx.transaction.create({
+        data: {
+          orderId: order.id,
+          accountId: order.customer?.accountId,
+          //Convert from cents to dollars
+          amount: refundAmount / 100,
+          transactionType: TransactionType.REFUND,
+          description: `Refund for order ${order.id}`,
+        },
+      })
+    }, { timeout: 120000 })
 
     //Send EventBridge notification to customer
     try {

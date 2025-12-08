@@ -788,6 +788,8 @@ model Order {
   shipping       Decimal?      @db.Decimal(10, 2)
   total          Decimal?      @db.Decimal(10, 2)
   paymentIntentId String?
+  inReview       Boolean? @default(false)
+  resolution     String?
 
   // relations
   cart                 Cart?                 @relation(fields: [cartId], references: [id], onDelete: Cascade)
@@ -932,7 +934,7 @@ model Shipment {
   trackingNumber      String?
   trackingStatus      TrackingStatus?     @default(UNKNOWN)
   labelUrl            String?
-
+  
   externalShipmentId        String?
   externalShipmentRateId    String?
   externalShipmentServiceId String?

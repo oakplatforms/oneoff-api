@@ -1,6 +1,6 @@
 import express from 'express'
 import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
-import shippo, { carrierAccounts, fetchRateById } from '../utils/shippo'
+import shippo, { carrierAccounts, fetchRateById, validShippoTemplateTypes } from '../utils/shippo'
 import { Prisma, ShipmentAccountType, ShipmentType, ProcessStatus, TrackingStatus } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
@@ -221,19 +221,6 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
       const allShipments = []
       const orderWeight = calculateOrderWeight(order as OrderPayload)
 
-      //Parcel types that are valid Shippo templates
-      const validTemplateTypes = [
-        'USPS_FlatRateEnvelope',
-        'USPS_SoftPack',
-        'UPS_Box_10kg',
-        'UPS_Box_25kg',
-        'UPS_Pad_Pak',
-        'FedEx_Envelope',
-        'FedEx_Padded_Pak',
-        'FedEx_Box_10kg',
-        'FedEx_Box_25kg',
-      ]
-
       for (const carrier of supportedCarriers) {
         const shippingParcel = order.shippingMethod?.parcels.find(
           parcel => parcel.carrier === carrier
@@ -247,7 +234,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
           }
 
           //Use template if it's a valid template type, otherwise use dimensions
-          if (validTemplateTypes.includes(shippingParcel.type)) {
+          if (validShippoTemplateTypes.includes(shippingParcel.type)) {
             parcelConfig.template = shippingParcel.type
           } else {
             //For non-template types (like USPS_GroundAdvantage), use default dimensions

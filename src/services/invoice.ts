@@ -176,6 +176,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         })
 
         const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+
         if (transactionStatus !== 'SUCCESS') {
           throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
         }
