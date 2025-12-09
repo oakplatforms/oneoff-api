@@ -934,6 +934,7 @@ model Shipment {
   trackingNumber      String?
   trackingStatus      TrackingStatus?     @default(UNKNOWN)
   labelUrl            String?
+  returnLabelUrl      String?
   
   externalShipmentId        String?
   externalShipmentRateId    String?
