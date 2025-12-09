@@ -724,6 +724,14 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order cannot be accepted. Order must have at least one shipment.')
       }
 
+      if (!order.shippingMethod) {
+        throw new Error(
+          `Order cannot be accepted. Order must have a shippingMethod. ` +
+          `Order shippingMethodId: ${order.shippingMethodId || 'not set'}. ` +
+          `Please ensure the order has a valid shippingMethod assigned.`
+        )
+      }
+
       const activeShipment = getActiveShipment(order)
 
       //Handle CREATED shipments - create Shippo transaction if needed
