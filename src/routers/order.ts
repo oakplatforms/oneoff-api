@@ -724,11 +724,26 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order cannot be accepted. Order must have at least one shipment.')
       }
 
+      //If shippingMethod relation isn't loaded but shippingMethodId exists, fetch it directly
+      if (!order.shippingMethod && order.shippingMethodId) {
+        const shippingMethod = await tx.shippingMethod.findUnique({
+          where: { id: order.shippingMethodId },
+        })
+
+        if (!shippingMethod) {
+          throw new Error(
+            `Order cannot be accepted. ShippingMethod with id "${order.shippingMethodId}" does not exist in the database.`
+          )
+        }
+
+        //Attach the shippingMethod to the order object
+        order.shippingMethod = shippingMethod
+      }
+
       if (!order.shippingMethod) {
         throw new Error(
           `Order cannot be accepted. Order must have a shippingMethod. ` +
-          `Order shippingMethodId: ${order.shippingMethodId || 'not set'}. ` +
-          `Please ensure the order has a valid shippingMethod assigned.`
+          `Order shippingMethodId: ${order.shippingMethodId || 'not set'}.`
         )
       }
 
