@@ -1,5 +1,5 @@
 import { Prisma, ShipmentAccountType } from '@prisma/client'
-import { calculateShippingMethodRate, calculateShippingOptionsRate, calculateShippingRate } from './shipping'
+import { calculateShippingMethodRate, calculateShippingOptionsRate } from './shipping'
 
 export type OrderPayload = Prisma.OrderGetPayload<{
   include: {
@@ -74,14 +74,19 @@ export const calculateOrderTax = (order: OrderPayload) => {
 }
 
 export const calculateOrderShipping = (order: OrderPayload, orderListings: OrderPayload['orderListings']) => {
+  const activeShipment = getActiveShipment(order)
+  const shipmentRate = activeShipment.status === 'CREATED'
+    ? Number(activeShipment.rate || 0)
+    : 0
+
   return (
-    calculateShippingRate(order.shipments) +
+    shipmentRate +
     calculateShippingMethodRate(order) +
     calculateShippingOptionsRate(orderListings, order)
   )
 }
 
-type OrderWithShipments<T = any> = {
+type OrderWithShipments<T = unknown> = {
   shipments: Array<T>
   shippingMethod?: { isTracked: boolean | null } | null
 }
