@@ -143,6 +143,7 @@ functions:
     handler: lambdas/cancelOrderHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
     events:
       - schedule:
           rate: rate(1 minute)
