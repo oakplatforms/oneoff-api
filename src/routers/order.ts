@@ -725,7 +725,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       }
 
       //If shippingMethod relation isn't loaded but shippingMethodId exists, fetch it directly
-      if (!order.shippingMethod && order.shippingMethodId) {
+      if (order.shippingMethodId) {
         const shippingMethod = await tx.shippingMethod.findUnique({
           where: { id: order.shippingMethodId },
         })
@@ -739,6 +739,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         order.shippingMethod = shippingMethod
       }
 
+      console.log('WHATS GOING ON', JSON.stringify(order, null, 2))
       const activeShipment = getActiveShipment(order)
 
       //Handle CREATED shipments - create Shippo transaction if needed

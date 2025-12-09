@@ -46,7 +46,6 @@ const createPaymentIntent = async (
   }
 
   const activeShipment = getActiveShipment(order)
-  console.log('activeShipment', activeShipment)
   const shipmentRate = activeShipment.rate
     ? Number(activeShipment.rate)
     : 0
