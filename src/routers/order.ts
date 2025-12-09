@@ -736,15 +736,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
           )
         }
 
-        //Attach the shippingMethod to the order object
         order.shippingMethod = shippingMethod
-      }
-
-      if (!order.shippingMethod) {
-        throw new Error(
-          `Order cannot be accepted. Order must have a shippingMethod. ` +
-          `Order shippingMethodId: ${order.shippingMethodId || 'not set'}.`
-        )
       }
 
       const activeShipment = getActiveShipment(order)

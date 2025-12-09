@@ -98,19 +98,14 @@ type OrderWithShipments<T = unknown> = {
  * Throws an error if shippingMethod is not available or if the expected shipment type is not found.
  */
 export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccountType | string }>(
-  order: OrderWithShipments<T> & { shippingMethodId?: string | null }
+  order: OrderWithShipments<T>
 ): T => {
   if (!order.shipments || order.shipments.length === 0) {
     throw new Error('Order has no shipments.')
   }
 
   if (!order.shippingMethod) {
-    const shippingMethodId = 'shippingMethodId' in order ? order.shippingMethodId : 'unknown'
-    throw new Error(
-      `Order shippingMethod is required to determine active shipment. ` +
-      `Order has shippingMethodId: ${shippingMethodId}, but shippingMethod relation is ${order.shippingMethod === null ? 'null' : 'undefined'}. ` +
-      `Please ensure the shippingMethod relation is included in the Prisma query.`
-    )
+    throw new Error('Order shippingMethod is required to determine active shipment.')
   }
 
   const isTracked = order.shippingMethod.isTracked
