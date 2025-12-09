@@ -725,7 +725,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       }
 
       console.log('WHATS GOING ON NOW', JSON.stringify(order, null, 2))
-      const activeShipment = getActiveShipment(order)
+      const activeShipment = order.shipments[0]
 
       //Handle CREATED shipments - create Shippo transaction if needed
       if (activeShipment.status === 'CREATED') {
