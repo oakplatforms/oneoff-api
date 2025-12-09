@@ -7,6 +7,7 @@ import { AuthenticatedUser, validateAccount } from '../validation/user'
 import stripe from '../utils/stripe'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import { getActiveShipment } from '../utils/order'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
@@ -701,6 +702,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         where: { id },
         include: {
           shipments: true,
+          shippingMethod: true,
           seller: {
             include: {
               account: true,
@@ -721,7 +723,12 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order cannot be accepted. Order must have at least one shipment.')
       }
 
-      if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
+      const activeShipment = getActiveShipment(order)
+      if (!activeShipment) {
+        throw new Error('Active shipment not found.')
+      }
+
+      if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
         throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
       }
 
@@ -734,14 +741,14 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       await stripe.paymentIntents.capture(order.paymentIntentId)
 
       await tx.shipment.update({
-        where: { id: order.shipments[0].id },
+        where: { id: activeShipment.id },
         data: {
           trackingStatus: TrackingStatus.PRE_TRANSIT,
         },
       })
 
       //If shipment is UNTRACKED, also update order status to COMPLETED
-      if (order.shipments[0].shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+      if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
         await tx.order.update({
           where: { id },
           data: {
@@ -842,6 +849,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         where: { id },
         include: {
           shipments: true,
+          shippingMethod: true,
           seller: {
             include: {
               account: true,
@@ -866,7 +874,12 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         throw new Error('Order cannot be canceled. Order must have at least one shipment.')
       }
 
-      if (order.shipments[0].trackingStatus !== TrackingStatus.UNKNOWN) {
+      const activeShipment = getActiveShipment(order)
+      if (!activeShipment) {
+        throw new Error('Active shipment not found.')
+      }
+
+      if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
         throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
       }
 

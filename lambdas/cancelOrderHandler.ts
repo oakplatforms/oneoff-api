@@ -3,6 +3,7 @@ import { getPrismaClient } from '../src/utils/prismaHelpers'
 import eventBridge from '../src/utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import stripe from '../src/utils/stripe'
+import { getActiveShipment } from '../src/utils/order'
 
 const prisma = getPrismaClient()
 
@@ -37,12 +38,16 @@ export const handler = async (): Promise<void> => {
     )
 
     for (const order of validOrders) {
-      const firstShipment = order.shipments[0]
+      const activeShipment = getActiveShipment(order)
+      if (!activeShipment) {
+        console.log(`Skipping order ${order.id} - active shipment not found`)
+        continue
+      }
       if (
-        firstShipment.trackingStatus !== TrackingStatus.UNKNOWN &&
-        firstShipment.trackingStatus !== TrackingStatus.PRE_TRANSIT
+        activeShipment.trackingStatus !== TrackingStatus.UNKNOWN &&
+        activeShipment.trackingStatus !== TrackingStatus.PRE_TRANSIT
       ) {
-        console.log(`Skipping order ${order.id} - tracking status changed: ${firstShipment.trackingStatus}`)
+        console.log(`Skipping order ${order.id} - tracking status changed: ${activeShipment.trackingStatus}`)
         continue
       }
 

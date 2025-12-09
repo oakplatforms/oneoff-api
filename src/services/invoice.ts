@@ -2,7 +2,7 @@ import { Order } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
-import { calculateOrderTax, calculateOrderShipping, OrderPayload } from '../utils/order'
+import { calculateOrderTax, calculateOrderShipping, OrderPayload, getActiveShipment } from '../utils/order'
 import shippo from '../utils/shippo'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
@@ -21,6 +21,7 @@ type OrderWithRelations = Order & {
  customer: { paymentAccountId: string | null } | null
  seller: { paymentAccountId: string | null, firstName?: string, lastName?: string } | null
  shipments: Array<{ rate: number | string | { toString(): string }, shipmentAccountType: string }>
+ shippingMethod?: { isTracked: boolean | null } | null
 }
 
 const createPaymentIntent = async (
@@ -45,13 +46,14 @@ const createPaymentIntent = async (
     throw new Error('Invalid price format.')
   }
 
-  const shipmentRate = order.shipments?.[0]?.rate
-    ? Number(order.shipments[0].rate)
+  const activeShipment = getActiveShipment(order)
+  const shipmentRate = activeShipment?.rate
+    ? Number(activeShipment.rate)
     : 0
   const shipmentRateInCents = Math.round(shipmentRate * 100)
   const totalAmount = Math.round(total * 100)
 
-  const isUntracked = order.shipments?.[0]?.shipmentAccountType === 'UNTRACKED'
+  const isUntracked = activeShipment?.shipmentAccountType === 'UNTRACKED'
   const baseApplicationFee = Math.round(totalAmount * 0.05) + 40
   const application_fee_amount = isUntracked
     ? baseApplicationFee
@@ -149,6 +151,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           customer: true,
           shipments: true,
           seller: true,
+          shippingMethod: true,
         },
       })
 

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, ShipmentAccountType } from '@prisma/client'
 import { calculateShippingMethodRate, calculateShippingOptionsRate, calculateShippingRate } from './shipping'
 
 export type OrderPayload = Prisma.OrderGetPayload<{
@@ -79,4 +79,40 @@ export const calculateOrderShipping = (order: OrderPayload, orderListings: Order
     calculateShippingMethodRate(order) +
     calculateShippingOptionsRate(orderListings, order)
   )
+}
+
+type OrderWithShipments<T = any> = {
+  shipments: Array<T>
+  shippingMethod?: { isTracked: boolean | null } | null
+}
+
+/**
+ * Gets the active shipment for an order based on the shipping method's isTracked property.
+ * If isTracked is true, returns the SHIPPO shipment.
+ * If isTracked is false/null/undefined, returns the UNTRACKED shipment.
+ * Falls back to the first shipment if no match is found or shippingMethod is not available.
+ */
+export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccountType | string }>(
+  order: OrderWithShipments<T>
+): T | undefined => {
+  if (!order.shipments || order.shipments.length === 0) {
+    return undefined
+  }
+
+  // If shippingMethod is not available, fall back to first shipment for backward compatibility
+  if (!order.shippingMethod) {
+    return order.shipments[0]
+  }
+
+  const isTracked = order.shippingMethod.isTracked ?? true
+  const expectedAccountType = isTracked ? ShipmentAccountType.SHIPPO : ShipmentAccountType.UNTRACKED
+
+  const activeShipment = order.shipments.find(
+    (shipment) => 
+      shipment.shipmentAccountType === expectedAccountType || 
+      String(shipment.shipmentAccountType) === String(expectedAccountType)
+  )
+
+  // Fall back to first shipment if no match found
+  return activeShipment || order.shipments[0]
 }
