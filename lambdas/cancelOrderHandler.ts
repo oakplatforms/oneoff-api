@@ -38,9 +38,11 @@ export const handler = async (): Promise<void> => {
     )
 
     for (const order of validOrders) {
-      const activeShipment = getActiveShipment(order)
-      if (!activeShipment) {
-        console.log(`Skipping order ${order.id} - active shipment not found`)
+      let activeShipment
+      try {
+        activeShipment = getActiveShipment(order)
+      } catch (error) {
+        console.log(`Skipping order ${order.id} - ${error instanceof Error ? error.message : 'active shipment not found'}`)
         continue
       }
       if (

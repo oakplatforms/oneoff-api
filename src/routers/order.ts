@@ -724,9 +724,6 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       }
 
       const activeShipment = getActiveShipment(order)
-      if (!activeShipment) {
-        throw new Error('Active shipment not found.')
-      }
 
       if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
         throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
@@ -875,9 +872,6 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
       }
 
       const activeShipment = getActiveShipment(order)
-      if (!activeShipment) {
-        throw new Error('Active shipment not found.')
-      }
 
       if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
         throw new Error(`Order cannot be canceled based on current shipment tracking status.`)

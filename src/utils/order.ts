@@ -90,29 +90,39 @@ type OrderWithShipments<T = any> = {
  * Gets the active shipment for an order based on the shipping method's isTracked property.
  * If isTracked is true, returns the SHIPPO shipment.
  * If isTracked is false/null/undefined, returns the UNTRACKED shipment.
- * Falls back to the first shipment if no match is found or shippingMethod is not available.
+ * Throws an error if shippingMethod is not available or if the expected shipment type is not found.
  */
 export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccountType | string }>(
   order: OrderWithShipments<T>
-): T | undefined => {
+): T => {
   if (!order.shipments || order.shipments.length === 0) {
-    return undefined
+    throw new Error('Order has no shipments.')
   }
 
-  // If shippingMethod is not available, fall back to first shipment for backward compatibility
   if (!order.shippingMethod) {
-    return order.shipments[0]
+    throw new Error('Order shippingMethod is required to determine active shipment.')
   }
 
-  const isTracked = order.shippingMethod.isTracked ?? true
-  const expectedAccountType = isTracked ? ShipmentAccountType.SHIPPO : ShipmentAccountType.UNTRACKED
+  const isTracked = order.shippingMethod.isTracked
+  // If isTracked is explicitly true, we want SHIPPO. Otherwise (false/null/undefined), we want UNTRACKED
+  const expectedAccountType = isTracked === true ? ShipmentAccountType.SHIPPO : ShipmentAccountType.UNTRACKED
 
   const activeShipment = order.shipments.find(
-    (shipment) => 
-      shipment.shipmentAccountType === expectedAccountType || 
-      String(shipment.shipmentAccountType) === String(expectedAccountType)
+    (shipment) => {
+      const shipmentType = String(shipment.shipmentAccountType).toUpperCase()
+      const expectedType = String(expectedAccountType).toUpperCase()
+      return shipmentType === expectedType
+    }
   )
 
-  // Fall back to first shipment if no match found
-  return activeShipment || order.shipments[0]
+  if (!activeShipment) {
+    const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
+    throw new Error(
+      `Could not find ${expectedAccountType} shipment for order. ` +
+      `Expected shipment type: ${expectedAccountType} (isTracked: ${isTracked}). ` +
+      `Available shipment types: ${availableTypes}`
+    )
+  }
+
+  return activeShipment
 }
