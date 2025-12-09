@@ -104,14 +104,15 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
   }
 
   const isTracked = order.shippingMethod.isTracked
-  
+
+  console.log('isTracked', isTracked, order.shippingMethod, order.shipments)
   if (isTracked === true) {
     const activeShipment = order.shipments.find(
-      (shipment) => 
+      (shipment) =>
         shipment.shipmentAccountType === ShipmentAccountType.SHIPPO ||
         String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.SHIPPO
     )
-    
+
     if (!activeShipment) {
       const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
       throw new Error(
@@ -120,17 +121,17 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
         `Available shipment types: ${availableTypes}`
       )
     }
-    
+
     return activeShipment
   }
-  
+
   if (isTracked === false) {
     const activeShipment = order.shipments.find(
-      (shipment) => 
+      (shipment) =>
         shipment.shipmentAccountType === ShipmentAccountType.UNTRACKED ||
         String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.UNTRACKED
     )
-    
+
     if (!activeShipment) {
       const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
       throw new Error(
@@ -139,7 +140,7 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
         `Available shipment types: ${availableTypes}`
       )
     }
-    
+
     return activeShipment
   }
 

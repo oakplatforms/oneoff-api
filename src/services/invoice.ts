@@ -1,4 +1,4 @@
-import { Order } from '@prisma/client'
+import { Order, ShipmentAccountType } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
@@ -47,13 +47,14 @@ const createPaymentIntent = async (
   }
 
   const activeShipment = getActiveShipment(order)
+  console.log('activeShipment', activeShipment)
   const shipmentRate = activeShipment.rate
     ? Number(activeShipment.rate)
     : 0
   const shipmentRateInCents = Math.round(shipmentRate * 100)
   const totalAmount = Math.round(total * 100)
 
-  const isUntracked = activeShipment.shipmentAccountType === 'UNTRACKED'
+  const isUntracked = activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
   const baseApplicationFee = Math.round(totalAmount * 0.05) + 40
   const application_fee_amount = isUntracked
     ? baseApplicationFee
