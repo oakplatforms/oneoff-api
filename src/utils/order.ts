@@ -89,7 +89,7 @@ type OrderWithShipments<T = any> = {
 /**
  * Gets the active shipment for an order based on the shipping method's isTracked property.
  * If isTracked is true, returns the SHIPPO shipment.
- * If isTracked is false/null/undefined, returns the UNTRACKED shipment.
+ * If isTracked is false, returns the UNTRACKED shipment.
  * Throws an error if shippingMethod is not available or if the expected shipment type is not found.
  */
 export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccountType | string }>(
@@ -104,25 +104,47 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
   }
 
   const isTracked = order.shippingMethod.isTracked
-  // If isTracked is explicitly true, we want SHIPPO. Otherwise (false/null/undefined), we want UNTRACKED
-  const expectedAccountType = isTracked === true ? ShipmentAccountType.SHIPPO : ShipmentAccountType.UNTRACKED
-
-  const activeShipment = order.shipments.find(
-    (shipment) => {
-      const shipmentType = String(shipment.shipmentAccountType).toUpperCase()
-      const expectedType = String(expectedAccountType).toUpperCase()
-      return shipmentType === expectedType
-    }
-  )
-
-  if (!activeShipment) {
-    const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
-    throw new Error(
-      `Could not find ${expectedAccountType} shipment for order. ` +
-      `Expected shipment type: ${expectedAccountType} (isTracked: ${isTracked}). ` +
-      `Available shipment types: ${availableTypes}`
+  
+  if (isTracked === true) {
+    const activeShipment = order.shipments.find(
+      (shipment) => 
+        shipment.shipmentAccountType === ShipmentAccountType.SHIPPO ||
+        String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.SHIPPO
     )
+    
+    if (!activeShipment) {
+      const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
+      throw new Error(
+        `Could not find ${ShipmentAccountType.SHIPPO} shipment for order. ` +
+        `Expected shipment type: ${ShipmentAccountType.SHIPPO} (isTracked: true). ` +
+        `Available shipment types: ${availableTypes}`
+      )
+    }
+    
+    return activeShipment
+  }
+  
+  if (isTracked === false) {
+    const activeShipment = order.shipments.find(
+      (shipment) => 
+        shipment.shipmentAccountType === ShipmentAccountType.UNTRACKED ||
+        String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.UNTRACKED
+    )
+    
+    if (!activeShipment) {
+      const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
+      throw new Error(
+        `Could not find ${ShipmentAccountType.UNTRACKED} shipment for order. ` +
+        `Expected shipment type: ${ShipmentAccountType.UNTRACKED} (isTracked: false). ` +
+        `Available shipment types: ${availableTypes}`
+      )
+    }
+    
+    return activeShipment
   }
 
-  return activeShipment
+  throw new Error(
+    `Invalid shippingMethod.isTracked value: ${isTracked}. ` +
+    `Expected true or false, but got ${typeof isTracked === 'object' ? 'null' : String(isTracked)}.`
+  )
 }
