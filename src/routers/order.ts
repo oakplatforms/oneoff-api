@@ -724,8 +724,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order cannot be accepted. Order must have at least one shipment.')
       }
 
-      console.log('WHATS GOING ON NOW', JSON.stringify(order, null, 2))
-      const activeShipment = order.shipments[0]
+      const activeShipment = getActiveShipment(order)
 
       //Handle CREATED shipments - create Shippo transaction if needed
       if (activeShipment.status === 'CREATED') {
@@ -765,24 +764,6 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         }
       }
 
-      //Refresh activeShipment after potential update
-      const updatedOrder = await tx.order.findUnique({
-        where: { id },
-        include: {
-          shipments: true,
-        },
-      })
-
-      if (!updatedOrder) {
-        throw new Error('Order not found after shipment update.')
-      }
-
-      const updatedActiveShipment = getActiveShipment(updatedOrder)
-
-      if (updatedActiveShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
-        throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
-      }
-
       if (!order.paymentIntentId) {
         throw new Error('Order payment intent not found. Cannot capture payment.')
       }
@@ -792,14 +773,14 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       await stripe.paymentIntents.capture(order.paymentIntentId)
 
       await tx.shipment.update({
-        where: { id: updatedActiveShipment.id },
+        where: { id: activeShipment.id },
         data: {
           trackingStatus: TrackingStatus.PRE_TRANSIT,
         },
       })
 
       //If shipment is UNTRACKED, also update order status to COMPLETED
-      if (updatedActiveShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+      if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
         await tx.order.update({
           where: { id },
           data: {
