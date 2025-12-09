@@ -724,22 +724,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         throw new Error('Order cannot be accepted. Order must have at least one shipment.')
       }
 
-      //If shippingMethod relation isn't loaded but shippingMethodId exists, fetch it directly
-      if (order.shippingMethodId) {
-        const shippingMethod = await tx.shippingMethod.findUnique({
-          where: { id: order.shippingMethodId },
-        })
-
-        if (!shippingMethod) {
-          throw new Error(
-            `Order cannot be accepted. ShippingMethod with id "${order.shippingMethodId}" does not exist in the database.`
-          )
-        }
-
-        order.shippingMethod = shippingMethod
-      }
-
-      console.log('WHATS GOING ON', JSON.stringify(order, null, 2))
+      console.log('WHATS GOING ON NOW', JSON.stringify(order, null, 2))
       const activeShipment = getActiveShipment(order)
 
       //Handle CREATED shipments - create Shippo transaction if needed

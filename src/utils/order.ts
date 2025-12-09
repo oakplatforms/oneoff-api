@@ -109,6 +109,7 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
   }
 
   const isTracked = order.shippingMethod.isTracked
+  console.log('getActiveShipment - isTracked:', isTracked, 'shipments:', order.shipments.map(s => ({ type: s.shipmentAccountType })))
 
   if (isTracked === true) {
     const activeShipment = order.shipments.find(
