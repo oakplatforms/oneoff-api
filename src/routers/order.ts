@@ -8,6 +8,7 @@ import stripe from '../utils/stripe'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { getActiveShipment } from '../utils/order'
+import shippo from '../utils/shippo'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
@@ -725,7 +726,59 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
 
       const activeShipment = getActiveShipment(order)
 
-      if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
+      //Handle CREATED shipments - create Shippo transaction if needed
+      if (activeShipment.status === 'CREATED') {
+        if (activeShipment.shipmentAccountType === 'UNTRACKED') {
+          await tx.shipment.update({
+            where: { id: activeShipment.id },
+            data: {
+              status: 'PENDING',
+            },
+          })
+        } else {
+          if (!activeShipment.externalShipmentRateId) {
+            throw new Error('Valid CREATED shipment with external rate not found')
+          }
+
+          const transaction = await shippo.transactions.create({
+            rate: activeShipment.externalShipmentRateId,
+            labelFileType: 'PDF',
+            async: false,
+          })
+
+          const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+
+          if (transactionStatus !== 'SUCCESS') {
+            throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
+          }
+
+          await tx.shipment.update({
+            where: { id: activeShipment.id },
+            data: {
+              status: 'PENDING',
+              trackingStatus: TrackingStatus.UNKNOWN,
+              trackingNumber,
+              labelUrl,
+            },
+          })
+        }
+      }
+
+      //Refresh activeShipment after potential update
+      const updatedOrder = await tx.order.findUnique({
+        where: { id },
+        include: {
+          shipments: true,
+        },
+      })
+
+      if (!updatedOrder) {
+        throw new Error('Order not found after shipment update.')
+      }
+
+      const updatedActiveShipment = getActiveShipment(updatedOrder)
+
+      if (updatedActiveShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
         throw new Error(`Order cannot be accepted based on current shipment tracking status.`)
       }
 
@@ -738,14 +791,14 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       await stripe.paymentIntents.capture(order.paymentIntentId)
 
       await tx.shipment.update({
-        where: { id: activeShipment.id },
+        where: { id: updatedActiveShipment.id },
         data: {
           trackingStatus: TrackingStatus.PRE_TRANSIT,
         },
       })
 
       //If shipment is UNTRACKED, also update order status to COMPLETED
-      if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+      if (updatedActiveShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
         await tx.order.update({
           where: { id },
           data: {

@@ -3,7 +3,6 @@ import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
 import { calculateOrderTax, calculateOrderShipping, OrderPayload, getActiveShipment } from '../utils/order'
-import shippo from '../utils/shippo'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 
@@ -155,46 +154,6 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           shippingMethod: true,
         },
       })
-
-      const shipmentRecord = pendingOrder.shipments.find(s => s.status === 'CREATED')
-      if (!shipmentRecord) {
-        throw new Error('Valid CREATED shipment not found')
-      }
-
-      if (shipmentRecord.shipmentAccountType === 'UNTRACKED') {
-        await tx.shipment.update({
-          where: { id: shipmentRecord.id },
-          data: {
-            status: 'PENDING',
-          },
-        })
-      } else {
-        if (!shipmentRecord.externalShipmentRateId) {
-          throw new Error('Valid CREATED shipment with external rate not found')
-        }
-
-        const transaction = await shippo.transactions.create({
-          rate: shipmentRecord.externalShipmentRateId,
-          labelFileType: 'PDF',
-          async: false,
-        })
-
-        const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
-
-        if (transactionStatus !== 'SUCCESS') {
-          throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
-        }
-
-        await tx.shipment.update({
-          where: { id: shipmentRecord.id },
-          data: {
-            status: 'PENDING',
-            trackingStatus: 'UNKNOWN',
-            trackingNumber,
-            labelUrl,
-          },
-        })
-      }
 
       const { paymentIntent } = await createPaymentIntent(pendingOrder as OrderWithRelations)
 

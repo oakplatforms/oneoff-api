@@ -21,9 +21,7 @@ export const handler = async (): Promise<void> => {
         },
         shipments: {
           some: {
-            trackingStatus: {
-              in: [TrackingStatus.UNKNOWN, TrackingStatus.PRE_TRANSIT]
-            }
+            trackingStatus: TrackingStatus.UNKNOWN
           }
         }
       },
@@ -45,10 +43,7 @@ export const handler = async (): Promise<void> => {
         console.log(`Skipping order ${order.id} - ${error instanceof Error ? error.message : 'active shipment not found'}`)
         continue
       }
-      if (
-        activeShipment.trackingStatus !== TrackingStatus.UNKNOWN &&
-        activeShipment.trackingStatus !== TrackingStatus.PRE_TRANSIT
-      ) {
+      if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
         console.log(`Skipping order ${order.id} - tracking status changed: ${activeShipment.trackingStatus}`)
         continue
       }
@@ -94,7 +89,7 @@ export const handler = async (): Promise<void> => {
                 Detail: JSON.stringify({
                   orderId: updatedOrder.id,
                   type: 'order.canceled.customer',
-                  cancellationReason: 'Order was canceled because the seller did not ship the order within 3 days.'
+                  cancellationReason: 'Order was canceled because seller did not accept and ship within 3 days.'
                 }),
                 EventBusName: 'default',
               },
@@ -104,7 +99,7 @@ export const handler = async (): Promise<void> => {
                 Detail: JSON.stringify({
                   orderId: updatedOrder.id,
                   type: 'order.canceled.seller',
-                  cancellationReason: 'Order was canceled because the seller did not ship the order within 3 days.'
+                  cancellationReason: 'Order was canceled because seller did not accept and ship within 3 days.'
                 }),
                 EventBusName: 'default',
               },
