@@ -146,8 +146,8 @@ functions:
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
     events:
       - schedule:
-          rate: rate(1 minute)
-          description: Cancel unshipped orders older than 72 hours (runs every minute for testing)
+          rate: cron(0 17 * * ? *)
+          description: Cancel unshipped orders older than 72 hours (runs daily at noon EST)
 
 custom:
   dotenv:
