@@ -348,7 +348,7 @@ shipmentRouter.post('/tracked-shipment', async (req, res) => {
             ? new Prisma.Decimal(cheapestOutboundRate.amount)
             : new Prisma.Decimal('0'),
           externalShipmentId: cheapestOutbound?.shipmentId || null,
-          externalShipmentRateId: cheapestOutboundRate?.object_id || null,
+          externalShipmentRateId: cheapestOutboundRate?.object_id || cheapestOutboundRate?.id || null,
           displayName: cheapestOutboundRate
             ? `${cheapestOutboundRate.provider} ${cheapestOutboundRate.servicelevel.name}`
             : order.shippingMethod?.displayName || order.shippingMethod?.name || null,
@@ -411,7 +411,7 @@ shipmentRouter.post('/tracked-shipment', async (req, res) => {
             ? new Prisma.Decimal(cheapestReturnRate.amount)
             : new Prisma.Decimal('0'),
           externalShipmentId: cheapestReturn?.shipmentId || null,
-          externalShipmentRateId: cheapestReturnRate?.object_id || null,
+          externalShipmentRateId: cheapestReturnRate?.object_id || cheapestReturnRate?.id || null,
           displayName: cheapestReturnRate
             ? `${cheapestReturnRate.provider} ${cheapestReturnRate.servicelevel.name}`
             : order.shippingMethod?.displayName || order.shippingMethod?.name || null,
