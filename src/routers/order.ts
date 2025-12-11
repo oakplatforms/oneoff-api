@@ -908,6 +908,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
           where: { id: activeShipment.id },
           data: {
             status: ProcessStatus.COMPLETED,
+            trackingStatus: TrackingStatus.PRE_TRANSIT,
           },
         })
 
