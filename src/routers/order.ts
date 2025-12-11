@@ -754,7 +754,6 @@ orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
             where: { id: activeShipment.id },
             data: {
               status: 'PENDING',
-              trackingStatus: TrackingStatus.UNKNOWN,
               trackingNumber,
               labelUrl,
             },
@@ -767,13 +766,6 @@ orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
 
           await stripe.paymentIntents.confirm(order.paymentIntentId)
           await stripe.paymentIntents.capture(order.paymentIntentId)
-
-          await tx.shipment.update({
-            where: { id: activeShipment.id },
-            data: {
-              trackingStatus: TrackingStatus.PRE_TRANSIT,
-            },
-          })
         }
       } else {
         throw new Error('Shipment is not in CREATED status and cannot be accepted.')
@@ -894,6 +886,13 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
 
       const activeShipment = getActiveShipment(order)
 
+      await tx.shipment.update({
+        where: { id: activeShipment.id },
+        data: {
+          trackingStatus: TrackingStatus.PRE_TRANSIT,
+        },
+      })
+
       //If shipment is UNTRACKED, confirm/capture payment and complete order and shipment
       if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
         if (!order.paymentIntentId) {
@@ -903,14 +902,6 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
         //Confirm and capture the payment intent
         await stripe.paymentIntents.confirm(order.paymentIntentId)
         await stripe.paymentIntents.capture(order.paymentIntentId)
-
-        await tx.shipment.update({
-          where: { id: activeShipment.id },
-          data: {
-            status: ProcessStatus.COMPLETED,
-            trackingStatus: TrackingStatus.PRE_TRANSIT,
-          },
-        })
 
         await tx.order.update({
           where: { id },
