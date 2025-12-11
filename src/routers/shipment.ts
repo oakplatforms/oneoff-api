@@ -1,6 +1,6 @@
 import express from 'express'
 import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
-import shippo, { carrierAccounts, fetchRateById, validShippoTemplateTypes } from '../utils/shippo'
+import shippo, { carrierAccounts, fetchRateById, validShippoTemplateTypes, ShippoRate } from '../utils/shippo'
 import { Prisma, ShipmentAccountType, ShipmentType, ProcessStatus, TrackingStatus } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
@@ -104,38 +104,69 @@ shipmentRouter.get('/shipment/:id', async (req, res) => {
  *               - shippingMethodId
  *     responses:
  *       '200':
- *         description: Successfully retrieved shipping rates from Shippo.
+ *         description: Successfully retrieved shipping rates from Shippo and created both OUTBOUND and RETURN shipment records.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 rates:
+ *                 shipments:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       objectId:
+ *                       id:
  *                         type: string
- *                         description: The Shippo object ID for the rate.
- *                       provider:
+ *                         description: Internal shipment ID.
+ *                       type:
  *                         type: string
- *                         description: The shipping carrier (e.g., USPS, FedEx, UPS).
- *                       serviceLevel:
- *                         type: object
- *                         properties:
- *                           name:
- *                             type: string
- *                             description: The name of the shipping service.
- *                           token:
- *                             type: string
- *                             description: The service-level token identifier.
- *                       amount:
+ *                         enum: [OUTBOUND, RETURN]
+ *                         description: The shipment type (OUTBOUND or RETURN).
+ *                       shipmentAccountType:
  *                         type: string
- *                         description: The rate cost in USD.
- *                       estimatedDays:
- *                         type: integer
- *                         description: Estimated delivery time in business days.
+ *                         enum: [SHIPPO, UNTRACKED]
+ *                         description: The shipment account type.
+ *                       externalShipmentId:
+ *                         type: string
+ *                         description: The Shippo shipment ID.
+ *                       externalShipmentRateId:
+ *                         type: string
+ *                         description: The selected Shippo rate ID (cheapest rate).
+ *                       rate:
+ *                         type: string
+ *                         description: Cost of the selected rate in USD.
+ *                       rates:
+ *                         type: array
+ *                         description: All available rates for this shipment type.
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             object_id:
+ *                               type: string
+ *                               description: The Shippo object ID for the rate.
+ *                             provider:
+ *                               type: string
+ *                               description: The shipping carrier (e.g., USPS, FedEx, UPS).
+ *                             servicelevel:
+ *                               type: object
+ *                               properties:
+ *                                 name:
+ *                                   type: string
+ *                                   description: The name of the shipping service.
+ *                                 token:
+ *                                   type: string
+ *                                   description: The service-level token identifier.
+ *                             amount:
+ *                               type: string
+ *                               description: The rate cost in USD.
+ *                             estimated_days:
+ *                               type: integer
+ *                               description: Estimated delivery time in business days.
+ *                 errors:
+ *                   type: array
+ *                   description: Any errors or messages from Shippo.
+ *                   items:
+ *                     type: object
  *       '400':
  *         description: Invalid request payload or missing data required for rate calculation.
  *       '500':
@@ -218,8 +249,26 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
       }
 
       const supportedCarriers = order.seller?.shippingCarrierTypes || []
-      const allShipments = []
+      const outboundShippoShipments = []
+      const returnShippoShipments = []
       const orderWeight = calculateOrderWeight(order as OrderPayload)
+
+      //Check for existing shipments and delete them if they exist
+      const existingShipments = await tx.shipment.findMany({
+        where: {
+          orderId: order.id,
+          shipmentAccountType: ShipmentAccountType.SHIPPO,
+        },
+      })
+
+      if (existingShipments.length > 0) {
+        await tx.shipment.deleteMany({
+          where: {
+            orderId: order.id,
+            shipmentAccountType: ShipmentAccountType.SHIPPO,
+          },
+        })
+      }
 
       for (const carrier of supportedCarriers) {
         const shippingParcel = order.shippingMethod?.parcels.find(
@@ -244,33 +293,123 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
             parcelConfig.distanceUnit = 'in'
           }
 
-          const shippoShipment = await shippo.shipments.create({
-            addressFrom: fromAddress,
-            addressTo: toAddress,
-            parcels: [parcelConfig],
-            carrierAccounts: [carrierAccounts[carrier]],
-            metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}}`,
-            async: false,
-          })
+          //Create both OUTBOUND and RETURN shipments in parallel
+          const [outboundShippoShipment, returnShippoShipment] = await Promise.all([
+            shippo.shipments.create({
+              addressFrom: fromAddress,
+              addressTo: toAddress,
+              parcels: [parcelConfig],
+              carrierAccounts: [carrierAccounts[carrier]],
+              metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}, "type": "OUTBOUND"}`,
+              async: false,
+            }),
+            shippo.shipments.create({
+              addressFrom: toAddress,
+              addressTo: fromAddress,
+              parcels: [parcelConfig],
+              carrierAccounts: [carrierAccounts[carrier]],
+              metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}, "type": "RETURN"}`,
+              async: false,
+            }),
+          ])
 
-          if (Array.isArray(shippoShipment?.rates)) {
-            allShipments.push(shippoShipment)
+          if (Array.isArray(outboundShippoShipment?.rates)) {
+            outboundShippoShipments.push(outboundShippoShipment)
+          }
+
+          if (Array.isArray(returnShippoShipment?.rates)) {
+            returnShippoShipments.push(returnShippoShipment)
           }
         }
       }
 
-      const allRates = allShipments.flatMap(s => s.rates || [])
-
-      const sortedRates = allRates.sort((a, b) => {
+      //Aggregate all rates across carriers for OUTBOUND
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allOutboundRates = outboundShippoShipments.flatMap((s: any) => s.rates || []) as ShippoRate[]
+      const sortedOutboundRates = allOutboundRates.sort((a, b) => {
         const priceA = parseFloat(a.amount || '0')
         const priceB = parseFloat(b.amount || '0')
         return priceA - priceB
       })
 
+      //Aggregate all rates across carriers for RETURN
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allReturnRates = returnShippoShipments.flatMap((s: any) => s.rates || []) as ShippoRate[]
+      const sortedReturnRates = allReturnRates.sort((a, b) => {
+        const priceA = parseFloat(a.amount || '0')
+        const priceB = parseFloat(b.amount || '0')
+        return priceA - priceB
+      })
+
+      //Get the cheapest rate for each type (or null if no rates)
+      const cheapestOutboundRate = sortedOutboundRates[0] || null
+      const cheapestReturnRate = sortedReturnRates[0] || null
+
+      //Create OUTBOUND shipment record
+      const outboundShipment = await tx.shipment.create({
+        data: {
+          orderId: order.id,
+          type: ShipmentType.OUTBOUND,
+          shipmentAccountType: ShipmentAccountType.SHIPPO,
+          status: ProcessStatus.CREATED,
+          rate: cheapestOutboundRate
+            ? new Prisma.Decimal(cheapestOutboundRate.amount)
+            : new Prisma.Decimal('0'),
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          externalShipmentId: (outboundShippoShipments[0] as any)?.object_id || null,
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          externalShipmentRateId: (cheapestOutboundRate as any)?.object_id || null,
+          displayName: cheapestOutboundRate
+            ? `${cheapestOutboundRate.provider} ${cheapestOutboundRate.servicelevel.name}`
+            : order.shippingMethod?.displayName || order.shippingMethod?.name || null,
+          name: cheapestOutboundRate?.servicelevel.token || order.shippingMethod?.name || null,
+          description: cheapestOutboundRate
+            //eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ? `${(cheapestOutboundRate as any).estimated_days} business ${(cheapestOutboundRate as any).estimated_days === 1 ? 'day' : 'days'}`
+            : null,
+        },
+      })
+
+      //Create RETURN shipment record
+      const returnShipment = await tx.shipment.create({
+        data: {
+          orderId: order.id,
+          type: ShipmentType.RETURN,
+          shipmentAccountType: ShipmentAccountType.SHIPPO,
+          status: ProcessStatus.CREATED,
+          rate: cheapestReturnRate
+            ? new Prisma.Decimal(cheapestReturnRate.amount)
+            : new Prisma.Decimal('0'),
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          externalShipmentId: (returnShippoShipments[0] as any)?.object_id || null,
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          externalShipmentRateId: (cheapestReturnRate as any)?.object_id || null,
+          displayName: cheapestReturnRate
+            ? `${cheapestReturnRate.provider} ${cheapestReturnRate.servicelevel.name}`
+            : order.shippingMethod?.displayName || order.shippingMethod?.name || null,
+          name: cheapestReturnRate?.servicelevel.token || order.shippingMethod?.name || null,
+          description: cheapestReturnRate
+            //eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ? `${(cheapestReturnRate as any).estimated_days} business ${(cheapestReturnRate as any).estimated_days === 1 ? 'day' : 'days'}`
+            : null,
+        },
+      })
+
       return {
-        rates: sortedRates,
-        errors: allShipments.flatMap(s => s.messages || []),
-        metadata: allShipments[0]?.metadata || null,
+        shipments: [
+          {
+            ...outboundShipment,
+            rates: sortedOutboundRates,
+          },
+          {
+            ...returnShipment,
+            rates: sortedReturnRates,
+          },
+        ],
+        errors: [
+          ...outboundShippoShipments.flatMap(s => s.messages || []),
+          ...returnShippoShipments.flatMap(s => s.messages || []),
+        ],
       }
     }, { timeout: 60000 })
 
