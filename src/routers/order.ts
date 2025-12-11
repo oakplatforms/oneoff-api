@@ -622,12 +622,165 @@ orderRouter.put('/order/:id', async (req, res) => {
 
 /**
  * @openapi
+ * /order/{id}/accept-shipment:
+ *   put:
+ *     tags:
+ *       - Order
+ *     summary: Accept a shipment and create Shippo transaction.
+ *     description: Accepts a shipment by creating a Shippo transaction for CREATED shipments. For UNTRACKED shipments, updates status to PENDING. For tracked shipments, creates a Shippo transaction and updates the shipment with tracking number and label URL.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the order containing the shipment.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accountId
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *     responses:
+ *       '200':
+ *         description: Successfully accepted the shipment.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters, invalid request, or shipment cannot be accepted.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Order not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during acceptance.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
+  const { id } = req.params
+  const { accountId } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('Order ID is required.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          shipments: true,
+          shippingMethod: true,
+          seller: {
+            include: {
+              account: true,
+            },
+          },
+        },
+      })
+
+      if (!order) {
+        throw new Error('Order not found.')
+      }
+
+      if (order.seller?.accountId !== accountId) {
+        throw new Error('You can only accept shipments for your own listings.')
+      }
+
+      if (!order.shipments || order.shipments.length === 0) {
+        throw new Error('Order cannot be accepted. Order must have at least one shipment.')
+      }
+
+      const activeShipment = getActiveShipment(order)
+
+      //Handle CREATED shipments - create Shippo transaction if needed
+      if (activeShipment.status === 'CREATED') {
+        if (activeShipment.shipmentAccountType === 'UNTRACKED') {
+          await tx.shipment.update({
+            where: { id: activeShipment.id },
+            data: {
+              status: 'PENDING',
+            },
+          })
+        } else {
+          if (!activeShipment.externalShipmentRateId) {
+            throw new Error('Valid CREATED shipment with external rate not found')
+          }
+
+          const transaction = await shippo.transactions.create({
+            rate: activeShipment.externalShipmentRateId,
+            labelFileType: 'PDF',
+            async: false,
+          })
+
+          const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+
+          if (transactionStatus !== 'SUCCESS') {
+            throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
+          }
+
+          await tx.shipment.update({
+            where: { id: activeShipment.id },
+            data: {
+              status: 'PENDING',
+              trackingStatus: TrackingStatus.UNKNOWN,
+              trackingNumber,
+              labelUrl,
+            },
+          })
+        }
+      } else {
+        throw new Error('Shipment is not in CREATED status and cannot be accepted.')
+      }
+    })
+
+    res.json({ message: 'Shipment accepted successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('ACCEPT_SHIPMENT_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to accept shipment.' })
+  }
+})
+
+/**
+ * @openapi
  * /order/{id}/accept-order:
  *   put:
  *     tags:
  *       - Order
  *     summary: Accept an order.
- *     description: Accepts an order by updating the first shipment's tracking status to PRE_TRANSIT. The order must have at least one shipment with UNKNOWN tracking status.
+ *     description: Accepts an order by confirming and capturing payment, then updating the first shipment's tracking status to PRE_TRANSIT. The order must have at least one shipment.
  *     parameters:
  *       - in: path
  *         name: id
@@ -660,7 +813,7 @@ orderRouter.put('/order/:id', async (req, res) => {
  *                 message:
  *                   type: string
  *       '400':
- *         description: Missing required parameters, invalid request, or order cannot be accepted (no shipments or shipment tracking status is not UNKNOWN).
+ *         description: Missing required parameters, invalid request, or order cannot be accepted (no shipments or missing payment intent).
  *         content:
  *           application/json:
  *             schema:
@@ -725,44 +878,6 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       }
 
       const activeShipment = getActiveShipment(order)
-
-      //Handle CREATED shipments - create Shippo transaction if needed
-      if (activeShipment.status === 'CREATED') {
-        if (activeShipment.shipmentAccountType === 'UNTRACKED') {
-          await tx.shipment.update({
-            where: { id: activeShipment.id },
-            data: {
-              status: 'PENDING',
-            },
-          })
-        } else {
-          if (!activeShipment.externalShipmentRateId) {
-            throw new Error('Valid CREATED shipment with external rate not found')
-          }
-
-          const transaction = await shippo.transactions.create({
-            rate: activeShipment.externalShipmentRateId,
-            labelFileType: 'PDF',
-            async: false,
-          })
-
-          const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
-
-          if (transactionStatus !== 'SUCCESS') {
-            throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
-          }
-
-          await tx.shipment.update({
-            where: { id: activeShipment.id },
-            data: {
-              status: 'PENDING',
-              trackingStatus: TrackingStatus.UNKNOWN,
-              trackingNumber,
-              labelUrl,
-            },
-          })
-        }
-      }
 
       if (!order.paymentIntentId) {
         throw new Error('Order payment intent not found. Cannot capture payment.')
