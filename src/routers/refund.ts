@@ -1,4 +1,4 @@
-import { Prisma, RefundType, RefundStatus, ShipmentType, TransactionType, ProcessStatus } from '@prisma/client'
+import { Prisma, RefundType, RefundStatus, TransactionType, ShipmentType, ShipmentAccountType, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -6,6 +6,7 @@ import { AuthenticatedUser, validateAccount } from '../validation/user'
 import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import stripe from '../utils/stripe'
+import shippo from '../utils/shippo'
 
 const prisma = getPrismaClient()
 export const refundRouter = express.Router()
@@ -539,43 +540,56 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
         },
       })
 
-      //Create return shipment and transaction
+      //Find RETURN shipment and create Shippo transaction if needed
       if (!refund.order) {
-        throw new Error('Order not found for return shipment creation.')
+        throw new Error('Order not found for return shipment processing.')
       }
 
-      const order = refund.order
-      const originalShipment = order.shipments.find((s: { type: string; status: string }) => s.type === ShipmentType.OUTBOUND && s.status !== ProcessStatus.DELETED)
+      const returnShipment = refund.order.shipments.find(
+        (s: { type: string; shipmentAccountType: string; status: string }) =>
+          s.type === ShipmentType.RETURN &&
+          s.shipmentAccountType === ShipmentAccountType.SHIPPO &&
+          s.status !== ProcessStatus.DELETED
+      )
 
-      if (!originalShipment) {
-        throw new Error('Original shipment not found for return.')
+      if (returnShipment) {
+        //Handle CREATED return shipments - create Shippo transaction
+        if (returnShipment.status === ProcessStatus.CREATED) {
+          if (!returnShipment.externalShipmentRateId) {
+            throw new Error('Valid CREATED return shipment with external rate not found')
+          }
+
+          const transaction = await shippo.transactions.create({
+            rate: returnShipment.externalShipmentRateId,
+            labelFileType: 'PDF',
+            async: false,
+          })
+
+          const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+
+          if (transactionStatus !== 'SUCCESS') {
+            throw new Error(`Return shipment transaction failed: ${messages?.[0]?.text || 'Unknown error'}`)
+          }
+
+          await tx.shipment.update({
+            where: { id: returnShipment.id },
+            data: {
+              status: ProcessStatus.PENDING,
+              trackingNumber,
+              returnLabelUrl: labelUrl,
+            },
+          })
+        }
       }
-
-      //Create return Shipment record based on original shipment
-      await tx.shipment.create({
-        data: {
-          orderId: order.id,
-          type: ShipmentType.RETURN,
-          shipmentAccountType: originalShipment.shipmentAccountType,
-          status: ProcessStatus.PENDING,
-          rate: originalShipment.rate,
-          name: originalShipment.name,
-          displayName: `Return: ${originalShipment.displayName || originalShipment.name}`,
-          description: originalShipment.description,
-          externalShipmentId: null,
-          externalShipmentRateId: null,
-        },
-      })
 
       //Create return Transaction record
       await tx.transaction.create({
         data: {
-          orderId: order.id,
-          accountId: order.customer?.accountId,
-          //Convert from cents to dollars
+          orderId: refund.orderId,
+          accountId: refund.order?.customer?.accountId,
           amount: refundAmount / 100,
           transactionType: TransactionType.REFUND,
-          description: `Refund for order ${order.id}`,
+          description: `Refund for order ${refund.orderId}`,
         },
       })
     }, { timeout: 60000 })

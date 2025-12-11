@@ -323,27 +323,41 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         }
       }
 
-      //Aggregate all rates across carriers for OUTBOUND
+      //Aggregate all rates across carriers for OUTBOUND with shipment tracking
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allOutboundRates = outboundShippoShipments.flatMap((s: any) => s.rates || []) as ShippoRate[]
-      const sortedOutboundRates = allOutboundRates.sort((a, b) => {
-        const priceA = parseFloat(a.amount || '0')
-        const priceB = parseFloat(b.amount || '0')
+      const allOutboundRatesWithShipment = outboundShippoShipments.flatMap((s: any) => 
+        (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
+      )
+      const sortedOutboundRatesWithShipment = allOutboundRatesWithShipment.sort((a, b) => {
+        const priceA = parseFloat(a.rate.amount || '0')
+        const priceB = parseFloat(b.rate.amount || '0')
         return priceA - priceB
       })
 
-      //Aggregate all rates across carriers for RETURN
+      //Aggregate all rates across carriers for RETURN with shipment tracking
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allReturnRates = returnShippoShipments.flatMap((s: any) => s.rates || []) as ShippoRate[]
-      const sortedReturnRates = allReturnRates.sort((a, b) => {
-        const priceA = parseFloat(a.amount || '0')
-        const priceB = parseFloat(b.amount || '0')
+      const allReturnRatesWithShipment = returnShippoShipments.flatMap((s: any) => 
+        (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
+      )
+      const sortedReturnRatesWithShipment = allReturnRatesWithShipment.sort((a, b) => {
+        const priceA = parseFloat(a.rate.amount || '0')
+        const priceB = parseFloat(b.rate.amount || '0')
         return priceA - priceB
       })
 
       //Get the cheapest rate for each type (or null if no rates)
-      const cheapestOutboundRate = sortedOutboundRates[0] || null
-      const cheapestReturnRate = sortedReturnRates[0] || null
+      const cheapestOutbound = sortedOutboundRatesWithShipment[0] || null
+      const cheapestReturn = sortedReturnRatesWithShipment[0] || null
+      const cheapestOutboundRate = cheapestOutbound?.rate || null
+      const cheapestReturnRate = cheapestReturn?.rate || null
+
+      //Helper function to format estimated days description
+      const formatEstimatedDays = (estimatedDays?: number) => {
+        if (estimatedDays !== undefined && estimatedDays !== null) {
+          return `${estimatedDays} business ${estimatedDays === 1 ? 'day' : 'days'}`
+        }
+        return '2 business days' // Default fallback
+      }
 
       //Create OUTBOUND shipment record
       const outboundShipment = await tx.shipment.create({
@@ -355,17 +369,14 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
           rate: cheapestOutboundRate
             ? new Prisma.Decimal(cheapestOutboundRate.amount)
             : new Prisma.Decimal('0'),
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-          externalShipmentId: (outboundShippoShipments[0] as any)?.object_id || null,
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-          externalShipmentRateId: (cheapestOutboundRate as any)?.object_id || null,
+          externalShipmentId: cheapestOutbound?.shipmentId || null,
+          externalShipmentRateId: cheapestOutboundRate?.object_id || null,
           displayName: cheapestOutboundRate
             ? `${cheapestOutboundRate.provider} ${cheapestOutboundRate.servicelevel.name}`
             : order.shippingMethod?.displayName || order.shippingMethod?.name || null,
           name: cheapestOutboundRate?.servicelevel.token || order.shippingMethod?.name || null,
           description: cheapestOutboundRate
-            //eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ? `${(cheapestOutboundRate as any).estimated_days} business ${(cheapestOutboundRate as any).estimated_days === 1 ? 'day' : 'days'}`
+            ? formatEstimatedDays(cheapestOutboundRate.estimated_days)
             : null,
         },
       })
@@ -380,17 +391,14 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
           rate: cheapestReturnRate
             ? new Prisma.Decimal(cheapestReturnRate.amount)
             : new Prisma.Decimal('0'),
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-          externalShipmentId: (returnShippoShipments[0] as any)?.object_id || null,
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-          externalShipmentRateId: (cheapestReturnRate as any)?.object_id || null,
+          externalShipmentId: cheapestReturn?.shipmentId || null,
+          externalShipmentRateId: cheapestReturnRate?.object_id || null,
           displayName: cheapestReturnRate
             ? `${cheapestReturnRate.provider} ${cheapestReturnRate.servicelevel.name}`
             : order.shippingMethod?.displayName || order.shippingMethod?.name || null,
           name: cheapestReturnRate?.servicelevel.token || order.shippingMethod?.name || null,
           description: cheapestReturnRate
-            //eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ? `${(cheapestReturnRate as any).estimated_days} business ${(cheapestReturnRate as any).estimated_days === 1 ? 'day' : 'days'}`
+            ? formatEstimatedDays(cheapestReturnRate.estimated_days)
             : null,
         },
       })
@@ -399,11 +407,11 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         shipments: [
           {
             ...outboundShipment,
-            rates: sortedOutboundRates,
+            rates: sortedOutboundRatesWithShipment.map(item => item.rate),
           },
           {
             ...returnShipment,
-            rates: sortedReturnRates,
+            rates: sortedReturnRatesWithShipment.map(item => item.rate),
           },
         ],
         errors: [
