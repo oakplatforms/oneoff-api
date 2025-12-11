@@ -80,7 +80,7 @@ shipmentRouter.get('/shipment/:id', async (req, res) => {
 
 /**
  * @openapi
- * /shipment/rates:
+ * /tracked-shipment:
  *   post:
  *     tags:
  *       - Shipments
@@ -172,7 +172,7 @@ shipmentRouter.get('/shipment/:id', async (req, res) => {
  *       '500':
  *         description: Failed to fetch rates from Shippo or internal server error.
  */
-shipmentRouter.post('/shipment/rates', async (req, res) => {
+shipmentRouter.post('/tracked-shipment', async (req, res) => {
   const { orderId, accountId } = req.body
 
   try {
@@ -249,9 +249,35 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
       }
 
       const supportedCarriers = order.seller?.shippingCarrierTypes || []
-      const outboundShippoShipments = []
-      const returnShippoShipments = []
       const orderWeight = calculateOrderWeight(order as OrderPayload)
+
+      //Helper function to format estimated days description
+      const formatEstimatedDays = (estimatedDays?: number) => {
+        if (estimatedDays !== undefined && estimatedDays !== null) {
+          return `${estimatedDays} business ${estimatedDays === 1 ? 'day' : 'days'}`
+        }
+        return '2 business days'
+      }
+
+      //Helper function to build parcel config
+      const buildParcelConfig = (shippingParcel: NonNullable<typeof order.shippingMethod>['parcels'][0]) => {
+        //eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parcelConfig: any = {
+          weight: orderWeight?.toString(),
+          massUnit: 'oz',
+        }
+
+        if (validShippoTemplateTypes.includes(shippingParcel.type)) {
+          parcelConfig.template = shippingParcel.type
+        } else {
+          parcelConfig.length = '11.5'
+          parcelConfig.width = '6.125'
+          parcelConfig.height = '0.25'
+          parcelConfig.distanceUnit = 'in'
+        }
+
+        return parcelConfig
+      }
 
       //Check for existing shipments and delete them if they exist
       const existingShipments = await tx.shipment.findMany({
@@ -270,60 +296,31 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         })
       }
 
+      //Process OUTBOUND shipment - create Shippo shipments for all carriers
+      const outboundShippoShipments = []
       for (const carrier of supportedCarriers) {
         const shippingParcel = order.shippingMethod?.parcels.find(
           parcel => parcel.carrier === carrier
         )
 
         if (shippingParcel) {
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const parcelConfig: any = {
-            weight: orderWeight?.toString(),
-            massUnit: 'oz',
-          }
-
-          //Use template if it's a valid template type, otherwise use dimensions
-          if (validShippoTemplateTypes.includes(shippingParcel.type)) {
-            parcelConfig.template = shippingParcel.type
-          } else {
-            //For non-template types (like USPS_GroundAdvantage), use default dimensions
-            parcelConfig.length = '11.5'
-            parcelConfig.width = '6.125'
-            parcelConfig.height = '0.25'
-            parcelConfig.distanceUnit = 'in'
-          }
-
-          //Create both OUTBOUND and RETURN shipments in parallel
-          const [outboundShippoShipment, returnShippoShipment] = await Promise.all([
-            shippo.shipments.create({
-              addressFrom: fromAddress,
-              addressTo: toAddress,
-              parcels: [parcelConfig],
-              carrierAccounts: [carrierAccounts[carrier]],
-              metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}, "type": "OUTBOUND"}`,
-              async: false,
-            }),
-            shippo.shipments.create({
-              addressFrom: toAddress,
-              addressTo: fromAddress,
-              parcels: [parcelConfig],
-              carrierAccounts: [carrierAccounts[carrier]],
-              metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}, "type": "RETURN"}`,
-              async: false,
-            }),
-          ])
+          const parcelConfig = buildParcelConfig(shippingParcel)
+          const outboundShippoShipment = await shippo.shipments.create({
+            addressFrom: fromAddress,
+            addressTo: toAddress,
+            parcels: [parcelConfig],
+            carrierAccounts: [carrierAccounts[carrier]],
+            metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}, "type": "OUTBOUND"}`,
+            async: false,
+          })
 
           if (Array.isArray(outboundShippoShipment?.rates)) {
             outboundShippoShipments.push(outboundShippoShipment)
           }
-
-          if (Array.isArray(returnShippoShipment?.rates)) {
-            returnShippoShipments.push(returnShippoShipment)
-          }
         }
       }
 
-      //Aggregate all rates across carriers for OUTBOUND with shipment tracking
+      //Aggregate and sort OUTBOUND rates
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allOutboundRatesWithShipment = outboundShippoShipments.flatMap((s: any) =>
         (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
@@ -334,31 +331,8 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         return priceA - priceB
       })
 
-      //Aggregate all rates across carriers for RETURN with shipment tracking
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allReturnRatesWithShipment = returnShippoShipments.flatMap((s: any) =>
-        (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
-      )
-      const sortedReturnRatesWithShipment = allReturnRatesWithShipment.sort((a, b) => {
-        const priceA = parseFloat(a.rate.amount || '0')
-        const priceB = parseFloat(b.rate.amount || '0')
-        return priceA - priceB
-      })
-
-      //Get the cheapest rate for each type (or null if no rates)
       const cheapestOutbound = sortedOutboundRatesWithShipment[0] || null
-      const cheapestReturn = sortedReturnRatesWithShipment[0] || null
       const cheapestOutboundRate = cheapestOutbound?.rate || null
-      const cheapestReturnRate = cheapestReturn?.rate || null
-
-      //Helper function to format estimated days description
-      const formatEstimatedDays = (estimatedDays?: number) => {
-        if (estimatedDays !== undefined && estimatedDays !== null) {
-          return `${estimatedDays} business ${estimatedDays === 1 ? 'day' : 'days'}`
-        }
-        //Default fallback
-        return '2 business days'
-      }
 
       //Create OUTBOUND shipment record
       const outboundShipment = await tx.shipment.create({
@@ -381,6 +355,44 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
             : null,
         },
       })
+
+      //Process RETURN shipment - create Shippo shipments for all carriers
+      const returnShippoShipments = []
+      for (const carrier of supportedCarriers) {
+        const shippingParcel = order.shippingMethod?.parcels.find(
+          parcel => parcel.carrier === carrier
+        )
+
+        if (shippingParcel) {
+          const parcelConfig = buildParcelConfig(shippingParcel)
+          const returnShippoShipment = await shippo.shipments.create({
+            addressFrom: toAddress,
+            addressTo: fromAddress,
+            parcels: [parcelConfig],
+            carrierAccounts: [carrierAccounts[carrier]],
+            metadata: `{"shipmentMethodId": ${order.shippingMethod?.id}, "type": "RETURN"}`,
+            async: false,
+          })
+
+          if (Array.isArray(returnShippoShipment?.rates)) {
+            returnShippoShipments.push(returnShippoShipment)
+          }
+        }
+      }
+
+      //Aggregate and sort RETURN rates
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allReturnRatesWithShipment = returnShippoShipments.flatMap((s: any) =>
+        (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
+      )
+      const sortedReturnRatesWithShipment = allReturnRatesWithShipment.sort((a, b) => {
+        const priceA = parseFloat(a.rate.amount || '0')
+        const priceB = parseFloat(b.rate.amount || '0')
+        return priceA - priceB
+      })
+
+      const cheapestReturn = sortedReturnRatesWithShipment[0] || null
+      const cheapestReturnRate = cheapestReturn?.rate || null
 
       //Create RETURN shipment record
       const returnShipment = await tx.shipment.create({
@@ -432,7 +444,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
 /**
  * @openapi
- * /shipment:
+ * /untracked-shipment:
  *   post:
  *     tags:
  *       - Shipments
@@ -491,8 +503,8 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
  *       '500':
  *         description: Failed to create shipment due to Shippo error or database failure.
  */
-shipmentRouter.post('/shipment', async (req, res) => {
-  const { orderId, rateId, accountId } = req.body
+shipmentRouter.post('/untracked-shipment', async (req, res) => {
+  const { orderId, accountId } = req.body
 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
@@ -527,45 +539,19 @@ shipmentRouter.post('/shipment', async (req, res) => {
       )
     }
 
-    let newShipment
-
-    if (!rateId) {
-      newShipment = await prisma.shipment.create({
-        data: {
-          displayName: order.shippingMethod.displayName || order.shippingMethod.name,
-          name: order.shippingMethod.name,
-          orderId: order.id,
-          type: ShipmentType.OUTBOUND,
-          shipmentAccountType: ShipmentAccountType.UNTRACKED,
-          status: ProcessStatus.CREATED,
-          rate: order.shippingMethod.fixedRate || new Prisma.Decimal('0'),
-          externalShipmentId: null,
-          externalShipmentRateId: null,
-        },
-      })
-    } else {
-      const rate = await fetchRateById(rateId)
-
-      if (!rate || !rate.amount || !rate.shipment) {
-        throw new Error('Invalid or incomplete rate.')
-      }
-
-      newShipment = await prisma.shipment.create({
-        data: {
-          displayName: `${rate.provider} ${rate.servicelevel.name}`,
-          name: rate.servicelevel.token,
-          description: `${rate?.estimated_days} business ${rate?.estimated_days === 1 ? 'day' : 'days'}`,
-          orderId: order.id,
-          type: ShipmentType.OUTBOUND,
-          shipmentAccountType: ShipmentAccountType.SHIPPO,
-          status: ProcessStatus.CREATED,
-          rate: new Prisma.Decimal(rate.amount),
-          externalShipmentId: rate.shipment,
-          externalShipmentRateId: rate.object_id,
-        },
-      })
-    }
-
+    const newShipment = await prisma.shipment.create({
+      data: {
+        displayName: order.shippingMethod.displayName || order.shippingMethod.name,
+        name: order.shippingMethod.name,
+        orderId: order.id,
+        type: ShipmentType.OUTBOUND,
+        shipmentAccountType: ShipmentAccountType.UNTRACKED,
+        status: ProcessStatus.CREATED,
+        rate: order.shippingMethod.fixedRate || new Prisma.Decimal('0'),
+        externalShipmentId: null,
+        externalShipmentRateId: null,
+      },
+    })
     return res.json({ shipment: newShipment })
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
