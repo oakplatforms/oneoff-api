@@ -325,7 +325,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
       //Aggregate all rates across carriers for OUTBOUND with shipment tracking
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allOutboundRatesWithShipment = outboundShippoShipments.flatMap((s: any) => 
+      const allOutboundRatesWithShipment = outboundShippoShipments.flatMap((s: any) =>
         (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
       )
       const sortedOutboundRatesWithShipment = allOutboundRatesWithShipment.sort((a, b) => {
@@ -336,7 +336,7 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
 
       //Aggregate all rates across carriers for RETURN with shipment tracking
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allReturnRatesWithShipment = returnShippoShipments.flatMap((s: any) => 
+      const allReturnRatesWithShipment = returnShippoShipments.flatMap((s: any) =>
         (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
       )
       const sortedReturnRatesWithShipment = allReturnRatesWithShipment.sort((a, b) => {
@@ -356,7 +356,8 @@ shipmentRouter.post('/shipment/rates', async (req, res) => {
         if (estimatedDays !== undefined && estimatedDays !== null) {
           return `${estimatedDays} business ${estimatedDays === 1 ? 'day' : 'days'}`
         }
-        return '2 business days' // Default fallback
+        //Default fallback
+        return '2 business days'
       }
 
       //Create OUTBOUND shipment record
