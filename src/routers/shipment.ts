@@ -1,6 +1,6 @@
 import express from 'express'
 import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
-import shippo, { carrierAccounts, fetchRateById, validShippoTemplateTypes, ShippoRate } from '../utils/shippo'
+import shippo, { carrierAccounts, validShippoTemplateTypes, ShippoRate } from '../utils/shippo'
 import { Prisma, ShipmentAccountType, ShipmentType, ProcessStatus, TrackingStatus } from '@prisma/client'
 import { calculateOrderWeight, OrderPayload } from '../utils/order'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
@@ -323,7 +323,10 @@ shipmentRouter.post('/tracked-shipment', async (req, res) => {
       //Aggregate and sort OUTBOUND rates
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allOutboundRatesWithShipment = outboundShippoShipments.flatMap((s: any) =>
-        (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
+        (s.rates || []).map((rate: ShippoRate) => ({
+          rate,
+          shipmentId: rate.shipment || s.object_id
+        }))
       )
       const sortedOutboundRatesWithShipment = allOutboundRatesWithShipment.sort((a, b) => {
         const priceA = parseFloat(a.rate.amount || '0')
@@ -383,7 +386,10 @@ shipmentRouter.post('/tracked-shipment', async (req, res) => {
       //Aggregate and sort RETURN rates
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allReturnRatesWithShipment = returnShippoShipments.flatMap((s: any) =>
-        (s.rates || []).map((rate: ShippoRate) => ({ rate, shipmentId: s.object_id }))
+        (s.rates || []).map((rate: ShippoRate) => ({
+          rate,
+          shipmentId: rate.shipment || s.object_id
+        }))
       )
       const sortedReturnRatesWithShipment = allReturnRatesWithShipment.sort((a, b) => {
         const priceA = parseFloat(a.rate.amount || '0')
