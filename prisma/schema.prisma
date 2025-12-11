@@ -942,7 +942,7 @@ model Shipment {
   externalShipmentCarrierId String?
 
   // relations
-  order   Order?  @relation(fields: [orderId], references: [id])
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId String?
 }
 
