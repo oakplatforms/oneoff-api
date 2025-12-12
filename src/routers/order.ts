@@ -883,6 +883,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
 
       const activeShipment = getActiveShipment(order)
       const isUntracked = activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
+      console.log('activeShipment', JSON.stringify(activeShipment, null, 2))
 
       //If shipment is UNTRACKED, confirm/capture payment and complete order and shipment
       if (isUntracked) {

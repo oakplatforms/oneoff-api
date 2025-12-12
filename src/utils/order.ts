@@ -92,12 +92,33 @@ type OrderWithShipments<T = unknown> = {
 }
 
 /**
+ * Gets the OUTBOUND shipment from an order's shipments.
+ * Throws an error if no OUTBOUND shipment is found.
+ */
+export const getOutboundShipment = <T extends { type?: ShipmentType | string }>(
+  shipments: Array<T>
+): T => {
+  const outboundShipment = shipments.find(
+    (shipment) => shipment.type === ShipmentType.OUTBOUND
+  )
+
+  if (!outboundShipment) {
+    const availableTypes = shipments.map(s => s.type || 'unknown').join(', ')
+    throw new Error(
+      `Could not find OUTBOUND shipment. Available shipment types: ${availableTypes}`
+    )
+  }
+
+  return outboundShipment
+}
+
+/**
  * Gets the active shipment for an order based on the shipping method's isTracked property.
- * If isTracked is true, returns the SHIPPO shipment.
+ * If isTracked is true, returns the SHIPPO OUTBOUND shipment.
  * If isTracked is false, returns the UNTRACKED shipment.
  * Throws an error if shippingMethod is not available or if the expected shipment type is not found.
  */
-export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccountType | string }>(
+export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccountType | string; type?: ShipmentType | string }>(
   order: OrderWithShipments<T>
 ): T => {
   if (!order.shipments || order.shipments.length === 0) {
@@ -109,27 +130,15 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
   }
 
   const isTracked = order.shippingMethod.isTracked
-  console.log('getActiveShipment - isTracked:', isTracked, 'shipments:', order.shipments.map(s => ({ type: s.shipmentAccountType })))
 
   if (isTracked === true) {
-    const activeShipment = order.shipments.find(
+    //For tracked shipments, get the OUTBOUND SHIPPO shipment
+    const shippoShipments = order.shipments.filter(
       (shipment) =>
-        (shipment.shipmentAccountType === ShipmentAccountType.SHIPPO ||
-          String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.SHIPPO) &&
-        shipment.type !== ShipmentType.RETURN &&
-        String(shipment.type).toUpperCase() !== ShipmentType.RETURN
+        shipment.shipmentAccountType === ShipmentAccountType.SHIPPO ||
+        String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.SHIPPO
     )
-
-    if (!activeShipment) {
-      const availableTypes = order.shipments.map(s => `${s.shipmentAccountType}/${s.type || 'unknown'}`).join(', ')
-      throw new Error(
-        `Could not find ${ShipmentAccountType.SHIPPO} OUTBOUND shipment for order. ` +
-        `Expected shipment type: ${ShipmentAccountType.SHIPPO} OUTBOUND (isTracked: true). ` +
-        `Available shipment types: ${availableTypes}`
-      )
-    }
-
-    return activeShipment
+    return getOutboundShipment(shippoShipments)
   }
 
   if (isTracked === false) {
