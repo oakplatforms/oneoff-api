@@ -336,7 +336,7 @@ shipmentRouter.post('/tracked-shipment', async (req, res) => {
 
       const cheapestOutbound = sortedOutboundRatesWithShipment[0] || null
       const cheapestOutboundRate = cheapestOutbound?.rate || null
-
+      console.log('cheapestOutboundRate', JSON.stringify(cheapestOutboundRate, null, 2))
       //Create OUTBOUND shipment record
       const outboundShipment = await tx.shipment.create({
         data: {
