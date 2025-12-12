@@ -882,17 +882,18 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       }
 
       const activeShipment = getActiveShipment(order)
+      const isUntracked = activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
+
+      await tx.shipment.update({
+        where: { id: activeShipment.id },
+        data: {
+          trackingStatus: TrackingStatus.PRE_TRANSIT,
+          status: isUntracked ? ProcessStatus.COMPLETED : ProcessStatus.CREATED
+        },
+      })
 
       //If shipment is UNTRACKED, confirm/capture payment and complete order and shipment
-      if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
-        await tx.shipment.update({
-          where: { id: activeShipment.id },
-          data: {
-            trackingStatus: TrackingStatus.PRE_TRANSIT,
-            status: ProcessStatus.PENDING
-          },
-        })
-
+      if (isUntracked) {
         if (!order.paymentIntentId) {
           throw new Error('Order payment intent not found. Cannot capture payment.')
         }
