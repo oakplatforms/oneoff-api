@@ -65,14 +65,21 @@ export async function handleShippoTrackingUpdated(event: ShippoWebhookEvent<Ship
 
     console.log(`Updated Shipment ${shipment.id}: trackingStatus ${previousStatus} → ${mappedStatus}`)
 
-    //If status changed to DELIVERED, update order status to COMPLETED
+    //If status changed to DELIVERED, update shipment and order status to COMPLETED
     if (mappedStatus === 'DELIVERED' && shipment.orderId) {
+      await prisma.shipment.update({
+        where: { id: shipment.id },
+        data: {
+          status: ProcessStatus.COMPLETED,
+        },
+      })
       await prisma.order.update({
         where: { id: shipment.orderId },
         data: {
           status: ProcessStatus.COMPLETED,
         },
       })
+      console.log(`Updated Shipment ${shipment.id}: status → COMPLETED`)
       console.log(`Updated Order ${shipment.orderId}: status → COMPLETED`)
     }
 

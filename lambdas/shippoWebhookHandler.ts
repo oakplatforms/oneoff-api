@@ -29,9 +29,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     switch (tracking.event) {
     case 'track_updated': {
       const result = await handleShippoTrackingUpdated(tracking)
-      console.log('TEST WITH TAHIR', JSON.stringify(result, null, 2))
       if (result && result.orderId && result.trackingStatus && result.statusChanged) {
-        console.log('TRIGGER EVENTS')
         await triggerTrackingStatusEvents(result.orderId, result.trackingStatus)
       }
       break
