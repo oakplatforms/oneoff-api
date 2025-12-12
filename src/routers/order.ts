@@ -726,7 +726,7 @@ orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
 
       //Reject UNTRACKED shipments - they should not use this endpoint
       if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
-        throw new Error('UNTRACKED shipments cannot use the accept-shipment endpoint.')
+        throw new Error('UNTRACKED shipments cannot use the accept shipment.')
       }
 
       //Handle CREATED shipments - create Shippo transaction if needed
@@ -884,19 +884,19 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
       const activeShipment = getActiveShipment(order)
       const isUntracked = activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
 
-      await tx.shipment.update({
-        where: { id: activeShipment.id },
-        data: {
-          trackingStatus: TrackingStatus.PRE_TRANSIT,
-          status: isUntracked ? ProcessStatus.COMPLETED : ProcessStatus.CREATED
-        },
-      })
-
       //If shipment is UNTRACKED, confirm/capture payment and complete order and shipment
       if (isUntracked) {
         if (!order.paymentIntentId) {
           throw new Error('Order payment intent not found. Cannot capture payment.')
         }
+
+        await tx.shipment.update({
+          where: { id: activeShipment.id },
+          data: {
+            trackingStatus: TrackingStatus.PRE_TRANSIT,
+            status: ProcessStatus.COMPLETED,
+          },
+        })
 
         //Confirm and capture the payment intent
         await stripe.paymentIntents.confirm(order.paymentIntentId)
@@ -906,6 +906,13 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
           where: { id },
           data: {
             status: ProcessStatus.COMPLETED,
+          },
+        })
+      } else {
+        await tx.shipment.update({
+          where: { id: activeShipment.id },
+          data: {
+            trackingStatus: TrackingStatus.PRE_TRANSIT,
           },
         })
       }

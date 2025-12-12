@@ -1,4 +1,4 @@
-import { Prisma, ShipmentAccountType } from '@prisma/client'
+import { Prisma, ShipmentAccountType, ShipmentType } from '@prisma/client'
 import { calculateShippingMethodRate, calculateShippingOptionsRate } from './shipping'
 
 export type OrderPayload = Prisma.OrderGetPayload<{
@@ -87,7 +87,7 @@ export const calculateOrderShipping = (order: OrderPayload, orderListings: Order
 }
 
 type OrderWithShipments<T = unknown> = {
-  shipments: Array<T>
+  shipments: Array<T & { type?: ShipmentType | string }>
   shippingMethod?: { isTracked: boolean | null } | null
 }
 
@@ -114,15 +114,17 @@ export const getActiveShipment = <T extends { shipmentAccountType: ShipmentAccou
   if (isTracked === true) {
     const activeShipment = order.shipments.find(
       (shipment) =>
-        shipment.shipmentAccountType === ShipmentAccountType.SHIPPO ||
-        String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.SHIPPO
+        (shipment.shipmentAccountType === ShipmentAccountType.SHIPPO ||
+          String(shipment.shipmentAccountType).toUpperCase() === ShipmentAccountType.SHIPPO) &&
+        shipment.type !== ShipmentType.RETURN &&
+        String(shipment.type).toUpperCase() !== ShipmentType.RETURN
     )
 
     if (!activeShipment) {
-      const availableTypes = order.shipments.map(s => s.shipmentAccountType).join(', ')
+      const availableTypes = order.shipments.map(s => `${s.shipmentAccountType}/${s.type || 'unknown'}`).join(', ')
       throw new Error(
-        `Could not find ${ShipmentAccountType.SHIPPO} shipment for order. ` +
-        `Expected shipment type: ${ShipmentAccountType.SHIPPO} (isTracked: true). ` +
+        `Could not find ${ShipmentAccountType.SHIPPO} OUTBOUND shipment for order. ` +
+        `Expected shipment type: ${ShipmentAccountType.SHIPPO} OUTBOUND (isTracked: true). ` +
         `Available shipment types: ${availableTypes}`
       )
     }
