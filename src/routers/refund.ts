@@ -575,7 +575,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
             where: { id: returnShipment.id },
             data: {
               trackingStatus: TrackingStatus.RETURNED,
-              status: ProcessStatus.PENDING,
+              status: ProcessStatus.COMPLETED,
               trackingNumber,
               labelUrl,
             },
