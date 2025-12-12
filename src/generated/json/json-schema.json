@@ -2900,12 +2900,6 @@
             "null"
           ]
         },
-        "returnLabelUrl": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "externalShipmentId": {
           "type": [
             "string",
