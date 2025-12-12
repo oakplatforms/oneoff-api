@@ -1,4 +1,4 @@
-import { Prisma, RefundType, RefundStatus, TransactionType, ShipmentType, ShipmentAccountType, ProcessStatus } from '@prisma/client'
+import { Prisma, RefundType, RefundStatus, TransactionType, ShipmentType, ShipmentAccountType, ProcessStatus, TrackingStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -574,6 +574,7 @@ refundRouter.put('/refund/:id/accept-refund', async (req, res) => {
           await tx.shipment.update({
             where: { id: returnShipment.id },
             data: {
+              trackingStatus: TrackingStatus.RETURNED,
               status: ProcessStatus.PENDING,
               trackingNumber,
               returnLabelUrl: labelUrl,

@@ -342,7 +342,7 @@ orderRouter.post('/order', async (req, res) => {
         customerId,
         sellerId,
         cartId,
-        status: 'CREATED',
+        status: ProcessStatus.CREATED,
         subTotal,
         offerId,
         orderListings: {
@@ -627,7 +627,7 @@ orderRouter.put('/order/:id', async (req, res) => {
  *     tags:
  *       - Order
  *     summary: Accept a shipment and create Shippo transaction.
- *     description: Accepts a shipment by creating a Shippo transaction for CREATED shipments. For UNTRACKED shipments, updates status to PENDING. For tracked shipments, creates a Shippo transaction and updates the shipment with tracking number and label URL.
+ *     description: Accepts a shipment by creating a Shippo transaction for CREATED tracked shipments. UNTRACKED shipments cannot use this endpoint. Creates a Shippo transaction and updates the shipment with tracking number and label URL.
  *     parameters:
  *       - in: path
  *         name: id
@@ -724,49 +724,46 @@ orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
 
       const activeShipment = getActiveShipment(order)
 
+      //Reject UNTRACKED shipments - they should not use this endpoint
+      if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+        throw new Error('UNTRACKED shipments cannot use the accept-shipment endpoint.')
+      }
+
       //Handle CREATED shipments - create Shippo transaction if needed
       if (activeShipment.status === 'CREATED') {
-        if (activeShipment.shipmentAccountType === 'UNTRACKED') {
-          await tx.shipment.update({
-            where: { id: activeShipment.id },
-            data: {
-              status: 'PENDING',
-            },
-          })
-        } else {
-          if (!activeShipment.externalShipmentRateId) {
-            throw new Error('Valid CREATED shipment with external rate not found')
-          }
-
-          const transaction = await shippo.transactions.create({
-            rate: activeShipment.externalShipmentRateId,
-            labelFileType: 'PDF',
-            async: false,
-          })
-
-          const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
-
-          if (transactionStatus !== 'SUCCESS') {
-            throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
-          }
-
-          await tx.shipment.update({
-            where: { id: activeShipment.id },
-            data: {
-              status: 'PENDING',
-              trackingNumber,
-              labelUrl,
-            },
-          })
-
-          //Confirm and capture the payment intent for tracked shipments
-          if (!order.paymentIntentId) {
-            throw new Error('Order payment intent not found. Cannot capture payment.')
-          }
-
-          await stripe.paymentIntents.confirm(order.paymentIntentId)
-          await stripe.paymentIntents.capture(order.paymentIntentId)
+        if (!activeShipment.externalShipmentRateId) {
+          throw new Error('Valid CREATED shipment with external rate not found')
         }
+
+        const transaction = await shippo.transactions.create({
+          rate: activeShipment.externalShipmentRateId,
+          labelFileType: 'PDF',
+          async: false,
+        })
+
+        const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
+
+        if (transactionStatus !== 'SUCCESS') {
+          throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
+        }
+
+        await tx.shipment.update({
+          where: { id: activeShipment.id },
+          data: {
+            trackingStatus: TrackingStatus.PRE_TRANSIT,
+            status: ProcessStatus.PENDING,
+            trackingNumber,
+            labelUrl,
+          },
+        })
+
+        //Confirm and capture the payment intent for tracked shipments
+        if (!order.paymentIntentId) {
+          throw new Error('Order payment intent not found. Cannot capture payment.')
+        }
+
+        await stripe.paymentIntents.confirm(order.paymentIntentId)
+        await stripe.paymentIntents.capture(order.paymentIntentId)
       } else {
         throw new Error('Shipment is not in CREATED status and cannot be accepted.')
       }
@@ -886,15 +883,16 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
 
       const activeShipment = getActiveShipment(order)
 
-      await tx.shipment.update({
-        where: { id: activeShipment.id },
-        data: {
-          trackingStatus: TrackingStatus.PRE_TRANSIT,
-        },
-      })
-
       //If shipment is UNTRACKED, confirm/capture payment and complete order and shipment
       if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
+        await tx.shipment.update({
+          where: { id: activeShipment.id },
+          data: {
+            trackingStatus: TrackingStatus.PRE_TRANSIT,
+            status: ProcessStatus.PENDING
+          },
+        })
+
         if (!order.paymentIntentId) {
           throw new Error('Order payment intent not found. Cannot capture payment.')
         }
