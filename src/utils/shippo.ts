@@ -5,7 +5,8 @@ import { ShippingCarrierType, ShippingParcelType } from '@prisma/client'
 const SHIPPO_SECRET_KEY = process.env.SHIPPO_SECRET_KEY
 
 export type ShippoRate = {
-  object_id: string
+  object_id?: string
+  objectId?: string
   shipment: string
   amount: string
   currency: string
