@@ -149,6 +149,16 @@ functions:
           rate: cron(0 17 * * ? *)
           description: Cancel unshipped orders older than 72 hours (runs daily at noon EST)
 
+  reviewOrder:
+    name: tcgx-api-review-order-${sls:stage}
+    handler: lambdas/reviewOrderHandler.handler
+    environment:
+      DATABASE_URL: ${env:DATABASE_URL}
+    events:
+      - schedule:
+          rate: cron(0 18 * * ? *)
+          description: Review orders that need attention - 7 days pending with UNKNOWN/PRE_TRANSIT, or 14 days not completed/delivered (runs daily at 1pm EST)
+
 custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}

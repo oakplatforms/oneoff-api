@@ -60,6 +60,7 @@ enum ProcessStatus {
   COMPLETED
   CANCELED
   FAILED
+  IN_REVIEW
 }
 
 enum TrackingStatus {

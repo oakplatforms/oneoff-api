@@ -411,7 +411,8 @@
             "PENDING",
             "COMPLETED",
             "CANCELED",
-            "FAILED"
+            "FAILED",
+            "IN_REVIEW"
           ]
         },
         "hasPaymentMethod": {
@@ -524,7 +525,8 @@
             "PENDING",
             "COMPLETED",
             "CANCELED",
-            "FAILED"
+            "FAILED",
+            "IN_REVIEW"
           ]
         },
         "isPaymentAccountVerified": {
@@ -1872,7 +1874,8 @@
             "PENDING",
             "COMPLETED",
             "CANCELED",
-            "FAILED"
+            "FAILED",
+            "IN_REVIEW"
           ]
         },
         "entity": {
@@ -1949,7 +1952,8 @@
             "PENDING",
             "COMPLETED",
             "CANCELED",
-            "FAILED"
+            "FAILED",
+            "IN_REVIEW"
           ]
         },
         "total": {
@@ -2361,7 +2365,8 @@
             "PENDING",
             "COMPLETED",
             "CANCELED",
-            "FAILED"
+            "FAILED",
+            "IN_REVIEW"
           ]
         },
         "subTotal": {
@@ -2866,7 +2871,8 @@
             "PENDING",
             "COMPLETED",
             "CANCELED",
-            "FAILED"
+            "FAILED",
+            "IN_REVIEW"
           ]
         },
         "rate": {
