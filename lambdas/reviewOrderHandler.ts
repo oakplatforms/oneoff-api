@@ -1,7 +1,5 @@
-import { ProcessStatus, TrackingStatus } from '@prisma/client'
+import { ProcessStatus, TrackingStatus, RefundStatus } from '@prisma/client'
 import { getPrismaClient } from '../src/utils/prismaHelpers'
-import eventBridge from '../src/utils/eventBridge'
-import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { getActiveShipment } from '../src/utils/order'
 
 const prisma = getPrismaClient()
@@ -10,6 +8,9 @@ export const handler = async (): Promise<void> => {
   try {
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+    const tenDaysAgo = new Date()
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
 
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
@@ -39,7 +40,7 @@ export const handler = async (): Promise<void> => {
     const orders14Days = await prisma.order.findMany({
       where: {
         status: {
-          not: ProcessStatus.COMPLETED
+          notIn: [ProcessStatus.COMPLETED, ProcessStatus.IN_REVIEW]
         },
         createdAt: {
           lt: fourteenDaysAgo
@@ -55,6 +56,26 @@ export const handler = async (): Promise<void> => {
       include: {
         shipments: true,
         shippingMethod: true,
+      },
+    })
+
+    //Condition 3: Order has a refund with PENDING status, 10 days after creation
+    const orders10Days = await prisma.order.findMany({
+      where: {
+        status: {
+          not: ProcessStatus.IN_REVIEW
+        },
+        createdAt: {
+          lt: tenDaysAgo
+        },
+        refund: {
+          status: RefundStatus.PENDING
+        }
+      },
+      include: {
+        shipments: true,
+        shippingMethod: true,
+        refund: true,
       },
     })
 
@@ -79,7 +100,7 @@ export const handler = async (): Promise<void> => {
             },
           })
 
-          if (!orderToReview || orderToReview.status !== ProcessStatus.PENDING) {
+          if (!orderToReview || orderToReview.status === ProcessStatus.IN_REVIEW || orderToReview.status !== ProcessStatus.PENDING) {
             return
           }
 
@@ -96,32 +117,6 @@ export const handler = async (): Promise<void> => {
               status: ProcessStatus.IN_REVIEW,
             },
           })
-
-          //Send notifications
-          await eventBridge.send(new PutEventsCommand({
-            Entries: [
-              {
-                Source: 'tcgx',
-                DetailType: 'order.review.customer',
-                Detail: JSON.stringify({
-                  orderId: orderToReview.id,
-                  type: 'order.review.customer',
-                  reviewReason: 'Order has been pending for 7 days with shipment status UNKNOWN or PRE_TRANSIT.'
-                }),
-                EventBusName: 'default',
-              },
-              {
-                Source: 'tcgx',
-                DetailType: 'order.review.seller',
-                Detail: JSON.stringify({
-                  orderId: orderToReview.id,
-                  type: 'order.review.seller',
-                  reviewReason: 'Order has been pending for 7 days with shipment status UNKNOWN or PRE_TRANSIT.'
-                }),
-                EventBusName: 'default',
-              },
-            ],
-          }))
 
           console.log(`Updated order ${orderToReview.id} to IN_REVIEW (7-day review)`)
         })
@@ -150,7 +145,7 @@ export const handler = async (): Promise<void> => {
             },
           })
 
-          if (!orderToReview || orderToReview.status === ProcessStatus.COMPLETED) {
+          if (!orderToReview || orderToReview.status === ProcessStatus.IN_REVIEW || orderToReview.status === ProcessStatus.COMPLETED) {
             return
           }
 
@@ -167,33 +162,43 @@ export const handler = async (): Promise<void> => {
             },
           })
 
-          //Send notifications
-          await eventBridge.send(new PutEventsCommand({
-            Entries: [
-              {
-                Source: 'tcgx',
-                DetailType: 'order.review.customer',
-                Detail: JSON.stringify({
-                  orderId: orderToReview.id,
-                  type: 'order.review.customer',
-                  reviewReason: 'Order has not been completed and shipment not delivered within 14 days.'
-                }),
-                EventBusName: 'default',
-              },
-              {
-                Source: 'tcgx',
-                DetailType: 'order.review.seller',
-                Detail: JSON.stringify({
-                  orderId: orderToReview.id,
-                  type: 'order.review.seller',
-                  reviewReason: 'Order has not been completed and shipment not delivered within 14 days.'
-                }),
-                EventBusName: 'default',
-              },
-            ],
-          }))
-
           console.log(`Updated order ${orderToReview.id} to IN_REVIEW (14-day review)`)
+        })
+      } catch (err) {
+        console.error(`Failed to review order ${order.id}:`, err)
+      }
+    }
+
+    //Process Condition 3: 10-day review for orders with PENDING refunds
+    for (const order of orders10Days) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          //Re-fetch to ensure we have latest data
+          const orderToReview = await tx.order.findUnique({
+            where: { id: order.id },
+            include: {
+              refund: true,
+            },
+          })
+
+          if (!orderToReview || orderToReview.status === ProcessStatus.IN_REVIEW) {
+            return
+          }
+
+          //Verify refund still exists and is PENDING
+          if (!orderToReview.refund || orderToReview.refund.status !== RefundStatus.PENDING) {
+            return
+          }
+
+          //Update order status to IN_REVIEW
+          await tx.order.update({
+            where: { id: orderToReview.id },
+            data: {
+              status: ProcessStatus.IN_REVIEW,
+            },
+          })
+
+          console.log(`Updated order ${orderToReview.id} to IN_REVIEW (10-day review - pending refund)`)
         })
       } catch (err) {
         console.error(`Failed to review order ${order.id}:`, err)
