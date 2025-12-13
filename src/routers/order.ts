@@ -294,7 +294,7 @@ orderRouter.post('/order', async (req, res) => {
   } = req.body
 
   try {
-    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED) {
+    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED || status === ProcessStatus.IN_REVIEW) {
       throw new Error(`Cannot create an order with ${status} status.`)
     }
     if (!customerId || !sellerId || !listingsInOrder) {
@@ -458,7 +458,7 @@ orderRouter.put('/order/:id', async (req, res) => {
   } = req.body
 
   try {
-    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED) {
+    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED || status === ProcessStatus.IN_REVIEW) {
       throw new Error(`Cannot update an order to ${status} status via PUT endpoint.`)
     }
     if (!id) {
@@ -923,6 +923,118 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('ACCEPT_ORDER_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to accept order.' })
+  }
+})
+
+/**
+ * @openapi
+ * /order/{id}/request-review:
+ *   put:
+ *     tags:
+ *       - Order
+ *     summary: Request review for an order.
+ *     description: Updates an order status to IN_REVIEW. This endpoint is the only way to set an order status to IN_REVIEW. Only the customer who placed the order can request a review.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the order to request review for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accountId
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: The account ID for validation.
+ *     responses:
+ *       '200':
+ *         description: Successfully requested review for the order.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       '400':
+ *         description: Missing required parameters or invalid request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '404':
+ *         description: Order not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Internal Server Error during review request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+orderRouter.put('/order/:id/request-review', async (req, res) => {
+  const { id } = req.params
+  const { accountId } = req.body
+
+  try {
+    if (!id) {
+      throw new Error('Order ID is required.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          customer: {
+            include: {
+              account: true,
+            },
+          },
+        },
+      })
+
+      if (!order) {
+        throw new Error('Order not found.')
+      }
+
+      if (order.customer?.accountId !== accountId) {
+        throw new Error('You can only request review for your own orders.')
+      }
+
+      await tx.order.update({
+        where: { id },
+        data: {
+          status: ProcessStatus.IN_REVIEW,
+        },
+      })
+    })
+
+    res.json({ message: 'Order review requested successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('REQUEST_REVIEW_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to request review for order.' })
   }
 })
 
