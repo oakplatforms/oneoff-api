@@ -145,6 +145,17 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
       throw new Error('Customer profile not found')
     }
     break
+  case 'customerOrSeller':
+    if (account.type !== 'CUSTOMER' && account.type !== 'SELLER') {
+      throw new Error('Account type must be customer or seller')
+    }
+    if (account.type === 'CUSTOMER' && !account.customer) {
+      throw new Error('Customer profile not found')
+    }
+    if (account.type === 'SELLER' && !account.seller) {
+      throw new Error('Seller profile not found')
+    }
+    break
   case 'authenticated':
     break
   default:

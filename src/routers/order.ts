@@ -933,7 +933,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
  *     tags:
  *       - Order
  *     summary: Request review for an order.
- *     description: Updates an order status to IN_REVIEW. This endpoint is the only way to set an order status to IN_REVIEW. Only the customer who placed the order can request a review.
+ *     description: Updates an order status to IN_REVIEW. This endpoint is the only way to set an order status to IN_REVIEW. Both the customer who placed the order and the seller associated with the order can request a review.
  *     parameters:
  *       - in: path
  *         name: id
@@ -1000,13 +1000,18 @@ orderRouter.put('/order/:id/request-review', async (req, res) => {
       throw new Error('Order ID is required.')
     }
 
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'customerOrSeller')
 
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
         include: {
           customer: {
+            include: {
+              account: true,
+            },
+          },
+          seller: {
             include: {
               account: true,
             },
@@ -1018,8 +1023,8 @@ orderRouter.put('/order/:id/request-review', async (req, res) => {
         throw new Error('Order not found.')
       }
 
-      if (order.customer?.accountId !== accountId) {
-        throw new Error('You can only request review for your own orders.')
+      if (order.customer?.accountId !== accountId && order.seller?.accountId !== accountId) {
+        throw new Error('You can only request review for orders you are associated with.')
       }
 
       await tx.order.update({
