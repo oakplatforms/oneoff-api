@@ -125,9 +125,9 @@ orderRouter.get('/orders', async (req, res) => {
 
     res.json(result)
   } catch (error) {
-    const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_ORDERS_ERROR:', prismaError)
-    res.status(statusCode).send({ errorMessage: 'Failed to retrieve orders.' })
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ORDERS_ERROR:', prismaError || customError || error)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve orders.' })
   }
 })
 
