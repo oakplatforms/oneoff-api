@@ -1,4 +1,4 @@
-import { ProcessStatus, TrackingStatus, RefundStatus } from '@prisma/client'
+import { ProcessStatus, TrackingStatus } from '@prisma/client'
 import { getPrismaClient } from '../src/utils/prismaHelpers'
 import { getActiveShipment } from '../src/utils/order'
 
@@ -8,9 +8,6 @@ export const handler = async (): Promise<void> => {
   try {
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-    const tenDaysAgo = new Date()
-    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
 
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
@@ -56,26 +53,6 @@ export const handler = async (): Promise<void> => {
       include: {
         shipments: true,
         shippingMethod: true,
-      },
-    })
-
-    //Condition 3: Order has a refund with PENDING status, 10 days after creation
-    const orders10Days = await prisma.order.findMany({
-      where: {
-        status: {
-          not: ProcessStatus.IN_REVIEW
-        },
-        createdAt: {
-          lt: tenDaysAgo
-        },
-        refund: {
-          status: RefundStatus.PENDING
-        }
-      },
-      include: {
-        shipments: true,
-        shippingMethod: true,
-        refund: true,
       },
     })
 
@@ -163,42 +140,6 @@ export const handler = async (): Promise<void> => {
           })
 
           console.log(`Updated order ${orderToReview.id} to IN_REVIEW (14-day review)`)
-        })
-      } catch (err) {
-        console.error(`Failed to review order ${order.id}:`, err)
-      }
-    }
-
-    //Process Condition 3: 10-day review for orders with PENDING refunds
-    for (const order of orders10Days) {
-      try {
-        await prisma.$transaction(async (tx) => {
-          //Re-fetch to ensure we have latest data
-          const orderToReview = await tx.order.findUnique({
-            where: { id: order.id },
-            include: {
-              refund: true,
-            },
-          })
-
-          if (!orderToReview || orderToReview.status === ProcessStatus.IN_REVIEW) {
-            return
-          }
-
-          //Verify refund still exists and is PENDING
-          if (!orderToReview.refund || orderToReview.refund.status !== RefundStatus.PENDING) {
-            return
-          }
-
-          //Update order status to IN_REVIEW
-          await tx.order.update({
-            where: { id: orderToReview.id },
-            data: {
-              status: ProcessStatus.IN_REVIEW,
-            },
-          })
-
-          console.log(`Updated order ${orderToReview.id} to IN_REVIEW (10-day review - pending refund)`)
         })
       } catch (err) {
         console.error(`Failed to review order ${order.id}:`, err)
