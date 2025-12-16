@@ -2584,6 +2584,12 @@
             "null"
           ]
         },
+        "price": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "order": {
           "$ref": "#/definitions/Order"
         },
@@ -2974,6 +2980,18 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "rate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maxQuantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "order": {
           "$ref": "#/definitions/Order"

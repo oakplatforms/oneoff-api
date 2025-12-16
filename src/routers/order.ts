@@ -1,4 +1,4 @@
-import { Prisma, ProcessStatus, TrackingStatus, ShipmentAccountType } from '@prisma/client'
+import { Prisma, ProcessStatus, TrackingStatus, ShipmentAccountType, ShippingOption } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -388,10 +388,14 @@ orderRouter.post('/order', async (req, res) => {
         customerSnapshot: customerSnapshot as Prisma.InputJsonValue,
         sellerSnapshot: sellerSnapshot as Prisma.InputJsonValue,
         orderListings: {
-          create: listingsInOrder.create.map(({ listingId, quantityInOrder }) => ({
-            listingId,
-            quantity: quantityInOrder,
-          })),
+          create: listingsInOrder.create.map(({ listingId, quantityInOrder }) => {
+            const listing = listings.find((l) => l.id === listingId)
+            return {
+              listingId,
+              quantity: quantityInOrder,
+              price: listing?.price,
+            }
+          }),
         },
       } as Prisma.OrderCreateInput,
     })
@@ -535,10 +539,18 @@ orderRouter.put('/order/:id', async (req, res) => {
         ...(listingsInOrder?.update || []),
       ]
 
+      let shippingOptions: ShippingOption[] = []
+      if (orderShippingOptions?.create?.length) {
+        shippingOptions = await prisma.shippingOption.findMany({
+          where: { id: { in: orderShippingOptions.create } }
+        })
+      }
+
+      let listings: Awaited<ReturnType<typeof prisma.listing.findMany>> = []
       if (createAndUpdateItems.length) {
         const listingIds = createAndUpdateItems.map((item) => item.listingId)
 
-        const listings = await prisma.listing.findMany({
+        listings = await prisma.listing.findMany({
           where: { id: { in: listingIds } }
         })
 
@@ -557,10 +569,11 @@ orderRouter.put('/order/:id', async (req, res) => {
           const previous = existingOrder.orderListings.find(
             (orderListing) => orderListing.listingId === item.listingId
           )
-          const newAmount = Number(listing.price) * item.quantityInOrder
+          const priceToUse = previous?.price || listing.price
+          const newAmount = Number(priceToUse) * item.quantityInOrder
 
           if (previous) {
-            const previousAmount = Number(listing.price) * (previous.quantity || 0)
+            const previousAmount = Number(previous.price || listing.price) * (previous.quantity || 0)
             subTotal = subTotal - previousAmount + newAmount
           } else {
             subTotal += newAmount
@@ -581,8 +594,9 @@ orderRouter.put('/order/:id', async (req, res) => {
       if (listingsInOrder?.delete?.length) {
         for (const deletedId of listingsInOrder.delete) {
           const match = existingOrder.orderListings.find((orderListing) => orderListing.id === deletedId)
-          if (match?.listing?.price && match.quantity) {
-            const deletedAmount = Number(match.listing.price) * match.quantity
+          const priceToUse = match?.price || match?.listing?.price
+          if (priceToUse && match.quantity) {
+            const deletedAmount = Number(priceToUse) * match.quantity
             subTotal -= deletedAmount
           }
         }
@@ -614,10 +628,14 @@ orderRouter.put('/order/:id', async (req, res) => {
             subTotal,
             orderListings: listingsInOrder
               ? {
-                create: listingsInOrder.create?.map(({ listingId, quantityInOrder }) => ({
-                  listingId,
-                  quantity: quantityInOrder,
-                })),
+                create: listingsInOrder.create?.map(({ listingId, quantityInOrder }) => {
+                  const listing = listings.find((l) => l.id === listingId)
+                  return {
+                    listingId,
+                    quantity: quantityInOrder,
+                    price: listing?.price,
+                  }
+                }),
                 updateMany: listingsInOrder.update?.map(({ orderId, listingId, quantityInOrder }) => ({
                   where: { listingId, orderId },
                   data: { quantity: quantityInOrder },
@@ -633,9 +651,14 @@ orderRouter.put('/order/:id', async (req, res) => {
                 : {}),
               ...(orderShippingOptions?.create
                 ? {
-                  create: orderShippingOptions.create.map((optionId: string) => ({
-                    shippingOption: { connect: { id: optionId } },
-                  })),
+                  create: orderShippingOptions.create.map((optionId: string) => {
+                    const shippingOption = shippingOptions.find((so) => so.id === optionId)
+                    return {
+                      shippingOption: { connect: { id: optionId } },
+                      rate: shippingOption?.rate,
+                      maxQuantity: shippingOption?.maxQuantity,
+                    }
+                  }),
                 }
                 : {}),
             }

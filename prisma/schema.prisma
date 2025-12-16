@@ -829,6 +829,7 @@ model OrderListing {
 
   // custom
   quantity Int?
+  price    Decimal? @db.Decimal(10, 2)
 
   // relations
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -951,6 +952,10 @@ model OrderShippingOption {
   id        String   @unique @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // custom
+  rate       Decimal? @db.Decimal(10, 2)
+  maxQuantity Int?
 
   // relations
   order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)

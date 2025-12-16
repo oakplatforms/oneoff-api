@@ -19,10 +19,11 @@ export const calculateShippingOptionsRate = (orderListings: OrderPayload['orderL
 
   const totalQuantity = orderListings.reduce((sum, listing) => sum + (listing.quantity || 1), 0)
 
-  return order.orderShippingOptions.reduce((total, { shippingOption }) => {
-    const maxQuantity = Number(shippingOption?.maxQuantity) || 1
+  return order.orderShippingOptions.reduce((total, orderShippingOption) => {
+    // Use snapshotted rate and maxQuantity if they exist, otherwise fall back to shippingOption values
+    const rate = Number(orderShippingOption.rate || orderShippingOption.shippingOption?.rate || 0)
+    const maxQuantity = Number(orderShippingOption.maxQuantity ?? orderShippingOption.shippingOption?.maxQuantity ?? 1)
     const units = Math.ceil(totalQuantity / maxQuantity)
-    const rate = Number(shippingOption?.rate || 0) * units
-    return total + rate
+    return total + (rate * units)
   }, 0)
 }
