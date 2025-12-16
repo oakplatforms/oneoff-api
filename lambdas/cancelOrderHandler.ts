@@ -21,7 +21,10 @@ export const handler = async (): Promise<void> => {
         },
         shipments: {
           some: {
-            trackingStatus: TrackingStatus.UNKNOWN
+            OR: [
+              { trackingStatus: TrackingStatus.UNKNOWN },
+              { status: ProcessStatus.CREATED }
+            ]
           }
         }
       },
@@ -43,8 +46,12 @@ export const handler = async (): Promise<void> => {
         console.log(`Skipping order ${order.id} - ${error instanceof Error ? error.message : 'active shipment not found'}`)
         continue
       }
-      if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
-        console.log(`Skipping order ${order.id} - tracking status changed: ${activeShipment.trackingStatus}`)
+      const shouldCancel =
+        activeShipment.trackingStatus === TrackingStatus.UNKNOWN ||
+        activeShipment.status === ProcessStatus.CREATED
+
+      if (!shouldCancel) {
+        console.log(`Skipping order ${order.id} - tracking status: ${activeShipment.trackingStatus}, shipment status: ${activeShipment.status}`)
         continue
       }
 

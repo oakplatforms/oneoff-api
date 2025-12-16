@@ -2412,6 +2412,26 @@
             "null"
           ]
         },
+        "customerSnapshot": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "sellerSnapshot": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
         "cart": {
           "anyOf": [
             {
@@ -2590,13 +2610,6 @@
         },
         "updatedAt": {
           "type": "string",
-          "format": "date-time"
-        },
-        "refundedAt": {
-          "type": [
-            "string",
-            "null"
-          ],
           "format": "date-time"
         },
         "reason": {

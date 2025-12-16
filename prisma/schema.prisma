@@ -791,6 +791,8 @@ model Order {
   paymentIntentId String?
   inReview       Boolean? @default(false)
   resolution     String?
+  customerSnapshot Json?
+  sellerSnapshot Json?
 
   // relations
   cart                 Cart?                 @relation(fields: [cartId], references: [id], onDelete: Cascade)

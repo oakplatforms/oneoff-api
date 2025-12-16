@@ -337,6 +337,46 @@ orderRouter.post('/order', async (req, res) => {
       subTotal += Number(listing.price) * item.quantityInOrder
     }
 
+    //Fetch customer and seller with account to create snapshots
+    const [customer, seller] = await Promise.all([
+      prisma.customer.findUnique({
+        where: { id: customerId },
+        include: { account: true },
+      }),
+      prisma.seller.findUnique({
+        where: { id: sellerId },
+        include: { account: true },
+      }),
+    ])
+
+    if (!customer || !seller) {
+      throw new Error('Customer or seller not found.')
+    }
+
+    //Create snapshots
+    const customerSnapshot = {
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phone: customer.phone,
+      address: customer.address,
+      city: customer.city,
+      state: customer.state,
+      zipCode: customer.zipCode,
+      email: customer.account?.email,
+    }
+
+    const sellerSnapshot = {
+      firstName: seller.firstName,
+      lastName: seller.lastName,
+      phone: seller.phone,
+      address: seller.address,
+      city: seller.city,
+      state: seller.state,
+      zipCode: seller.zipCode,
+      businessName: seller.businessName,
+      email: seller.account?.email,
+    }
+
     const newOrder = await prisma.order.create({
       data: {
         customerId,
@@ -345,13 +385,15 @@ orderRouter.post('/order', async (req, res) => {
         status: ProcessStatus.CREATED,
         subTotal,
         offerId,
+        customerSnapshot: customerSnapshot as Prisma.InputJsonValue,
+        sellerSnapshot: sellerSnapshot as Prisma.InputJsonValue,
         orderListings: {
           create: listingsInOrder.create.map(({ listingId, quantityInOrder }) => ({
             listingId,
             quantity: quantityInOrder,
           })),
         },
-      },
+      } as Prisma.OrderCreateInput,
     })
 
     res.json(newOrder)
