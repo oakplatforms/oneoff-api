@@ -1143,7 +1143,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
       throw new Error('Seller not found for this account.')
     }
 
-    const wallet = await calculateWalletBalance(accountId, account.seller.id)
+    const wallet = await calculateWalletBalance(accountId)
     return res.json(wallet)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)

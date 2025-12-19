@@ -1,59 +1,56 @@
 import { getPrismaClient } from '../utils/prismaHelpers'
+import stripe from '../utils/stripe'
 
 const prisma = getPrismaClient()
 
-export const calculateWalletBalance = async (accountId?: string, sellerId?: string) => {
-  console.log('calculateWalletBalance', accountId, sellerId)
+export const calculateWalletBalance = async (accountId?: string) => {
   if (!accountId) {
     throw new Error('Account ID is required')
   }
-  const [ordersAll, ordersCompleted, payoutsCompleted] = await Promise.all([
-    prisma.order.aggregate({
-      where: {
-        sellerId: sellerId,
-        status: { in: ['PENDING', 'COMPLETED'] },
-      },
-      _sum: {
-        total: true,
-      },
-    }),
-    prisma.order.aggregate({
-      where: {
-        sellerId: sellerId,
-        status: 'COMPLETED',
-      },
-      _sum: {
-        total: true,
-      },
-    }),
-    prisma.payout.aggregate({
-      where: {
-        accountId: accountId,
-        status: 'COMPLETED',
-      },
-      _sum: {
-        total: true,
-      },
-    }),
-  ])
 
-  if (!ordersAll || !ordersCompleted || !payoutsCompleted) {
-    throw new Error('Error calculating wallet balance')
+  //Get seller's paymentAccountId from the database
+  const seller = await prisma.seller.findUnique({
+    where: { accountId },
+    select: { paymentAccountId: true },
+  })
+
+  if (!seller?.paymentAccountId) {
+    throw new Error('Seller paymentAccountId not found')
   }
 
-  const sumAllOrders = ordersAll._sum.total || 0
-  const sumCompletedOrders = ordersCompleted._sum.total || 0
-  const sumCompletedPayouts = payoutsCompleted._sum.total || 0
+  //Retrieve balance from Stripe Connect account
+  const balance = await stripe.balance.retrieve({
+    stripeAccount: seller.paymentAccountId,
+  })
 
-  const balance = Math.max(0, Number(sumAllOrders) - Number(sumCompletedPayouts))
-  const availableToWithdraw = Math.max(0, Number(sumCompletedOrders) - Number(sumCompletedPayouts))
+  const availableToWithdraw = balance.available.reduce((sum, bal) => {
+    if (bal.currency === 'usd') {
+      return sum + bal.amount
+    }
+    return sum
+  }, 0)
 
-  if (balance < 0 || availableToWithdraw < 0) {
+  const totalBalance = balance.available.reduce((sum, bal) => {
+    if (bal.currency === 'usd') {
+      return sum + bal.amount
+    }
+    return sum
+  }, 0) + balance.pending.reduce((sum, bal) => {
+    if (bal.currency === 'usd') {
+      return sum + bal.amount
+    }
+    return sum
+  }, 0)
+
+  const balanceInDollars = totalBalance / 100
+  const availableToWithdrawInDollars = availableToWithdraw / 100
+
+  if (balanceInDollars < 0 || availableToWithdrawInDollars < 0) {
     throw new Error('Negative balance detected')
   }
 
   return {
-    balance,
-    availableToWithdraw,
+    balance: balanceInDollars,
+    availableToWithdraw: availableToWithdrawInDollars,
   }
 }

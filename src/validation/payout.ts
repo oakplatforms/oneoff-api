@@ -1,7 +1,7 @@
 import { calculateWalletBalance } from '../services/payout'
 
 export const validatePayoutAmount = async (accountId: string, sellerId: string, amount: number) => {
-  const wallet = await calculateWalletBalance(accountId, sellerId)
+  const wallet = await calculateWalletBalance(accountId)
 
   if (amount <= 0) {
     throw new Error('Amount must be greater than zero')
