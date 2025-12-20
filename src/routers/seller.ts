@@ -729,6 +729,110 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
 
 /**
  * @openapi
+ * /seller/payment-method/{accountId}/{externalAccountId}:
+ *   delete:
+ *     tags:
+ *       - Seller
+ *     summary: Delete external payment method from seller account
+ *     description: Removes an external account (e.g., bank account or debit card) from the seller's Stripe account.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The account ID of the seller.
+ *       - in: path
+ *         name: externalAccountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe external account ID to be deleted.
+ *     responses:
+ *       '200':
+ *         description: Successfully deleted external account.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Payment method was successfully deleted
+ *       '400':
+ *         description: Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Missing required parameters: accountId and externalAccountId.
+ *       '500':
+ *         description: Server error while deleting payment method.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Failed to delete seller payment method.
+ */
+sellerRouter.delete('/seller/payment-method/:accountId/:externalAccountId', async (req, res) => {
+  const { accountId, externalAccountId } = req.params
+
+  try {
+    if (!accountId || !externalAccountId) {
+      throw new Error('Missing required parameters: accountId and externalAccountId.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    const result = await prisma.$transaction(async (tx) => {
+      const seller = await tx.seller.findUnique({
+        where: { accountId },
+        select: { paymentAccountId: true },
+      })
+
+      if (!seller?.paymentAccountId) {
+        throw new Error('Seller does not have a payment account ID.')
+      }
+
+      //Delete the external account from Stripe
+      await stripe.accounts.deleteExternalAccount(
+        seller.paymentAccountId,
+        externalAccountId
+      )
+
+      //Check if there are any remaining external accounts
+      const remainingAccounts = await stripe.accounts.listExternalAccounts(seller.paymentAccountId, {
+        limit: 1,
+      })
+
+      //Update hasPaymentMethod to false if no payment methods remain
+      if (remainingAccounts.data.length === 0) {
+        await tx.seller.update({
+          where: { accountId },
+          data: {
+            hasPaymentMethod: false,
+          },
+        })
+      }
+
+      return { success: 'Payment method was successfully deleted' }
+    }, { timeout: 60000 })
+    res.json(result)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_SELLER_PAYMENT_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete seller payment method.' })
+  }
+})
+
+/**
+ * @openapi
  * /seller/upload-verification/{accountId}:
  *   post:
  *     tags:
@@ -1134,13 +1238,23 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
     if (!accountId) {
       throw new Error('Missing accountId in path.')
     }
+
+    //Check account type first to avoid unnecessary queries for non-sellers
     const account = await prisma.account.findUnique({
       where: { id: accountId },
-      include: { seller: true },
+      select: { type: true, seller: { select: { id: true } } },
     })
 
-    if (!account?.seller?.id) {
-      throw new Error('Seller not found for this account.')
+    if (!account) {
+      return res.status(404).send({ errorMessage: 'Account not found.' })
+    }
+
+    if (account.type !== 'SELLER') {
+      return res.status(404).send({ errorMessage: 'Account is not a seller.' })
+    }
+
+    if (!account.seller?.id) {
+      return res.status(404).send({ errorMessage: 'Seller not found for this account.' })
     }
 
     const wallet = await calculateWalletBalance(accountId)
