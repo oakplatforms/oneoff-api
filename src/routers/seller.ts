@@ -833,6 +833,96 @@ sellerRouter.delete('/seller/payment-method/:accountId/:externalAccountId', asyn
 
 /**
  * @openapi
+ * /seller/payment-method/set-default/{accountId}/{externalAccountId}:
+ *   put:
+ *     tags:
+ *       - Seller
+ *     summary: Set external payment method as default
+ *     description: Sets an external account (e.g., bank account or debit card) as the default payment method for the seller's Stripe account. This is required before deleting the current default external account.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The account ID of the seller.
+ *       - in: path
+ *         name: externalAccountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The Stripe external account ID to set as default.
+ *     responses:
+ *       '200':
+ *         description: Successfully set external account as default.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: string
+ *                   example: Payment method was successfully set as default
+ *       '400':
+ *         description: Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Missing required parameters: accountId and externalAccountId.
+ *       '500':
+ *         description: Server error while setting default payment method.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   example: Failed to set default seller payment method.
+ */
+sellerRouter.put('/seller/payment-method/set-default/:accountId/:externalAccountId', async (req, res) => {
+  const { accountId, externalAccountId } = req.params
+
+  try {
+    if (!accountId || !externalAccountId) {
+      throw new Error('Missing required parameters: accountId and externalAccountId.')
+    }
+
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    const result = await prisma.$transaction(async (tx) => {
+      const seller = await tx.seller.findUnique({
+        where: { accountId },
+        select: { paymentAccountId: true },
+      })
+
+      if (!seller?.paymentAccountId) {
+        throw new Error('Seller does not have a payment account ID.')
+      }
+
+      //Update the external account to set it as default for its currency
+      await stripe.accounts.updateExternalAccount(
+        seller.paymentAccountId,
+        externalAccountId,
+        { default_for_currency: true }
+      )
+
+      return { success: 'Payment method was successfully set as default' }
+    }, { timeout: 60000 })
+    res.json(result)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('SET_DEFAULT_SELLER_PAYMENT_METHOD_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to set default seller payment method.' })
+  }
+})
+
+/**
+ * @openapi
  * /seller/upload-verification/{accountId}:
  *   post:
  *     tags:
