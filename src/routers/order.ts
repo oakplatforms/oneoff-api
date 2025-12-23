@@ -832,7 +832,7 @@ orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
       } else {
         throw new Error('Shipment is not in CREATED status and cannot be accepted.')
       }
-    })
+    }, { timeout: 60000 })
 
     res.json({ message: 'Shipment accepted successfully.' })
   } catch (error) {
@@ -981,7 +981,7 @@ orderRouter.put('/order/:id/accept-order', async (req, res) => {
           },
         })
       }
-    })
+    }, { timeout: 60000 })
 
     res.json({ message: 'Order accepted successfully.' })
   } catch (error) {
@@ -1232,7 +1232,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
           status: ProcessStatus.CANCELED,
         },
       })
-    })
+    }, { timeout: 60000 })
 
     //Send EventBridge notifications for customer and seller
     try {

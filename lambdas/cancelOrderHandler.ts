@@ -85,7 +85,7 @@ export const handler = async (): Promise<void> => {
           })
 
           return updated
-        })
+        }, { timeout: 60000 })
 
         try {
           await eventBridge.send(new PutEventsCommand({
