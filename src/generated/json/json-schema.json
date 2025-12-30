@@ -1487,6 +1487,12 @@
             "null"
           ]
         },
+        "ticker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "account": {
           "anyOf": [
             {
@@ -1878,6 +1884,12 @@
             "IN_REVIEW"
           ]
         },
+        "ticker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "entity": {
           "$ref": "#/definitions/Entity"
         },
@@ -2090,6 +2102,12 @@
             "null"
           ]
         },
+        "ticker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "account": {
           "anyOf": [
             {
@@ -2190,6 +2208,12 @@
             "null"
           ],
           "default": false
+        },
+        "ticker": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "account": {
           "anyOf": [

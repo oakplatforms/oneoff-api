@@ -9,6 +9,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
+import { generateTickerWithRetry } from '../utils/tickerGenerator'
 
 const prisma = getPrismaClient()
 export const listingRouter = express.Router()
@@ -282,21 +283,27 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
         imageKey = await uploadImage(req.file, 'listing', resizeOptions)
       }
 
-      const listing = await prisma.listing.create({
-        data: {
-          price: parsedPrice,
-          quantity: parsedQuantity,
-          status,
-          multiTransactionsEnabled: parsedMultiTransactionsEnabled,
-          image: imageKey,
-          imageCaption,
-          account: { connect: { id: accountId } },
-          entity: { connect: { id: entityId } },
-          condition: conditionId ? { connect: { id: conditionId } } : undefined,
-        },
-        include: {
-          account: true,
-          condition: true
+      const listing = await generateTickerWithRetry({
+        prefix: 'S',
+        createFn: async (ticker) => {
+          return await prisma.listing.create({
+            data: {
+              price: parsedPrice,
+              quantity: parsedQuantity,
+              status,
+              multiTransactionsEnabled: parsedMultiTransactionsEnabled,
+              image: imageKey,
+              imageCaption,
+              ticker,
+              account: { connect: { id: accountId } },
+              entity: { connect: { id: entityId } },
+              condition: conditionId ? { connect: { id: conditionId } } : undefined,
+            },
+            include: {
+              account: true,
+              condition: true
+            }
+          })
         }
       })
 

@@ -6,6 +6,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount, validateAccountOrAdmin } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
+import { generateTickerWithRetry } from '../utils/tickerGenerator'
 
 const prisma = getPrismaClient()
 export const listRouter = express.Router()
@@ -366,27 +367,63 @@ listRouter.post('/list', async (req, res) => {
 
     await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
 
-    const list = await prisma.list.create({
-      data: {
-        name,
-        displayName,
-        description,
-        navigation,
-        index,
-        isPrivate,
-        type,
-        account: accountId ? { connect: { id: accountId } } : undefined,
-        createdBy: createdById ? { connect: { id: createdById } } : undefined,
-        entityList: entityList?.create?.length
-          ? {
-            create: entityList.create.map((item: { entityId: string; quantity?: number }) => ({
-              entity: { connect: { id: item.entityId } },
-              quantity: item.quantity || null,
-            })),
-          }
-          : undefined,
-      },
-    })
+    // Only generate ticker for COLLECTION and FAVORITE types
+    const shouldGenerateTicker = type === 'COLLECTION' || type === 'FAVORITE'
+    const tickerPrefix = type === 'COLLECTION' ? 'C' : type === 'FAVORITE' ? 'F' : null
+
+    let list: List
+
+    if (shouldGenerateTicker && tickerPrefix) {
+      list = await generateTickerWithRetry({
+        prefix: tickerPrefix,
+        createFn: async (ticker) => {
+          return await prisma.list.create({
+            data: {
+              name,
+              displayName,
+              description,
+              navigation,
+              index,
+              isPrivate,
+              type,
+              ticker,
+              account: accountId ? { connect: { id: accountId } } : undefined,
+              createdBy: createdById ? { connect: { id: createdById } } : undefined,
+              entityList: entityList?.create?.length
+                ? {
+                  create: entityList.create.map((item: { entityId: string; quantity?: number }) => ({
+                    entity: { connect: { id: item.entityId } },
+                    quantity: item.quantity || null,
+                  })),
+                }
+                : undefined,
+            },
+          })
+        }
+      })
+    } else {
+      list = await prisma.list.create({
+        data: {
+          name,
+          displayName,
+          description,
+          navigation,
+          index,
+          isPrivate,
+          type,
+          account: accountId ? { connect: { id: accountId } } : undefined,
+          createdBy: createdById ? { connect: { id: createdById } } : undefined,
+          entityList: entityList?.create?.length
+            ? {
+              create: entityList.create.map((item: { entityId: string; quantity?: number }) => ({
+                entity: { connect: { id: item.entityId } },
+                quantity: item.quantity || null,
+              })),
+            }
+            : undefined,
+        },
+      })
+    }
 
     res.json(list)
   } catch (error) {

@@ -29,6 +29,7 @@ import { productRouter } from './product'
 import { setRouter } from './set'
 import { warmupRouter } from './warmup'
 import { refundRouter } from './refund'
+import { universalRouter } from './universal'
 
 router.use(warmupRouter)
 router.use(userRouter)
@@ -59,5 +60,8 @@ router.use(conditionRouter)
 router.use(productRouter)
 router.use(setRouter)
 router.use(refundRouter)
+
+// Universal ticker router - MUST BE LAST to catch unmatched 6-char codes
+router.use(universalRouter)
 
 export default router
