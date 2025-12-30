@@ -75,11 +75,84 @@ profileRouter.get('/profile/:id', async (req, res) => {
     if (profile) {
       res.json(profile)
     } else {
-      throw new Error('No profile ID found')
+      throw new Error('No profile found with ID: ' + id)
     }
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_PROFILE_ERROR:', prismaError, customError)
+    console.error('GET_PROFILE_BY_ID_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve profile.' })
+  }
+})
+
+/**
+ * @openapi
+ * /profile/username/{username}:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Retrieve a specific profile by username.
+ *     description: Fetches the details of a profile by its unique username. You can optionally include related entities using the `include` query parameter.
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The username of the profile to retrieve.
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include in the profile data (e.g., 'account').
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the profile.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Profile'
+ *       '400':
+ *         description: Bad request, typically due to invalid parameters or if the username is not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+profileRouter.get('/profile/username/:username', async (req, res) => {
+  const { username } = req.params
+  const { include } = req.query
+
+  try {
+    if (!username) {
+      throw new Error('Username is required')
+    }
+    const profile = await prisma.profile.findUnique({
+      where: { username },
+      include: generateIncludes(include as string)
+    })
+
+    if (profile) {
+      res.json(profile)
+    } else {
+      throw new Error('No profile found with username: ' + username)
+    }
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_PROFILE_BY_USERNAME_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve profile.' })
   }
 })
