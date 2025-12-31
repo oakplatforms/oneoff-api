@@ -566,6 +566,7 @@ model Entity {
   set              Set?         @relation(fields: [setId], references: [id], onDelete: Cascade)
   setId            String?
 
+  @@index([brandId, name])
   @@index([categoryId])
   @@index([brandId])
   @@index([type])
@@ -709,7 +710,7 @@ model Listing {
   // relations
   account       Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId     String?
-  entity        Entity?        @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  entity        Entity?        @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId      String?
   condition     Condition?     @relation(fields: [conditionId], references: [id], onDelete: SetNull)
   conditionId   String?
@@ -742,7 +743,7 @@ model Bid {
   // relations
   account    Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId  String?
-  entity     Entity?     @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  entity     Entity?     @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId   String?
   offers     Offer[]
   conditions Condition[]

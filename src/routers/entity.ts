@@ -1078,6 +1078,123 @@ entityRouter.get('/entity/:id', async (req, res) => {
 
 /**
  * @openapi
+ * /entity/{brandSlug}/{entityName}:
+ *   get:
+ *     tags:
+ *       - Entity
+ *     summary: Get an entity by brand slug and entity name
+ *     description: Fetch a specific entity using brand slug and entity name (both are URL slugs). Also returns lowest ask price and highest bid price.
+ *     parameters:
+ *       - in: path
+ *         name: brandSlug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The brand slug (URL-friendly brand name, e.g., "flesh-and-blood")
+ *       - in: path
+ *         name: entityName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The entity name (URL slug, e.g., "absorb-in-aether")
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the entity
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Entity'
+ *       '404':
+ *         description: Brand or entity not found
+ *       '500':
+ *         description: Internal server error
+ */
+entityRouter.get('/entity/:brandSlug/:entityName', async (req, res) => {
+  const { brandSlug, entityName } = req.params
+  const { include } = req.query
+
+  try {
+    if (!brandSlug || !entityName) {
+      throw new Error('Brand slug and entity name are required')
+    }
+
+    // First find the brand by slug (brand.name is used as slug with spaces replaced by hyphens)
+    const brand = await prisma.brand.findFirst({
+      where: {
+        name: {
+          equals: brandSlug.replace(/-/g, ' '),
+          mode: 'insensitive'
+        }
+      },
+      select: { id: true, name: true }
+    })
+
+    if (!brand) {
+      return res.status(404).json({ errorMessage: `Brand not found: ${brandSlug}` })
+    }
+
+    // Then find entity by brand ID and name (name is already slugified in the database)
+    // Using findFirst since name is not guaranteed to be unique per brand
+    const entity = await prisma.entity.findFirst({
+      where: {
+        brandId: brand.id,
+        name: entityName
+      },
+      include: {
+        ...generateIncludes(include as string),
+        //Include listings and bids to calculate prices
+        listings: {
+          where: {
+            AND: [
+              { status: 'ACTIVE' },
+              {
+                OR: [
+                  { isOffer: false },
+                  { isOffer: null }
+                ]
+              }
+            ]
+          },
+          orderBy: { price: 'asc' },
+          take: 1,
+          select: { price: true }
+        },
+        bids: {
+          where: { status: 'ACTIVE' },
+          orderBy: { price: 'desc' },
+          take: 1,
+          select: { price: true }
+        }
+      }
+    })
+
+    if (!entity) {
+      return res.status(404).json({ errorMessage: `Entity not found: ${entityName}` })
+    }
+
+    const transformedEntity = {
+      ...entity,
+      lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
+      highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
+      listings: undefined,
+      bids: undefined
+    }
+    
+    res.json(transformedEntity)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_ENTITY_BY_SLUG_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entity.' })
+  }
+})
+
+/**
+ * @openapi
  * /entity/{id}:
  *   delete:
  *     tags:
