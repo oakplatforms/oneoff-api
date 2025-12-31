@@ -1487,7 +1487,7 @@
             "null"
           ]
         },
-        "ticker": {
+        "referenceCode": {
           "type": [
             "string",
             "null"
@@ -1884,7 +1884,7 @@
             "IN_REVIEW"
           ]
         },
-        "ticker": {
+        "referenceCode": {
           "type": [
             "string",
             "null"
@@ -2102,7 +2102,7 @@
             "null"
           ]
         },
-        "ticker": {
+        "referenceCode": {
           "type": [
             "string",
             "null"
@@ -2209,7 +2209,7 @@
           ],
           "default": false
         },
-        "ticker": {
+        "referenceCode": {
           "type": [
             "string",
             "null"
