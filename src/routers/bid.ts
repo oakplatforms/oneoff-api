@@ -7,7 +7,7 @@ import { validateCustomer } from '../validation/customer'
 import { validateExistingBid, validateConditions } from '../validation/bid'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
-import { generateTickerWithRetry } from '../utils/tickerGenerator'
+import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
 
 const prisma = getPrismaClient()
 export const bidRouter = express.Router()
@@ -257,16 +257,16 @@ bidRouter.post(`/bid`, async (req, res) => {
         throw new Error('A cheaper listing already exists for this entity. To proceed, decrease your price or buy an existing listing.')
       }
 
-      const bid = await generateTickerWithRetry({
-        prefix: 'B',
-        createFn: async (ticker) => {
+      const bid = await generateReferenceCodeWithRetry({
+        typeIdentifier: 'B',
+        createFn: async (referenceCode) => {
           return await prisma.bid.create({
             data: {
               price,
               quantity,
               status,
               multiTransactionsEnabled,
-              ticker,
+              referenceCode,
               account: { connect: { id: accountId } },
               entity: { connect: { id: entityId } },
               conditions: conditions ? { connect: conditions } : undefined

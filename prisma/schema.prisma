@@ -515,9 +515,9 @@ model List {
   description String?
   type        ListType?
   isPrivate   Boolean?  @default(false)
-  navigation  Json?
-  index       Int?
-  ticker      String?   @unique
+  navigation    Json?
+  index         Int?
+  referenceCode String? @unique
 
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -532,7 +532,7 @@ model List {
   @@index([accountId])
   @@index([type])
   @@index([isPrivate])
-  @@index([ticker])
+  @@index([referenceCode])
 }
 
 model Entity {
@@ -630,13 +630,13 @@ model Product {
   number        String?
   price         Decimal?       @db.Decimal(10, 2)
   pricingStatus ProcessStatus?
-  ticker        String?        @unique
+  referenceCode String?        @unique
 
   // relations
   entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId String @unique
 
-  @@index([ticker])
+  @@index([referenceCode])
 }
 
 model Review {
@@ -704,7 +704,7 @@ model Listing {
   isOffer                  Boolean? @default(false)
   image                    String?
   imageCaption             String?
-  ticker                   String?  @unique
+  referenceCode            String?  @unique
 
   // relations
   account       Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -724,7 +724,7 @@ model Listing {
   @@index([entityId, status])
   @@index([accountId, status])
   @@index([conditionId])
-  @@index([ticker])
+  @@index([referenceCode])
 }
 
 model Bid {
@@ -737,7 +737,7 @@ model Bid {
   quantity                 Int
   status                   Status
   multiTransactionsEnabled Boolean? @default(false)
-  ticker                   String?  @unique
+  referenceCode            String?  @unique
 
   // relations
   account    Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -750,7 +750,7 @@ model Bid {
   @@index([accountId])
   @@index([entityId])
   @@index([status])
-  @@index([ticker])
+  @@index([referenceCode])
 }
 
 model Offer {

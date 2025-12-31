@@ -1,6 +1,6 @@
 import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
-import { validateTickerFormat } from '../validation/ticker'
+import { validateReferenceCodeFormat, extractTypeIdentifier } from '../validation/referenceCode'
 import { Prisma } from '@prisma/client'
 import { generateIncludes } from '../utils/generateIncludes'
 
@@ -9,27 +9,32 @@ export const universalRouter = express.Router()
 
 /**
  * @openapi
- * /{ticker}:
+ * /{username}/{referenceCode}:
  *   get:
  *     tags:
  *       - Universal
- *     summary: Retrieve a record by its 6-character ticker
+ *     summary: Retrieve a record by username and 6-character reference code
  *     description: |
- *       Universal endpoint that fetches any record by its ticker.
- *       The first character determines the table:
+ *       Universal endpoint that fetches any record by username and reference code.
+ *       The reference code contains a type identifier (S, B, or C) at any position:
  *       - B → Bid
- *       - P → Product
  *       - S → Listing
- *       - C → List (type COLLECTION)
- *       - F → List (type FAVORITE)
+ *       - C → List (any type)
+ *       Examples: 32S392, 93984B, 437C52
  *     parameters:
  *       - in: path
- *         name: ticker
+ *         name: username
  *         required: true
  *         schema:
  *           type: string
- *           pattern: '^[A-Z0-9]{6}$'
- *         description: The 6-character ticker (e.g., B72UE9, S3K4M2, C8R9T4)
+ *         description: The username of the profile
+ *       - in: path
+ *         name: referenceCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[2-9SBC]{6}$'
+ *         description: The 6-character reference code (e.g., 32S392, 93984B, 437C52)
  *       - in: query
  *         name: include
  *         schema:
@@ -45,13 +50,13 @@ export const universalRouter = express.Router()
  *               properties:
  *                 type:
  *                   type: string
- *                   enum: [Bid, Product, Listing, List]
+ *                   enum: [Bid, Listing, List]
  *                   description: The type of record returned
  *                 data:
  *                   type: object
  *                   description: The record data
  *       '400':
- *         description: Invalid ticker format
+ *         description: Invalid reference code format or username
  *         content:
  *           application/json:
  *             schema:
@@ -60,7 +65,7 @@ export const universalRouter = express.Router()
  *                 errorMessage:
  *                   type: string
  *       '404':
- *         description: Record not found
+ *         description: Record not found or username doesn't exist
  *         content:
  *           application/json:
  *             schema:
@@ -78,66 +83,67 @@ export const universalRouter = express.Router()
  *                 errorMessage:
  *                   type: string
  */
-universalRouter.get('/:ticker', async (req, res) => {
-  const { ticker } = req.params
+universalRouter.get('/:username/:referenceCode', async (req, res) => {
+  const { username, referenceCode } = req.params
   const { include } = req.query
 
   try {
-    // Validate ticker format
-    validateTickerFormat(ticker)
+    // Validate username exists
+    const profile = await prisma.profile.findFirst({
+      where: { username },
+      include: { account: true }
+    })
 
-    const prefix = ticker[0].toUpperCase()
+    if (!profile || !profile.account) {
+      return res.status(404).json({
+        errorMessage: `Profile with username '${username}' not found`
+      })
+    }
+
+    const accountId = profile.accountId
+
+    // Validate reference code format
+    validateReferenceCodeFormat(referenceCode)
+
+    // Extract type identifier (S, B, or C)
+    const typeIdentifier = extractTypeIdentifier(referenceCode)
     const includes = generateIncludes(include as string)
+    const upperCode = referenceCode.toUpperCase()
 
     let record: any = null
     let recordType: string = ''
 
-    switch (prefix) {
+    switch (typeIdentifier) {
       case 'B':
         // Bid
-        record = await prisma.bid.findUnique({
-          where: { ticker: ticker.toUpperCase() },
+        record = await prisma.bid.findFirst({
+          where: {
+            referenceCode: upperCode,
+            accountId
+          },
           include: includes
         })
         recordType = 'Bid'
         break
 
-      case 'P':
-        // Product
-        record = await prisma.product.findUnique({
-          where: { ticker: ticker.toUpperCase() },
-          include: includes
-        })
-        recordType = 'Product'
-        break
-
       case 'S':
         // Listing
-        record = await prisma.listing.findUnique({
-          where: { ticker: ticker.toUpperCase() },
+        record = await prisma.listing.findFirst({
+          where: {
+            referenceCode: upperCode,
+            accountId
+          },
           include: includes
         })
         recordType = 'Listing'
         break
 
       case 'C':
-        // List (COLLECTION)
+        // List (any type)
         record = await prisma.list.findFirst({
           where: {
-            ticker: ticker.toUpperCase(),
-            type: 'COLLECTION'
-          },
-          include: includes
-        })
-        recordType = 'List'
-        break
-
-      case 'F':
-        // List (FAVORITE)
-        record = await prisma.list.findFirst({
-          where: {
-            ticker: ticker.toUpperCase(),
-            type: 'FAVORITE'
+            referenceCode: upperCode,
+            accountId
           },
           include: includes
         })
@@ -145,12 +151,12 @@ universalRouter.get('/:ticker', async (req, res) => {
         break
 
       default:
-        throw new Error(`Invalid ticker prefix '${prefix}'. Valid prefixes are: B, P, S, C, F`)
+        throw new Error(`Invalid type identifier '${typeIdentifier}'. Valid types are: B, S, C`)
     }
 
     if (!record) {
       return res.status(404).json({
-        errorMessage: `No ${recordType} found with ticker ${ticker}`
+        errorMessage: `No ${recordType} found for user '${username}' with reference code ${referenceCode}`
       })
     }
 
@@ -161,8 +167,7 @@ universalRouter.get('/:ticker', async (req, res) => {
 
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UNIVERSAL_TICKER_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve record by ticker.' })
+    console.error('UNIVERSAL_REFERENCE_CODE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve record by reference code.' })
   }
 })
-
