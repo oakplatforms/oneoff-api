@@ -923,6 +923,98 @@ sellerRouter.put('/seller/payment-method/set-default/:accountId/:externalAccount
 
 /**
  * @openapi
+ * /seller/verification-session/{accountId}:
+ *   post:
+ *     tags:
+ *       - Seller
+ *     summary: Create Stripe Identity verification session
+ *     description: Creates a Stripe Identity VerificationSession and ephemeral key for document verification.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The account ID of the seller.
+ *     responses:
+ *       '200':
+ *         description: Verification session created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The verification session ID.
+ *                 ephemeral_key_secret:
+ *                   type: string
+ *                   description: The ephemeral key secret for the session.
+ *       '400':
+ *         description: Bad request or seller not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '500':
+ *         description: Server error creating verification session.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+sellerRouter.post('/seller/verification-session/:accountId', async (req, res) => {
+  const { accountId } = req.params
+
+  try {
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+      include: { seller: true },
+    })
+
+    if (!account?.seller) {
+      throw new Error('Seller account not found.')
+    }
+
+    //Create the verification session
+    const verificationSession = await stripe.identity.verificationSessions.create({
+      type: 'document',
+      provided_details: {
+        email: account.email || undefined,
+      },
+      metadata: {
+        account_id: accountId,
+        seller_id: account.seller.id,
+      },
+    })
+
+    //Create an ephemeral key for the VerificationSession
+    const ephemeralKey = await stripe.ephemeralKeys.create(
+      { verification_session: verificationSession.id },
+      { apiVersion: '2024-12-18.acacia' }
+    )
+
+    return res.status(200).json({
+      id: verificationSession.id,
+      ephemeral_key_secret: ephemeralKey.secret,
+    })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('CREATE_VERIFICATION_SESSION_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to create verification session.' })
+  }
+})
+
+/**
+ * @openapi
  * /seller/upload-verification/{accountId}:
  *   post:
  *     tags:
@@ -1363,7 +1455,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *     tags:
  *       - Seller
  *     summary: Delete a seller's account and Stripe account
- *     description: Deletes the seller's connected Stripe account and local seller record using their accountId.
+ *     description: Deletes the seller's connected Stripe account, removes the local seller record, and converts the account type back to REGISTERED.
  *     parameters:
  *       - in: path
  *         name: accountId
@@ -1373,7 +1465,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *         description: The account ID of the seller to be deleted.
  *     responses:
  *       '200':
- *         description: Seller account successfully deleted.
+ *         description: Seller account successfully deleted and converted to REGISTERED.
  *         content:
  *           application/json:
  *             schema:
@@ -1381,7 +1473,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *               properties:
  *                 success:
  *                   type: string
- *                   example: Seller account was successfully deleted
+ *                   example: Seller account was successfully deleted and account converted to REGISTERED
  *       '400':
  *         description: Bad request or invalid account ID.
  *         content:
@@ -1405,7 +1497,7 @@ sellerRouter.delete('/seller/:accountId', async (req, res) => {
   const { accountId } = req.params
 
   try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'admin')
 
     const existingSeller = await prisma.seller.findUnique({
       where: { accountId },
@@ -1417,16 +1509,22 @@ sellerRouter.delete('/seller/:accountId', async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      const deletedSeller = await tx.seller.delete({
+      //Delete the seller record
+      await tx.seller.delete({
         where: { accountId }
       })
 
-      await stripe.accounts.del(existingSeller.paymentAccountId!)
+      //Convert account type back to REGISTERED
+      await tx.account.update({
+        where: { id: accountId },
+        data: { type: 'REGISTERED' }
+      })
 
-      return deletedSeller
+      //Delete the Stripe Connect account
+      await stripe.accounts.del(existingSeller.paymentAccountId!)
     }, { timeout: 60000 })
 
-    return res.json({ success: 'Seller account was successfully deleted' })
+    return res.json({ success: 'Seller account was successfully deleted and account converted to REGISTERED' })
 
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
