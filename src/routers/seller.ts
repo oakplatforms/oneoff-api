@@ -92,14 +92,14 @@ sellerRouter.get('/seller/:id', async (req, res) => {
  *     tags:
  *       - Seller
  *     summary: Create a new seller account
- *     description: Converts an existing account to a seller and creates a Stripe account with the provided information.
+ *     description: Converts an existing account to a seller and creates a Stripe account with the provided information. The website URL is automatically generated as https://nanza.app/{username} and shipping carrier is set to USPS by default. Requires a profile username to be set.
  *     parameters:
  *       - in: path
  *         name: accountId
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the account to convert into a seller.
+ *         description: The ID of the account to convert into a seller. Account must have a profile with a username.
  *     requestBody:
  *       required: true
  *       content:
@@ -130,8 +130,6 @@ sellerRouter.get('/seller/:id', async (req, res) => {
  *                 type: string
  *               businessName:
  *                 type: string
- *               website:
- *                 type: string
  *               mcc:
  *                 type: string
  *                 description: Merchant category code
@@ -156,14 +154,15 @@ sellerRouter.get('/seller/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Seller'
  *       '400':
- *         description: Invalid request or missing parameters.
+ *         description: Invalid request, missing parameters, or missing profile username.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 error:
+ *                 errorMessage:
  *                   type: string
+ *                   example: Profile username is required to create a seller account.
  *       '500':
  *         description: Internal server error while creating the seller.
  *         content:
@@ -188,7 +187,6 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
     ssn,
     ssnLastFour,
     businessName,
-    website,
     mcc,
     taxId,
     dateOfBirth,
@@ -197,14 +195,26 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customerOrRegistered')
     const result = await prisma.$transaction(async (tx) => {
+      const account = await tx.account.findUnique({
+        where: { id: accountId },
+        include: { profile: true },
+      })
+
+      if (!account) {
+        throw new Error('Account not found.')
+      }
+
+      if (!account.profile?.username) {
+        throw new Error('Profile username is required to create a seller account.')
+      }
+
       const updatedAccount = await tx.account.update({
         where: { id: accountId },
         data: { type: 'SELLER' },
       })
 
-      if (!updatedAccount) {
-        throw new Error('Account not found.')
-      }
+      //Generate website URL from profile username
+      const websiteUrl = `https://nanza.app/${account.profile.username}`
 
       const stripeAccountData: Stripe.AccountCreateParams = {
         type: 'custom',
@@ -242,7 +252,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           },
         },
         business_profile: {
-          url: website,
+          url: websiteUrl,
           mcc: mcc,
         },
         settings: {
@@ -272,7 +282,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           city,
           state,
           businessName,
-          website,
+          shippingCarrierTypes: ['USPS'],
           paymentAccountId: stripeAccount.id,
           paymentAccountStatus: 'PENDING',
         }
@@ -296,7 +306,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
  *     tags:
  *       - Seller
  *     summary: Update seller account details
- *     description: Updates seller information and syncs changes to the associated Stripe account.
+ *     description: Updates seller information and syncs changes to the associated Stripe account. Website URL is managed automatically and cannot be updated through this endpoint.
  *     parameters:
  *       - in: path
  *         name: accountId
@@ -328,8 +338,6 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
  *               state:
  *                 type: string
  *               businessName:
- *                 type: string
- *               website:
  *                 type: string
  *     responses:
  *       '200':
@@ -369,7 +377,6 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
     city,
     state,
     businessName,
-    website,
   } = req.body
 
   try {
@@ -387,7 +394,6 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
           city,
           state,
           businessName,
-          website,
         },
       })
 
@@ -430,7 +436,6 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
             },
           }
           : {}),
-        ...(website ? { business_profile: { url: website } } : {}),
       }
 
       await stripe.accounts.update(updatedSeller.paymentAccountId!, stripeUpdatedAccountData)
