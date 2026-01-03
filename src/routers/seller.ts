@@ -1497,7 +1497,6 @@ sellerRouter.delete('/seller/:accountId', async (req, res) => {
   const { accountId } = req.params
 
   try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'admin')
 
     const existingSeller = await prisma.seller.findUnique({
       where: { accountId },
