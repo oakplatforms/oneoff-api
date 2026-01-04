@@ -88,7 +88,6 @@ functions:
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
       S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
-      AWS_REGION: us-east-1
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
       SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
