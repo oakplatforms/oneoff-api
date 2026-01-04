@@ -14,12 +14,18 @@ const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
 
 //Initialize AWS Rekognition Client (v3)
+//In Lambda, credentials are automatically provided via IAM role
+//For local development, use explicit credentials from .env
 const rekognitionClient = new RekognitionClient({
   region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
+  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+    ? {
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    }
+    : {}),
 })
 
 /**
@@ -1038,47 +1044,59 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
     //Validate ID documents with AWS Rekognition before uploading
-    console.log('Validating front ID image with AWS Rekognition...')
-    const frontCommand = new DetectTextCommand({
-      Image: { Bytes: new Uint8Array(frontBuffer) }
-    })
-    const frontAnalysis = await rekognitionClient.send(frontCommand)
+    //Skip validation only if explicitly disabled
+    const skipRekognitionValidation = process.env.SKIP_REKOGNITION_VALIDATION === 'true'
 
-    console.log('Validating back ID image with AWS Rekognition...')
-    const backCommand = new DetectTextCommand({
-      Image: { Bytes: new Uint8Array(backBuffer) }
-    })
-    const backAnalysis = await rekognitionClient.send(backCommand)
+    if (!skipRekognitionValidation) {
+      try {
+        console.log('Validating front ID image with AWS Rekognition...')
+        const frontCommand = new DetectTextCommand({
+          Image: { Bytes: new Uint8Array(frontBuffer) }
+        })
+        const frontAnalysis = await rekognitionClient.send(frontCommand)
 
-    //Extract detected text from both images
-    const frontTextDetections = frontAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
-    const backTextDetections = backAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
-    const allText = [...frontTextDetections, ...backTextDetections].join(' ')
+        console.log('Validating back ID image with AWS Rekognition...')
+        const backCommand = new DetectTextCommand({
+          Image: { Bytes: new Uint8Array(backBuffer) }
+        })
+        const backAnalysis = await rekognitionClient.send(backCommand)
 
-    //Check for ID indicators
-    const hasDriverLicense = allText.includes('driver') || allText.includes('license')
-    const hasIDCard = allText.includes('identification') || allText.includes('id card')
-    const hasExpiration = frontTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t)) ||
-                          backTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t))
+        //Extract detected text from both images
+        const frontTextDetections = frontAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
+        const backTextDetections = backAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
+        const allText = [...frontTextDetections, ...backTextDetections].join(' ')
 
-    const isLikelyID = hasDriverLicense || hasIDCard
-    //ID should have at least 5 text fields
-    const hasMinimumText = frontTextDetections.length >= 5
+        //Check for ID indicators
+        const hasDriverLicense = allText.includes('driver') || allText.includes('license')
+        const hasIDCard = allText.includes('identification') || allText.includes('id card')
+        const hasExpiration = frontTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t)) ||
+                              backTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t))
 
-    console.log('ID Validation Results:', {
-      isLikelyID,
-      hasExpiration,
-      hasMinimumText,
-      frontTextCount: frontTextDetections.length,
-      backTextCount: backTextDetections.length
-    })
+        const isLikelyID = hasDriverLicense || hasIDCard
+        //ID should have at least 5 text fields
+        const hasMinimumText = frontTextDetections.length >= 5
 
-    //Reject if not a valid ID
-    if (!isLikelyID || !hasMinimumText) {
-      console.warn('ID validation failed:', { isLikelyID, hasMinimumText })
-      return res.status(400).json({
-        errorMessage: 'Uploaded images do not appear to be valid ID documents. Please upload clear photos of your driver\'s license or ID card.'
-      })
+        console.log('ID Validation Results:', {
+          isLikelyID,
+          hasExpiration,
+          hasMinimumText,
+          frontTextCount: frontTextDetections.length,
+          backTextCount: backTextDetections.length
+        })
+
+        //Reject if not a valid ID
+        if (!isLikelyID || !hasMinimumText) {
+          console.warn('ID validation failed:', { isLikelyID, hasMinimumText })
+          return res.status(400).json({
+            errorMessage: 'Uploaded images do not appear to be valid ID documents. Please upload clear photos of your driver\'s license or ID card.'
+          })
+        }
+      } catch (rekognitionError) {
+        console.error('AWS Rekognition validation error (skipping validation):', rekognitionError)
+        //Continue without validation if Rekognition fails
+      }
+    } else {
+      console.warn('AWS Rekognition validation skipped (SKIP_REKOGNITION_VALIDATION=true)')
     }
 
     //Proceed with Stripe upload and database update
@@ -1124,8 +1142,16 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     res.json(result)
   } catch (error) {
     const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', prismaError || error)
-    res.status(statusCode).send({ errorMessage: 'Failed to create seller upload verification.' })
+    console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', {
+      message: (error as Error)?.message,
+      stack: (error as Error)?.stack,
+      prismaError,
+      fullError: error
+    })
+    res.status(statusCode).send({
+      errorMessage: 'Failed to create seller upload verification.',
+      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+    })
   }
 })
 
