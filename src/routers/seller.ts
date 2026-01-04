@@ -235,12 +235,13 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
       const stripeAccountData: Stripe.AccountCreateParams = {
         type: 'custom',
         email: updatedAccount.email || undefined,
-        business_type: 'individual',
+        business_type: sellerType === 'BUSINESS' ? 'company' : 'individual',
         country: 'US',
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
+        //Individual information (always include for primary account holder)
         individual: {
           first_name: firstName,
           last_name: lastName,
@@ -256,20 +257,26 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
             state
           }
         },
-        company: {
-          name: businessName,
-          tax_id: taxId,
-          phone,
-          address: {
-            line1: address,
-            postal_code: zipCode,
-            city,
-            state
-          },
-        },
+        //Company information (only for business accounts)
+        ...(sellerType === 'BUSINESS' && businessName
+          ? {
+            company: {
+              name: businessName,
+              tax_id: taxId,
+              phone,
+              address: {
+                line1: address,
+                postal_code: zipCode,
+                city,
+                state
+              },
+            },
+          }
+          : {}),
         business_profile: {
           url: websiteUrl,
           mcc: mcc,
+          product_description: 'Trading cards and collectibles marketplace',
         },
         settings: {
           payouts: {
@@ -298,6 +305,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           city,
           state,
           businessName,
+          website: websiteUrl,
           shippingCarrierTypes: ['USPS'],
           paymentAccountId: stripeAccount.id,
           paymentAccountStatus: 'PENDING',
@@ -393,6 +401,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
     city,
     state,
     businessName,
+    taxId,
   } = req.body
 
   try {
@@ -415,6 +424,8 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
 
       const stripeUpdatedAccountData: Stripe.AccountUpdateParams = {
         metadata: { testKey: Date.now().toString() },
+        //Update business_type if converting to business
+        ...(sellerType ? { business_type: sellerType === 'BUSINESS' ? 'company' : 'individual' } : {}),
         ...(firstName || lastName || phone || address || zipCode || city || state
           ? {
             individual: {
@@ -434,10 +445,11 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
             },
           }
           : {}),
-        ...(businessName || phone || address || zipCode || city || state
+        ...(businessName || phone || address || zipCode || city || state || taxId
           ? {
             company: {
               ...(businessName ? { name: businessName } : {}),
+              ...(taxId ? { tax_id: taxId } : {}),
               ...(phone ? { phone } : {}),
               ...(address || zipCode || city || state
                 ? {
