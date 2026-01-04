@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
+import { RekognitionClient, DetectTextCommand } from '@aws-sdk/client-rekognition'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
@@ -11,6 +12,15 @@ import { AuthenticatedUser, validateAccount } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
+
+//Initialize AWS Rekognition Client (v3)
+const rekognitionClient = new RekognitionClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+})
 
 /**
  * @openapi
@@ -928,98 +938,6 @@ sellerRouter.put('/seller/payment-method/set-default/:accountId/:externalAccount
 
 /**
  * @openapi
- * /seller/verification-session/{accountId}:
- *   post:
- *     tags:
- *       - Seller
- *     summary: Create Stripe Identity verification session
- *     description: Creates a Stripe Identity VerificationSession and ephemeral key for document verification.
- *     parameters:
- *       - in: path
- *         name: accountId
- *         required: true
- *         schema:
- *           type: string
- *         description: The account ID of the seller.
- *     responses:
- *       '200':
- *         description: Verification session created successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   description: The verification session ID.
- *                 ephemeral_key_secret:
- *                   type: string
- *                   description: The ephemeral key secret for the session.
- *       '400':
- *         description: Bad request or seller not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Server error creating verification session.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-sellerRouter.post('/seller/verification-session/:accountId', async (req, res) => {
-  const { accountId } = req.params
-
-  try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-
-    const account = await prisma.account.findUnique({
-      where: { id: accountId },
-      include: { seller: true },
-    })
-
-    if (!account?.seller) {
-      throw new Error('Seller account not found.')
-    }
-
-    //Create the verification session
-    const verificationSession = await stripe.identity.verificationSessions.create({
-      type: 'document',
-      provided_details: {
-        email: account.email || undefined,
-      },
-      metadata: {
-        account_id: accountId,
-        seller_id: account.seller.id,
-      },
-    })
-
-    //Create an ephemeral key for the VerificationSession
-    const ephemeralKey = await stripe.ephemeralKeys.create(
-      { verification_session: verificationSession.id },
-      { apiVersion: '2024-12-18.acacia' }
-    )
-
-    return res.status(200).json({
-      id: verificationSession.id,
-      ephemeral_key_secret: ephemeralKey.secret,
-    })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_VERIFICATION_SESSION_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to create verification session.' })
-  }
-})
-
-/**
- * @openapi
  * /seller/upload-verification/{accountId}:
  *   post:
  *     tags:
@@ -1119,6 +1037,51 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     }
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
+    //Validate ID documents with AWS Rekognition before uploading
+    console.log('Validating front ID image with AWS Rekognition...')
+    const frontCommand = new DetectTextCommand({
+      Image: { Bytes: new Uint8Array(frontBuffer) }
+    })
+    const frontAnalysis = await rekognitionClient.send(frontCommand)
+
+    console.log('Validating back ID image with AWS Rekognition...')
+    const backCommand = new DetectTextCommand({
+      Image: { Bytes: new Uint8Array(backBuffer) }
+    })
+    const backAnalysis = await rekognitionClient.send(backCommand)
+
+    //Extract detected text from both images
+    const frontTextDetections = frontAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
+    const backTextDetections = backAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
+    const allText = [...frontTextDetections, ...backTextDetections].join(' ')
+
+    //Check for ID indicators
+    const hasDriverLicense = allText.includes('driver') || allText.includes('license')
+    const hasIDCard = allText.includes('identification') || allText.includes('id card')
+    const hasExpiration = frontTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t)) ||
+                          backTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t))
+
+    const isLikelyID = hasDriverLicense || hasIDCard
+    //ID should have at least 5 text fields
+    const hasMinimumText = frontTextDetections.length >= 5
+
+    console.log('ID Validation Results:', {
+      isLikelyID,
+      hasExpiration,
+      hasMinimumText,
+      frontTextCount: frontTextDetections.length,
+      backTextCount: backTextDetections.length
+    })
+
+    //Reject if not a valid ID
+    if (!isLikelyID || !hasMinimumText) {
+      console.warn('ID validation failed:', { isLikelyID, hasMinimumText })
+      return res.status(400).json({
+        errorMessage: 'Uploaded images do not appear to be valid ID documents. Please upload clear photos of your driver\'s license or ID card.'
+      })
+    }
+
+    //Proceed with Stripe upload and database update
     const result = await prisma.$transaction(async (tx) => {
       const updatedSeller = await tx.seller.update({
         where: { accountId },
@@ -1161,7 +1124,7 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     res.json(result)
   } catch (error) {
     const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', prismaError)
+    console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', prismaError || error)
     res.status(statusCode).send({ errorMessage: 'Failed to create seller upload verification.' })
   }
 })
