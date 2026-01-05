@@ -354,6 +354,8 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
  *                 type: string
  *               businessName:
  *                 type: string
+ *               agreedToTerms:
+ *                 type: boolean
  *     responses:
  *       '200':
  *         description: Seller account updated successfully.
@@ -393,6 +395,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
     state,
     businessName,
     taxId,
+    agreedToTerms,
   } = req.body
 
   try {
@@ -417,6 +420,13 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
         metadata: { testKey: Date.now().toString() },
         //Update business_type if converting to business
         ...(sellerType ? { business_type: sellerType === 'BUSINESS' ? 'company' : 'individual' } : {}),
+        //Update terms of service acceptance
+        ...(agreedToTerms ? {
+          tos_acceptance: {
+            date: Math.floor(Date.now() / 1000),
+            ip: req.ip,
+          },
+        } : {}),
         ...(firstName || lastName || phone || address || zipCode || city || state
           ? {
             individual: {
