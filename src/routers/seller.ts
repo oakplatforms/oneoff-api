@@ -1056,56 +1056,36 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
     //Validate ID documents with AWS Rekognition before uploading
-    //Skip validation only if explicitly disabled
     const skipRekognitionValidation = process.env.SKIP_REKOGNITION_VALIDATION === 'true'
 
     if (!skipRekognitionValidation) {
-      try {
-        console.log('Validating front ID image with AWS Rekognition...')
-        const frontCommand = new DetectTextCommand({
-          Image: { Bytes: new Uint8Array(frontBuffer) }
-        })
-        const frontAnalysis = await rekognitionClient.send(frontCommand)
+      console.log('Validating ID images with AWS Rekognition...')
+      const frontCommand = new DetectTextCommand({
+        Image: { Bytes: new Uint8Array(frontBuffer) }
+      })
+      const frontAnalysis = await rekognitionClient.send(frontCommand)
 
-        console.log('Validating back ID image with AWS Rekognition...')
-        const backCommand = new DetectTextCommand({
-          Image: { Bytes: new Uint8Array(backBuffer) }
-        })
-        const backAnalysis = await rekognitionClient.send(backCommand)
+      const backCommand = new DetectTextCommand({
+        Image: { Bytes: new Uint8Array(backBuffer) }
+      })
+      const backAnalysis = await rekognitionClient.send(backCommand)
 
-        //Extract detected text from both images
-        const frontTextDetections = frontAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
-        const backTextDetections = backAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
-        const allText = [...frontTextDetections, ...backTextDetections].join(' ')
+      //Extract detected text from both images
+      const frontTextDetections = frontAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
+      const backTextDetections = backAnalysis.TextDetections?.map(t => t.DetectedText?.toLowerCase() || '') || []
+      const allText = [...frontTextDetections, ...backTextDetections].join(' ')
 
-        //Check for ID indicators
-        const hasDriverLicense = allText.includes('driver') || allText.includes('license')
-        const hasIDCard = allText.includes('identification') || allText.includes('id card')
-        const hasExpiration = frontTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t)) ||
-                              backTextDetections.some(t => /\d{2}\/\d{2}\/\d{4}/.test(t))
+      //Check for ID indicators
+      const hasDriverLicense = allText.includes('driver') || allText.includes('license')
+      const hasIDCard = allText.includes('identification') || allText.includes('id card')
+      const isLikelyID = hasDriverLicense || hasIDCard
+      const hasMinimumText = frontTextDetections.length >= 5
 
-        const isLikelyID = hasDriverLicense || hasIDCard
-        //ID should have at least 5 text fields
-        const hasMinimumText = frontTextDetections.length >= 5
+      console.log('ID Validation:', { isLikelyID, hasMinimumText, textCount: frontTextDetections.length + backTextDetections.length })
 
-        console.log('ID Validation Results:', {
-          isLikelyID,
-          hasExpiration,
-          hasMinimumText,
-          frontTextCount: frontTextDetections.length,
-          backTextCount: backTextDetections.length
-        })
-
-        //Reject if not a valid ID
-        if (!isLikelyID || !hasMinimumText) {
-          console.warn('ID validation failed:', { isLikelyID, hasMinimumText })
-          return res.status(400).json({
-            errorMessage: 'Uploaded images do not appear to be valid ID documents. Please upload clear photos of your driver\'s license or ID card.'
-          })
-        }
-      } catch (rekognitionError) {
-        console.error('AWS Rekognition validation error (skipping validation):', rekognitionError)
-        //Continue without validation if Rekognition fails
+      //Reject if not a valid ID
+      if (!isLikelyID || !hasMinimumText) {
+        throw new Error('Uploaded images do not appear to be valid ID documents. Please upload clear photos of your driver\'s license or ID card.')
       }
     } else {
       console.warn('AWS Rekognition validation skipped (SKIP_REKOGNITION_VALIDATION=true)')
