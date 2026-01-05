@@ -14,18 +14,9 @@ const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
 
 //Initialize AWS Rekognition Client (v3)
-//In Lambda, credentials are automatically provided via IAM role
-//For local development, use explicit credentials from .env
+//Uses Lambda IAM role credentials automatically
 const rekognitionClient = new RekognitionClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
-    ? {
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      },
-    }
-    : {}),
+  region: 'us-east-1',
 })
 
 /**
