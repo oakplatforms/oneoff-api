@@ -413,6 +413,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
           city,
           state,
           businessName,
+          ...(typeof agreedToTerms === 'boolean' ? { agreedToTerms } : {}),
         },
       })
 

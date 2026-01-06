@@ -286,6 +286,7 @@ model Seller {
   paymentAccountStatus     ProcessStatus?
   isPaymentAccountVerified Boolean?           @default(false)
   hasPaymentMethod         Boolean?           @default(false)
+  agreedToTerms            Boolean?           @default(false)
   sellerType               SellerType?
   taxRate                  Decimal?           @db.Decimal(10, 2)
 
