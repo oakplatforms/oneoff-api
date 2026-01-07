@@ -284,6 +284,14 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
 
       const stripeAccount = await stripe.accounts.create(stripeAccountData)
 
+      //Get tracked and untracked shipping methods
+      const trackedMethod = await tx.shippingMethod.findFirst({
+        where: { isTracked: true }
+      })
+      const untrackedMethod = await tx.shippingMethod.findFirst({
+        where: { isTracked: false }
+      })
+
       const newSeller = await tx.seller.create({
         data: {
           accountId,
@@ -300,6 +308,13 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           shippingCarrierTypes: ['USPS'],
           paymentAccountId: stripeAccount.id,
           paymentAccountStatus: 'PENDING',
+          //Add default shipping methods
+          sellerShippingMethods: {
+            create: [
+              ...(trackedMethod ? [{ shippingMethodId: trackedMethod.id }] : []),
+              ...(untrackedMethod ? [{ shippingMethodId: untrackedMethod.id }] : [])
+            ]
+          }
         }
       })
 
