@@ -1115,6 +1115,30 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
 
     //Proceed with Stripe upload and database update
     const result = await prisma.$transaction(async (tx) => {
+      const seller = await tx.seller.findUnique({
+        where: { accountId }
+      })
+
+      if (!seller?.paymentAccountId) {
+        throw new Error('Seller payment account not found.')
+      }
+
+      //Check if Stripe account is already verified
+      const stripeAccount = await stripe.accounts.retrieve(seller.paymentAccountId)
+      const isVerified = stripeAccount.individual?.verification?.status === 'verified'
+
+      if (isVerified) {
+        console.log('Stripe account already verified, skipping document upload')
+        //Just mark as verified in our database
+        await tx.seller.update({
+          where: { accountId },
+          data: {
+            isPaymentAccountVerified: true,
+          },
+        })
+        return { success: 'Identity verification already completed.'}
+      }
+
       const updatedSeller = await tx.seller.update({
         where: { accountId },
         data: {
@@ -1156,15 +1180,27 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     res.json(result)
   } catch (error) {
     const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    
+    //Check if this is a Stripe error about already verified account
+    const errorMessage = (error as Error)?.message
+    const isAlreadyVerified = errorMessage?.includes('cannot change') && errorMessage?.includes('if an account is verified')
+    
+    if (isAlreadyVerified) {
+      console.log('Attempted to update already verified Stripe account')
+      return res.status(400).send({
+        errorMessage: 'This account is already verified and documents cannot be changed.'
+      })
+    }
+    
     console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', {
-      message: (error as Error)?.message,
+      message: errorMessage,
       stack: (error as Error)?.stack,
       prismaError,
       fullError: error
     })
     res.status(statusCode).send({
       errorMessage: 'Failed to create seller upload verification.',
-      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     })
   }
 })
