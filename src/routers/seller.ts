@@ -2,13 +2,14 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { RekognitionClient, DetectTextCommand } from '@aws-sdk/client-rekognition'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { paginatePrisma } from '../utils/paginatePrisma'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
 import { generateIncludes } from '../utils/generateIncludes'
 import { validateSeller } from '../validation/seller'
 import { calculateWalletBalance } from '../services/payout'
 import { validatePayoutAmount } from '../validation/payout'
-import { AuthenticatedUser, validateAccount } from '../validation/user'
+import { AuthenticatedUser, validateAccount, validateRole } from '../validation/user'
 import { getTaxRateForState } from '../constants/taxRates'
 
 const prisma = getPrismaClient()
@@ -18,6 +19,88 @@ export const sellerRouter = express.Router()
 //Uses Lambda IAM role credentials automatically
 const rekognitionClient = new RekognitionClient({
   region: 'us-east-1',
+})
+
+/**
+ * @openapi
+ * /sellers:
+ *   get:
+ *     tags:
+ *       - Seller
+ *     summary: Retrieve all sellers
+ *     description: Fetches a paginated list of all sellers. You can optionally include related entities using the `include` query parameter.
+ *     parameters:
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of related entities to include (e.g., `account,sellerShippingMethods`).
+ *       - in: query
+ *         name: usePagination
+ *         schema:
+ *           type: string
+ *         description: Whether to use pagination (true/false). Defaults to true.
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *         description: Page number for pagination (0-indexed). Defaults to 0.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: string
+ *         description: Number of items per page. Defaults to 10.
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved the sellers list.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Seller'
+ *                 page:
+ *                   type: number
+ *                   nullable: true
+ *                 total:
+ *                   type: number
+ *                   nullable: true
+ *       '500':
+ *         description: Internal Server Error. An error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *                   description: Description of the error that occurred.
+ */
+sellerRouter.get('/sellers', async (req, res) => {
+  const { include, usePagination, page, limit } = req.query
+
+  try {
+    const parsedLimit = parseInt(limit as string) || 10
+    const parsedPage = parseInt(page as string) || 0
+
+    const result = await paginatePrisma({
+      prismaModel: prisma.seller,
+      where: {},
+      include: generateIncludes(include as string),
+      page: parsedPage,
+      limit: parsedLimit,
+      usePagination: usePagination === 'false' ? false : true,
+    })
+
+    res.json(result)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLERS_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve sellers.' })
+  }
 })
 
 /**
@@ -1538,6 +1621,7 @@ sellerRouter.delete('/seller/:accountId', async (req, res) => {
   const { accountId } = req.params
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
 
     const existingSeller = await prisma.seller.findUnique({
       where: { accountId },
