@@ -9,6 +9,7 @@ import { validateSeller } from '../validation/seller'
 import { calculateWalletBalance } from '../services/payout'
 import { validatePayoutAmount } from '../validation/payout'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
+import { getTaxRateForState } from '../constants/taxRates'
 
 const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
@@ -292,6 +293,9 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
         where: { isTracked: false }
       })
 
+      //Calculate tax rate based on state
+      const taxRate = getTaxRateForState(state)
+
       const newSeller = await tx.seller.create({
         data: {
           accountId,
@@ -308,6 +312,7 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           shippingCarrierTypes: ['USPS'],
           paymentAccountId: stripeAccount.id,
           paymentAccountStatus: 'PENDING',
+          taxRate,
           //Add default shipping methods
           sellerShippingMethods: {
             create: [
@@ -416,6 +421,9 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     const result = await prisma.$transaction(async (tx) => {
+      //Calculate new tax rate if state is being updated
+      const taxRate = state ? getTaxRateForState(state) : undefined
+
       const updatedSeller = await tx.seller.update({
         where: { accountId },
         data: {
@@ -429,6 +437,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
           state,
           businessName,
           ...(typeof agreedToTerms === 'boolean' ? { agreedToTerms } : {}),
+          ...(taxRate !== undefined ? { taxRate } : {}),
         },
       })
 
@@ -1180,27 +1189,15 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     res.json(result)
   } catch (error) {
     const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    
-    //Check if this is a Stripe error about already verified account
-    const errorMessage = (error as Error)?.message
-    const isAlreadyVerified = errorMessage?.includes('cannot change') && errorMessage?.includes('if an account is verified')
-    
-    if (isAlreadyVerified) {
-      console.log('Attempted to update already verified Stripe account')
-      return res.status(400).send({
-        errorMessage: 'This account is already verified and documents cannot be changed.'
-      })
-    }
-    
     console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', {
-      message: errorMessage,
+      message: (error as Error)?.message,
       stack: (error as Error)?.stack,
       prismaError,
       fullError: error
     })
     res.status(statusCode).send({
       errorMessage: 'Failed to create seller upload verification.',
-      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
     })
   }
 })
