@@ -209,6 +209,37 @@ custom:
 
 resources:
   Resources:
+    ImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.s3Bucket.${sls:stage}}
+        # Allow public access at bucket level for public images (profiles, products, etc.)
+        # ID verification images in id-verifications/ are private by default
+        # (uploaded without ACL via uploadPrivateImage, accessible only via presigned URLs)
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
+        LifecycleConfiguration:
+          Rules:
+            - Id: DeleteIDVerificationImages
+              Status: Enabled
+              Prefix: id-verifications/
+              ExpirationInDays: 2
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              AllowedHeaders:
+                - '*'
+              MaxAge: 3000
 
 package:
   individually: true

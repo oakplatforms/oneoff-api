@@ -299,6 +299,7 @@ model Seller {
   zipCode              String?
   businessName         String?
   website              String?
+  image                String?
   shippingCarrierTypes ShippingCarrierType[]
 
   // relations

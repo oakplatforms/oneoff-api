@@ -543,6 +543,13 @@
           ],
           "default": false
         },
+        "agreedToTerms": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "sellerType": {
           "type": [
             "string",
@@ -608,6 +615,12 @@
           ]
         },
         "website": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image": {
           "type": [
             "string",
             "null"

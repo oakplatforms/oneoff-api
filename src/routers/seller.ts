@@ -11,6 +11,10 @@ import { calculateWalletBalance } from '../services/payout'
 import { validatePayoutAmount } from '../validation/payout'
 import { AuthenticatedUser, validateAccount, validateRole } from '../validation/user'
 import { getTaxRateForState } from '../constants/taxRates'
+import eventBridge from '../utils/eventBridge'
+import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import { uploadPrivateImage } from '../utils/uploadImage'
+import { generatePresignedUrl } from '../utils/generatePresignedUrl'
 
 const prisma = getPrismaClient()
 export const sellerRouter = express.Router()
@@ -1205,6 +1209,24 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
       console.warn('AWS Rekognition validation skipped (SKIP_REKOGNITION_VALIDATION=true)')
     }
 
+    //Upload front image to S3 for admin viewing (48-hour TTL via bucket lifecycle)
+    const timestamp = Date.now()
+    const filename = `${accountId}-${timestamp}.jpg`
+
+    const imagePath = await uploadPrivateImage({
+      buffer: frontBuffer,
+      folder: 'id-verifications',
+      filename,
+      contentType: 'image/jpeg',
+      metadata: {
+        accountId,
+        uploadedAt: new Date().toISOString(),
+      },
+    })
+
+    //Remove leading slash for database storage
+    const s3Key = imagePath.substring(1)
+
     //Proceed with Stripe upload and database update
     const result = await prisma.$transaction(async (tx) => {
       const seller = await tx.seller.findUnique({
@@ -1221,11 +1243,12 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
 
       if (isVerified) {
         console.log('Stripe account already verified, skipping document upload')
-        //Just mark as verified in our database
+        //Just mark as verified in our database and save S3 image path
         await tx.seller.update({
           where: { accountId },
           data: {
             isPaymentAccountVerified: true,
+            image: `/${s3Key}`,
           },
         })
         return { success: 'Identity verification already completed.'}
@@ -1235,6 +1258,7 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
         where: { accountId },
         data: {
           isPaymentAccountVerified: true,
+          image: `/${s3Key}`,
         },
       })
 
@@ -1282,6 +1306,88 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
       errorMessage: 'Failed to create seller upload verification.',
       details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
     })
+  }
+})
+
+/**
+ * @openapi
+ * /seller/id-image/{accountId}:
+ *   get:
+ *     tags:
+ *       - Seller
+ *     summary: Get presigned URL for seller's ID verification image
+ *     description: Generates a presigned URL for viewing the seller's ID verification image. Only accessible to admin users. URL expires in 15 minutes.
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The account ID of the seller.
+ *     responses:
+ *       '200':
+ *         description: Presigned URL generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *                   example: https://s3.amazonaws.com/bucket/id-verifications/acc123-1234567890.jpg?X-Amz-Signature=...
+ *                 expiresAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2026-01-09T12:30:00Z
+ *       '404':
+ *         description: Seller not found or no ID image available.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ *       '403':
+ *         description: Unauthorized - admin access required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errorMessage:
+ *                   type: string
+ */
+sellerRouter.get('/seller/id-image/:accountId', async (req, res) => {
+  const { accountId } = req.params
+
+  try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
+
+    const seller = await prisma.seller.findUnique({
+      where: { accountId },
+      select: { image: true }
+    })
+
+    if (!seller || !seller.image) {
+      return res.status(404).json({ errorMessage: 'Seller not found or no ID image available.' })
+    }
+
+    //Remove leading slash from image path to get S3 key
+    const s3Key = seller.image.startsWith('/') ? seller.image.substring(1) : seller.image
+
+    const url = await generatePresignedUrl({
+      key: s3Key,
+      expiresIn: 900,
+    })
+
+    const expiresAt = new Date(Date.now() + 900 * 1000).toISOString()
+
+    res.json({ url, expiresAt })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_SELLER_ID_IMAGE_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to generate presigned URL for ID image.' })
   }
 })
 
@@ -1578,18 +1684,28 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *   delete:
  *     tags:
  *       - Seller
- *     summary: Delete a seller's account and Stripe account
- *     description: Deletes the seller's connected Stripe account, removes the local seller record, and converts the account type back to REGISTERED.
+ *     summary: Reject a seller's application
+ *     description: Rejects a seller application by deleting the seller's connected Stripe account, removing the local seller record, and converting the account type to CUSTOMER if a customer object exists, otherwise to REGISTERED. Sends a rejection email to the seller with optional reason.
  *     parameters:
  *       - in: path
  *         name: accountId
  *         required: true
  *         schema:
  *           type: string
- *         description: The account ID of the seller to be deleted.
+ *         description: The account ID of the seller to be rejected.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rejectionReason:
+ *                 type: string
+ *                 description: Optional reason for rejecting the seller application
+ *                 example: Your submitted ID documents could not be verified.
  *     responses:
  *       '200':
- *         description: Seller account successfully deleted and converted to REGISTERED.
+ *         description: Seller application successfully rejected and account converted to CUSTOMER or REGISTERED.
  *         content:
  *           application/json:
  *             schema:
@@ -1597,7 +1713,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *               properties:
  *                 success:
  *                   type: string
- *                   example: Seller account was successfully deleted and account converted to REGISTERED
+ *                   example: Seller application was successfully rejected and account converted to CUSTOMER
  *       '400':
  *         description: Bad request or invalid account ID.
  *         content:
@@ -1608,7 +1724,7 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  *                 errorMessage:
  *                   type: string
  *       '500':
- *         description: Internal Server Error during seller account deletion.
+ *         description: Internal Server Error during seller application rejection.
  *         content:
  *           application/json:
  *             schema:
@@ -1619,40 +1735,72 @@ sellerRouter.get('/seller/wallet-balance/:accountId', async (req, res) => {
  */
 sellerRouter.delete('/seller/:accountId', async (req, res) => {
   const { accountId } = req.params
+  const { rejectionReason } = req.body
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
 
     const existingSeller = await prisma.seller.findUnique({
       where: { accountId },
-      select: { id: true, paymentAccountId: true }
+      select: { id: true, paymentAccountId: true, account: { select: { email: true } } }
     })
 
     if (!existingSeller) {
       throw new Error('No seller found for this account')
     }
 
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      //Check if the account has a customer object
+      const account = await tx.account.findUnique({
+        where: { id: accountId },
+        select: { customer: { select: { id: true } } }
+      })
+
+      //Determine the new account type
+      const newAccountType = account?.customer ? 'CUSTOMER' : 'REGISTERED'
+
       //Delete the seller record
       await tx.seller.delete({
         where: { accountId }
       })
 
-      //Convert account type back to REGISTERED
+      //Convert account type based on customer existence
       await tx.account.update({
         where: { id: accountId },
-        data: { type: 'REGISTERED' }
+        data: { type: newAccountType }
       })
 
       //Delete the Stripe Connect account
       await stripe.accounts.del(existingSeller.paymentAccountId!)
+
+      return { newAccountType }
     }, { timeout: 60000 })
 
-    return res.json({ success: 'Seller account was successfully deleted and account converted to REGISTERED' })
+    //Publish EventBridge event for rejection email (outside transaction)
+    try {
+      await eventBridge.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'tcgx',
+            DetailType: 'seller.application.rejected',
+            Detail: JSON.stringify({
+              accountId,
+              rejectionReason: rejectionReason || null
+            }),
+            EventBusName: 'default',
+          },
+        ],
+      }))
+    } catch (eventError) {
+      console.error('Failed to publish rejection email event:', eventError)
+      //Don't fail the request if email event fails
+    }
+
+    return res.json({ success: `Seller application was successfully rejected and account converted to ${result.newAccountType}` })
 
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_SELLER_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete seller.' })
+    console.error('REJECT_SELLER_ERROR:', prismaError || customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to reject seller application.' })
   }
 })

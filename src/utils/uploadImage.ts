@@ -90,3 +90,34 @@ export async function uploadImage(
 
   return `/${key}`
 }
+
+export interface UploadPrivateImageOptions {
+  buffer: Buffer
+  folder: string
+  filename: string
+  contentType?: string
+  metadata?: Record<string, string>
+}
+
+export async function uploadPrivateImage({
+  buffer,
+  folder,
+  filename,
+  contentType = 'image/jpeg',
+  metadata = {},
+}: UploadPrivateImageOptions): Promise<string> {
+  const key = `${folder}/${filename}`
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+      Metadata: metadata,
+      // No ACL - private by default
+    })
+  )
+
+  return `/${key}`
+}
