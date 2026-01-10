@@ -1227,73 +1227,60 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
     //Remove leading slash for database storage
     const s3Key = imagePath.substring(1)
 
-    //Proceed with Stripe upload and database update
-    const result = await prisma.$transaction(async (tx) => {
-      const seller = await tx.seller.findUnique({
-        where: { accountId }
-      })
+    //Get seller info before transaction
+    const seller = await prisma.seller.findUnique({
+      where: { accountId },
+      select: { paymentAccountId: true }
+    })
 
-      if (!seller?.paymentAccountId) {
-        throw new Error('Seller payment account not found.')
-      }
+    if (!seller?.paymentAccountId) {
+      throw new Error('Seller payment account not found.')
+    }
 
-      //Check if Stripe account is already verified
-      const stripeAccount = await stripe.accounts.retrieve(seller.paymentAccountId)
-      const isVerified = stripeAccount.individual?.verification?.status === 'verified'
+    //Upload files to Stripe FIRST (outside transaction to avoid timeout)
+    const frontUpload = await stripe.files.create({
+      file: {
+        data: frontBuffer,
+        name: front.name,
+        type: 'application/octet-stream',
+      },
+      purpose: 'identity_document',
+    })
 
-      if (isVerified) {
-        console.log('Stripe account already verified, skipping document upload')
-        //Just mark as verified in our database and save S3 image path
-        await tx.seller.update({
-          where: { accountId },
-          data: {
-            isPaymentAccountVerified: true,
-            image: `/${s3Key}`,
-          },
-        })
-        return { success: 'Identity verification already completed.'}
-      }
+    const backUpload = await stripe.files.create({
+      file: {
+        data: backBuffer,
+        name: back.name,
+        type: 'application/octet-stream',
+      },
+      purpose: 'identity_document',
+    })
 
-      const updatedSeller = await tx.seller.update({
-        where: { accountId },
-        data: {
-          isPaymentAccountVerified: true,
-          image: `/${s3Key}`,
-        },
-      })
+    //Update database (fast transaction)
+    await prisma.seller.update({
+      where: { accountId },
+      data: {
+        isPaymentAccountVerified: true,
+        image: `/${s3Key}`,
+      },
+    })
 
-      const frontUpload = await stripe.files.create({
-        file: {
-          data: frontBuffer,
-          name: front.name,
-          type: 'application/octet-stream',
-        },
-        purpose: 'identity_document',
-      })
-
-      const backUpload = await stripe.files.create({
-        file: {
-          data: backBuffer,
-          name: back.name,
-          type: 'application/octet-stream',
-        },
-        purpose: 'identity_document',
-      })
-
-      await stripe.accounts.update(updatedSeller.paymentAccountId!, {
-        individual: {
-          verification: {
-            document: {
-              front: frontUpload.id,
-              back: backUpload.id,
-            }
+    //Update Stripe account with documents (outside transaction, fire-and-forget)
+    stripe.accounts.update(seller.paymentAccountId, {
+      individual: {
+        verification: {
+          document: {
+            front: frontUpload.id,
+            back: backUpload.id,
           }
         }
-      })
+      }
+    }).catch(error => {
+      console.error('Failed to update Stripe account with documents:', error)
+      //Don't fail the request - files are uploaded and DB is updated
+    })
 
-      return { success: 'Identity verification files uploaded and account updated.'}
-    }, { timeout: 60000 })
-    res.json(result)
+    res.json({ success: 'Identity verification files uploaded and account updated.' })
   } catch (error) {
     const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', {
