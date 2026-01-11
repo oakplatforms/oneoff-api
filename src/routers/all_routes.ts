@@ -55,11 +55,11 @@ router.use(orderRouter)
 router.use(invoiceRouter)
 router.use(shipmentRouter)
 router.use(offerRouter)
-router.use(profileRouter)
 router.use(conditionRouter)
 router.use(productRouter)
 router.use(setRouter)
 router.use(refundRouter)
+router.use(profileRouter)
 
 // Universal ticker router - MUST BE LAST to catch unmatched 6-char codes
 router.use(universalRouter)
