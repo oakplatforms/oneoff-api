@@ -1772,6 +1772,7 @@ sellerRouter.delete('/seller/:accountId', async (req, res) => {
             DetailType: 'seller.application.rejected',
             Detail: JSON.stringify({
               accountId,
+              type: 'seller.application.rejected',
               rejectionReason: rejectionReason || null
             }),
             EventBusName: 'default',
