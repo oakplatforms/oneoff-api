@@ -805,6 +805,24 @@
           "items": {
             "$ref": "#/definitions/Entity"
           }
+        },
+        "brandTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BrandTag"
+          }
+        },
+        "sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Set"
+          }
+        },
+        "lists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/List"
+          }
         }
       }
     },
@@ -1288,6 +1306,46 @@
           "items": {
             "$ref": "#/definitions/SupportedTagValue"
           }
+        },
+        "brandTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BrandTag"
+          }
+        }
+      }
+    },
+    "BrandTag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "brand": {
+          "$ref": "#/definitions/Brand"
+        },
+        "brandId": {
+          "type": "string"
+        },
+        "tag": {
+          "$ref": "#/definitions/Tag"
+        },
+        "tagId": {
+          "type": "string"
+        },
+        "supportedTagValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SupportedTagValue"
+          }
         }
       }
     },
@@ -1364,11 +1422,37 @@
             "null"
           ]
         },
+        "brandTag": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BrandTag"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brandTagId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "tag": {
-          "$ref": "#/definitions/Tag"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Tag"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "tagId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1415,6 +1499,22 @@
         },
         "code": {
           "type": "string"
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Brand"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brandId": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "entities": {
           "type": "array",
@@ -1517,6 +1617,22 @@
           ]
         },
         "accountId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Brand"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brandId": {
           "type": [
             "string",
             "null"
@@ -3088,6 +3204,9 @@
     },
     "tag": {
       "$ref": "#/definitions/Tag"
+    },
+    "brandTag": {
+      "$ref": "#/definitions/BrandTag"
     },
     "supportedTagValue": {
       "$ref": "#/definitions/SupportedTagValue"

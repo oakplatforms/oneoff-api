@@ -7,6 +7,7 @@ import { cartRouter } from './cart'
 import { brandRouter } from './brand'
 import { categoryRouter } from './category'
 import { tagRouter } from './tag'
+import { brandTagRouter } from './brandTag'
 import { supportedTagValueRouter } from './supportedTagValue'
 import { listRouter } from './list'
 import { entityRouter } from './entity'
@@ -41,6 +42,7 @@ router.use(sellerRouter)
 router.use(brandRouter)
 router.use(categoryRouter)
 router.use(tagRouter)
+router.use(brandTagRouter)
 router.use(supportedTagValueRouter)
 router.use(listRouter)
 router.use(entityRouter)

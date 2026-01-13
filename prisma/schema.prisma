@@ -344,12 +344,15 @@ model Brand {
   legalDisclaimer String?
 
   // relations
-  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?     @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?     @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
   theme            Theme?
   entities         Entity[]
+  brandTags        BrandTag[]
+  sets             Set[]
+  lists            List[]
 }
 
 model Theme {
@@ -464,6 +467,24 @@ model Tag {
   lastModifiedById   String?
   entityTags         EntityTag[]
   supportedTagValues SupportedTagValue[]
+  brandTags          BrandTag[]
+}
+
+model BrandTag {
+  id        String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  brand              Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId            String
+  tag                Tag                 @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId              String
+  supportedTagValues SupportedTagValue[]
+
+  @@unique([brandId, tagId])
+  @@index([brandId])
+  @@index([tagId])
 }
 
 model SupportedTagValue {
@@ -479,12 +500,19 @@ model SupportedTagValue {
   description String?
 
   // relations
-  createdBy        Admin?  @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        Admin?    @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
-  lastModifiedBy   Admin?  @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedBy   Admin?    @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
   lastModifiedById String?
-  tag              Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  tagId            String
+  // NEW relation (use this going forward)
+  brandTag         BrandTag? @relation(fields: [brandTagId], references: [id], onDelete: Cascade)
+  brandTagId       String?
+  // OLD relation (keep for migration, remove in future release)
+  tag              Tag?      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId            String?
+
+  @@index([brandTagId])
+  @@index([tagId])
 }
 
 model Set {
@@ -501,7 +529,11 @@ model Set {
   code        String
 
   // relations
+  brand    Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  brandId  String?
   entities Entity[]
+
+  @@index([brandId])
 }
 
 model List {
@@ -524,6 +556,8 @@ model List {
   // relations
   account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId        String?
+  brand            Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  brandId          String?
   createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdById      String?
   lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
@@ -532,6 +566,7 @@ model List {
   entityList EntityList[]
 
   @@index([accountId])
+  @@index([brandId])
   @@index([type])
   @@index([isPrivate])
   @@index([referenceCode])

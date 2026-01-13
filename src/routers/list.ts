@@ -349,7 +349,7 @@ listRouter.get('/lists', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 listRouter.post('/list', async (req, res) => {
-  const { name, type, displayName, description, navigation, index, isPrivate, accountId, createdById, entityList } = req.body
+  const { name, type, displayName, description, navigation, index, isPrivate, brandId, accountId, createdById, entityList } = req.body
 
   try {
     //Validate required fields
@@ -381,6 +381,7 @@ listRouter.post('/list', async (req, res) => {
             isPrivate,
             type,
             referenceCode,
+            brand: brandId ? { connect: { id: brandId } } : undefined,
             account: accountId ? { connect: { id: accountId } } : undefined,
             createdBy: createdById ? { connect: { id: createdById } } : undefined,
             entityList: entityList?.create?.length
@@ -509,7 +510,7 @@ listRouter.post('/list', async (req, res) => {
  */
 listRouter.put('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { name, type, displayName, description, navigation, index, isPrivate, entityList, accountId, createdById, lastModifiedById } = req.body
+  const { name, type, displayName, description, navigation, index, isPrivate, brandId, entityList, accountId, createdById, lastModifiedById } = req.body
 
   try {
     if (!id) {
@@ -537,35 +538,46 @@ listRouter.put('/list/:id', async (req, res) => {
 
     await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
 
+    const updateData: any = {
+      name,
+      displayName,
+      description,
+      navigation,
+      index,
+      isPrivate,
+      type,
+      account: accountId ? { connect: { id: accountId } } : undefined,
+      createdBy: createdById ? { connect: { id: createdById } } : undefined,
+      lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
+      entityList: entityList
+        ? {
+          create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
+            entity: { connect: { id: item.entityId } },
+            quantity: item.quantity || null,
+          })),
+          update: entityList.update?.map((item: { id: string; quantity?: number }) => ({
+            where: { id: item.id },
+            data: { quantity: item.quantity !== undefined ? item.quantity : null },
+          })),
+          deleteMany: entityList.delete?.map((entityListId: string) => ({
+            id: entityListId,
+          })),
+        }
+        : undefined,
+    }
+
+    // Handle brandId (allow null to disconnect)
+    if (brandId !== undefined) {
+      if (brandId) {
+        updateData.brand = { connect: { id: brandId } }
+      } else {
+        updateData.brand = { disconnect: true }
+      }
+    }
+
     const updatedList = await prisma.list.update({
       where: { id },
-      data: {
-        name,
-        displayName,
-        description,
-        navigation,
-        index,
-        isPrivate,
-        type,
-        account: accountId ? { connect: { id: accountId } } : undefined,
-        createdBy: createdById ? { connect: { id: createdById } } : undefined,
-        lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
-        entityList: entityList
-          ? {
-            create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
-              entity: { connect: { id: item.entityId } },
-              quantity: item.quantity || null,
-            })),
-            update: entityList.update?.map((item: { id: string; quantity?: number }) => ({
-              where: { id: item.id },
-              data: { quantity: item.quantity !== undefined ? item.quantity : null },
-            })),
-            deleteMany: entityList.delete?.map((entityListId: string) => ({
-              id: entityListId,
-            })),
-          }
-          : undefined,
-      },
+      data: updateData,
     })
 
     if (updatedList) {

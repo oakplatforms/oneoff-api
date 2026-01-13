@@ -207,7 +207,7 @@ setRouter.get('/sets', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 setRouter.post('/set', async (req, res) => {
-  const { name, displayName, code, description, entities } = req.body
+  const { name, displayName, code, description, brandId, entities } = req.body
 
   try {
     //Validate required fields
@@ -224,6 +224,7 @@ setRouter.post('/set', async (req, res) => {
         displayName,
         code,
         description,
+        brand: brandId ? { connect: { id: brandId } } : undefined,
         entities: entities?.connect?.length
           ? {
             connect: entities.connect.map((item: { id: string }) => ({ id: item.id }))
@@ -338,7 +339,7 @@ setRouter.post('/set', async (req, res) => {
  */
 setRouter.put('/set/:id', async (req, res) => {
   const { id } = req.params
-  const { name, displayName, code, description, entities } = req.body
+  const { name, displayName, code, description, brandId, entities } = req.body
 
   try {
     if (!id) {
@@ -360,6 +361,15 @@ setRouter.put('/set/:id', async (req, res) => {
       displayName,
       code,
       description,
+    }
+
+    // Handle brandId (allow null to disconnect)
+    if (brandId !== undefined) {
+      if (brandId) {
+        updateData.brand = { connect: { id: brandId } }
+      } else {
+        updateData.brand = { disconnect: true }
+      }
     }
 
     //Handle entity relations
