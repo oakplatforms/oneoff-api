@@ -52,6 +52,12 @@ export const listRouter = express.Router()
  *         required: false
  *         description: Admin ID for admin access. Validates admin permissions but does not filter results by this field.
  *       - in: query
+ *         name: brandId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Filter lists by brandId. When provided, returns only lists associated with this brand.
+ *       - in: query
  *         name: usePagination
  *         schema:
  *           type: string
@@ -103,7 +109,7 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.get('/lists', async (req, res) => {
-  const { include, type, usePagination, page, limit, accountId } = req.query
+  const { include, type, usePagination, page, limit, accountId, brandId } = req.query
 
   try {
     const parsedLimit = parseInt(limit as string) || 10
@@ -123,6 +129,7 @@ listRouter.get('/lists', async (req, res) => {
     const where = {
       ...(typeArray.length > 0 ? { type: { in: typeArray as ListType[] } } : {}),
       ...(accountId ? { accountId: accountId as string } : {}),
+      ...(brandId ? { brandId: brandId as string } : {}),
     }
 
     //Check if entityList.entity is included to add listings and bids

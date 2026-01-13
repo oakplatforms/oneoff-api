@@ -29,9 +29,12 @@ export const brandTagRouter = express.Router()
  *           type: string
  *       - name: include
  *         in: query
- *         description: Optional. Include related models (e.g., brand, tag, supportedTagValues).
+ *         description: Optional. Include related models. Use multiple times for multiple includes (e.g., ?include=brand&include=tag&include=supportedTagValues).
  *         schema:
- *           type: string
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [brand, tag, supportedTagValues]
  *     responses:
  *       '200':
  *         description: A list of matching brand tags.
@@ -93,8 +96,11 @@ brandTagRouter.get('/brand-tags', async (req, res) => {
  *       - in: query
  *         name: include
  *         schema:
- *           type: string
- *         description: Comma-separated list of related models to include.
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [brand, tag, supportedTagValues]
+ *         description: Include related models. Use multiple times for multiple includes (e.g., ?include=brand&include=tag).
  *     responses:
  *       '200':
  *         description: Successfully retrieved the brand tag.

@@ -43,6 +43,12 @@ export const setRouter = express.Router()
  *         required: false
  *         description: Search term to match against set name, displayName, code, or description.
  *       - in: query
+ *         name: brandId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Filter sets by brandId. When provided, returns only sets associated with this brand.
+ *       - in: query
  *         name: usePagination
  *         schema:
  *           type: string
@@ -94,7 +100,7 @@ export const setRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 setRouter.get('/sets', async (req, res) => {
-  const { include, name, code, search, usePagination, page, limit } = req.query
+  const { include, name, code, search, usePagination, page, limit, brandId } = req.query
 
   try {
     const parsedLimit = parseInt(limit as string) || 10
@@ -111,6 +117,10 @@ setRouter.get('/sets', async (req, res) => {
 
     if (code) {
       where.code = code as string
+    }
+
+    if (brandId) {
+      where.brandId = brandId as string
     }
 
     if (search) {
