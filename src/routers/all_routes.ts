@@ -3,7 +3,6 @@ const router = express.Router()
 import { userRouter } from './user'
 import { accountRouter } from './account'
 import { authRouter } from './auth'
-import { categoryRouter } from './category'
 import { tagRouter } from './tag'
 import { supportedTagValueRouter } from './supportedTagValue'
 import { listRouter } from './list'
@@ -28,7 +27,6 @@ router.use(accountRouter)
 router.use(authRouter)
 router.use(customerRouter)
 router.use(sellerRouter)
-router.use(categoryRouter)
 router.use(tagRouter)
 router.use(supportedTagValueRouter)
 router.use(listRouter)
@@ -43,7 +41,6 @@ router.use(contentRouter)
 router.use(profileRouter)
 router.use('/cart', cartRouter)
 
-// Universal ticker router - MUST BE LAST to catch unmatched 6-char codes
 router.use(universalRouter)
 
 export default router

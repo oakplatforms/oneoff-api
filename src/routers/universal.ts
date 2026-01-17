@@ -16,11 +16,10 @@ export const universalRouter = express.Router()
  *     summary: Retrieve a record by username and 6-character reference code
  *     description: |
  *       Universal endpoint that fetches any record by username and reference code.
- *       The reference code contains a type identifier (S, B, or C) at any position:
- *       - B → Bid
+ *       The reference code contains a type identifier (S or C) at any position:
  *       - S → Listing
  *       - C → List (any type)
- *       Examples: 32S392, 93984B, 437C52
+ *       Examples: 32S392, 437C52
  *     parameters:
  *       - in: path
  *         name: username
@@ -33,8 +32,8 @@ export const universalRouter = express.Router()
  *         required: true
  *         schema:
  *           type: string
- *           pattern: '^[2-9SBC]{6}$'
- *         description: The 6-character reference code (e.g., 32S392, 93984B, 437C52)
+ *           pattern: '^[2-9SC]{6}$'
+ *         description: The 6-character reference code (e.g., 32S392, 437C52)
  *       - in: query
  *         name: include
  *         schema:
@@ -50,7 +49,7 @@ export const universalRouter = express.Router()
  *               properties:
  *                 type:
  *                   type: string
- *                   enum: [Bid, Listing, List]
+ *                   enum: [Listing, List]
  *                   description: The type of record returned
  *                 data:
  *                   type: object
@@ -88,7 +87,7 @@ universalRouter.get('/:username/:referenceCode', async (req, res) => {
   const { include } = req.query
 
   try {
-    // Validate username exists
+    //Validate username exists
     const profile = await prisma.profile.findFirst({
       where: { username },
       include: { account: true }
@@ -102,56 +101,44 @@ universalRouter.get('/:username/:referenceCode', async (req, res) => {
 
     const accountId = profile.accountId
 
-    // Validate reference code format
+    //Validate reference code format
     validateReferenceCodeFormat(referenceCode)
 
-    // Extract type identifier (S, B, or C)
+    //Extract type identifier (S or C)
     const typeIdentifier = extractTypeIdentifier(referenceCode)
     const includes = generateIncludes(include as string)
     const upperCode = referenceCode.toUpperCase()
 
-    let record: any = null
-    let recordType: string = ''
+    let record: Record<string, unknown> | null = null
+    let recordType = ''
 
     switch (typeIdentifier) {
-      case 'B':
-        // Bid
-        record = await prisma.bid.findFirst({
-          where: {
-            referenceCode: upperCode,
-            accountId
-          },
-          include: includes
-        })
-        recordType = 'Bid'
-        break
+    case 'S':
+      //Listing
+      record = await prisma.listing.findFirst({
+        where: {
+          referenceCode: upperCode,
+          accountId
+        },
+        include: includes
+      })
+      recordType = 'Listing'
+      break
 
-      case 'S':
-        // Listing
-        record = await prisma.listing.findFirst({
-          where: {
-            referenceCode: upperCode,
-            accountId
-          },
-          include: includes
-        })
-        recordType = 'Listing'
-        break
+    case 'C':
+      //List (any type)
+      record = await prisma.list.findFirst({
+        where: {
+          referenceCode: upperCode,
+          accountId
+        },
+        include: includes
+      })
+      recordType = 'List'
+      break
 
-      case 'C':
-        // List (any type)
-        record = await prisma.list.findFirst({
-          where: {
-            referenceCode: upperCode,
-            accountId
-          },
-          include: includes
-        })
-        recordType = 'List'
-        break
-
-      default:
-        throw new Error(`Invalid type identifier '${typeIdentifier}'. Valid types are: B, S, C`)
+    default:
+      throw new Error(`Invalid type identifier '${typeIdentifier}'. Valid types are: S, C`)
     }
 
     if (!record) {

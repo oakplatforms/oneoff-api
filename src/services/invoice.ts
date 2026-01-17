@@ -2,13 +2,11 @@ import { Order } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
-import { calculateOrderTax, calculateOrderShipping, OrderPayload } from '../utils/order'
 
 const prisma = getPrismaClient()
 
 export type OrderDetails = {
   listingIds?: string[],
-  bidIds?: string[],
   accountId?: string,
   sellerId: string,
   customerId: string,
@@ -42,8 +40,8 @@ const createPaymentIntent = async (
   }
 
   const totalAmount = Math.round(total * 100)
-  
-  // Fixed application fee: $0.60 (includes $0.50 transaction fee + 10% seller commission)
+
+  //Fixed application fee: $0.60 (includes $0.50 transaction fee + 10% seller commission)
   const application_fee_amount = 60
 
   const paymentIntent = await stripe.paymentIntents.create({
@@ -89,8 +87,8 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       }
 
       const orderListings = order.orderListings
-      const tax = calculateOrderTax(order as unknown as OrderPayload)
-      const shipping = calculateOrderShipping(order as unknown as OrderPayload, orderListings as unknown as OrderPayload['orderListings'])
+      const tax = 0
+      const shipping = 0
       const total = Number(order.subTotal || 0) + tax + shipping
 
       for (const orderListing of orderListings) {
@@ -154,7 +152,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
     return { invoice, orders }
   }, { timeout: 60000 })
 
-  // Email notifications will be added in the future
+  //Email notifications will be added in the future
   console.log(`Invoice ${invoice.id} created with ${orders.length} orders`)
 
   return invoice

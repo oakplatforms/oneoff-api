@@ -15,11 +15,6 @@ export type ListingsInOrder = {
   delete: [string]
 }
 
-type OrderShippingOptionsPayload = {
-  create?: string[]
-  delete?: string[]
-};
-
 /**
  * @openapi
  * /orders:
@@ -483,18 +478,14 @@ orderRouter.put('/order/:id', async (req, res) => {
     customerId,
     sellerId,
     cartId,
-    shippingMethodId,
     listingsInOrder,
-    orderShippingOptions,
     accountId,
     status
   }: {
     customerId?: string
     sellerId?: string
     cartId?: string
-    shippingMethodId?: string
     listingsInOrder?: ListingsInOrder
-    orderShippingOptions?: OrderShippingOptionsPayload
     accountId?: string
     status?: ProcessStatus
   } = req.body
@@ -534,13 +525,6 @@ orderRouter.put('/order/:id', async (req, res) => {
         ...(listingsInOrder?.create || []),
         ...(listingsInOrder?.update || []),
       ]
-
-      let shippingOptions: ShippingOption[] = []
-      if (orderShippingOptions?.create?.length) {
-        shippingOptions = await prisma.shippingOption.findMany({
-          where: { id: { in: orderShippingOptions.create } }
-        })
-      }
 
       let listings: Awaited<ReturnType<typeof prisma.listing.findMany>> = []
       if (createAndUpdateItems.length) {
@@ -602,11 +586,7 @@ orderRouter.put('/order/:id', async (req, res) => {
 
       if (isDeleted) {
         const deletedOrder = await prisma.order.delete({
-          where: { id },
-          include: {
-            shipments: true,
-            shippingMethod: true,
-          },
+          where: { id }
         })
         return deletedOrder
       }
@@ -617,9 +597,6 @@ orderRouter.put('/order/:id', async (req, res) => {
           ...(customerId && { customer: { connect: { id: customerId } } }),
           ...(sellerId && { seller: { connect: { id: sellerId } } }),
           ...(cartId && { cart: { connect: { id: cartId } } }),
-          ...(shippingMethodId && {
-            shippingMethod: { connect: { id: shippingMethodId } }
-          }),
           ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
             subTotal,
             orderListings: listingsInOrder
@@ -639,31 +616,8 @@ orderRouter.put('/order/:id', async (req, res) => {
                 deleteMany: listingsInOrder.delete?.map((id) => ({ id })),
               }
               : undefined,
-          } : {}),
-          ...(orderShippingOptions?.create || orderShippingOptions?.delete ? {
-            orderShippingOptions: {
-              ...(orderShippingOptions?.delete
-                ? { deleteMany: { shippingOptionId: { in: orderShippingOptions.delete } } }
-                : {}),
-              ...(orderShippingOptions?.create
-                ? {
-                  create: orderShippingOptions.create.map((optionId: string) => {
-                    const shippingOption = shippingOptions.find((so) => so.id === optionId)
-                    return {
-                      shippingOption: { connect: { id: optionId } },
-                      rate: shippingOption?.rate,
-                      maxQuantity: shippingOption?.maxQuantity,
-                    }
-                  }),
-                }
-                : {}),
-            }
           } : {})
-        } as Prisma.OrderUpdateInput,
-        include: {
-          shipments: true,
-          shippingMethod: true,
-        },
+        } as Prisma.OrderUpdateInput
       })
 
       if (!updatedOrder) {
@@ -681,311 +635,6 @@ orderRouter.put('/order/:id', async (req, res) => {
   }
 })
 
-/**
- * @openapi
- * /order/{id}/accept-shipment:
- *   put:
- *     tags:
- *       - Order
- *     summary: Accept a shipment and create Shippo transaction.
- *     description: Accepts a shipment by creating a Shippo transaction for CREATED tracked shipments. UNTRACKED shipments cannot use this endpoint. Creates a Shippo transaction and updates the shipment with tracking number and label URL.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the order containing the shipment.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: The account ID for validation.
- *     responses:
- *       '200':
- *         description: Successfully accepted the shipment.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *       '400':
- *         description: Missing required parameters, invalid request, or shipment cannot be accepted.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '404':
- *         description: Order not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Internal Server Error during acceptance.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-orderRouter.put('/order/:id/accept-shipment', async (req, res) => {
-  const { id } = req.params
-  const { accountId } = req.body
-
-  try {
-    if (!id) {
-      throw new Error('Order ID is required.')
-    }
-
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-
-    await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id },
-        include: {
-          shipments: true,
-          shippingMethod: true,
-          seller: {
-            include: {
-              account: true,
-            },
-          },
-        },
-      })
-
-      if (!order) {
-        throw new Error('Order not found.')
-      }
-
-      if (order.seller?.accountId !== accountId) {
-        throw new Error('You can only accept shipments for your own listings.')
-      }
-
-      if (!order.shipments || order.shipments.length === 0) {
-        throw new Error('Order cannot be accepted. Order must have at least one shipment.')
-      }
-
-      const activeShipment = getActiveShipment(order)
-
-      //Reject UNTRACKED shipments - they should not use this endpoint
-      if (activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED) {
-        throw new Error('UNTRACKED shipments cannot use the accept shipment.')
-      }
-
-      //Handle CREATED shipments - create Shippo transaction if needed
-      if (activeShipment.status === 'CREATED') {
-        if (!activeShipment.externalShipmentRateId) {
-          throw new Error('Valid CREATED shipment with external rate not found')
-        }
-
-        const transaction = await shippo.transactions.create({
-          rate: activeShipment.externalShipmentRateId,
-          labelFileType: 'PDF',
-          async: false,
-        })
-
-        const { trackingNumber, labelUrl, status: transactionStatus, messages } = transaction || {}
-
-        if (transactionStatus !== 'SUCCESS') {
-          throw new Error(`Shipment update failed: ${messages?.[0]?.text || 'Unknown error'}`)
-        }
-
-        await tx.shipment.update({
-          where: { id: activeShipment.id },
-          data: {
-            trackingStatus: TrackingStatus.PRE_TRANSIT,
-            status: ProcessStatus.PENDING,
-            trackingNumber,
-            labelUrl,
-          },
-        })
-
-        //Confirm and capture the payment intent for tracked shipments
-        if (!order.paymentIntentId) {
-          throw new Error('Order payment intent not found. Cannot capture payment.')
-        }
-
-        await stripe.paymentIntents.confirm(order.paymentIntentId)
-        await stripe.paymentIntents.capture(order.paymentIntentId)
-      } else {
-        throw new Error('Shipment is not in CREATED status and cannot be accepted.')
-      }
-    }, { timeout: 60000 })
-
-    res.json({ message: 'Shipment accepted successfully.' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('ACCEPT_SHIPMENT_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to accept shipment.' })
-  }
-})
-
-/**
- * @openapi
- * /order/{id}/accept-order:
- *   put:
- *     tags:
- *       - Order
- *     summary: Accept an order.
- *     description: Accepts an order by confirming and capturing payment, then updating the first shipment's tracking status to PRE_TRANSIT. The order must have at least one shipment.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the order to accept.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: The account ID for validation.
- *     responses:
- *       '200':
- *         description: Successfully accepted the order.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 order:
- *                   $ref: '#/components/schemas/Order'
- *                 message:
- *                   type: string
- *       '400':
- *         description: Missing required parameters, invalid request, or order cannot be accepted (no shipments or missing payment intent).
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '404':
- *         description: Order not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Internal Server Error during acceptance.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-orderRouter.put('/order/:id/accept-order', async (req, res) => {
-  const { id } = req.params
-  const { accountId } = req.body
-
-  try {
-    if (!id) {
-      throw new Error('Order ID is required.')
-    }
-
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-
-    await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id },
-        include: {
-          shipments: true,
-          shippingMethod: true,
-          seller: {
-            include: {
-              account: true,
-            },
-          },
-        },
-      })
-
-      if (!order) {
-        throw new Error('Order not found.')
-      }
-
-      if (order.seller?.accountId !== accountId) {
-        throw new Error('You can only accept orders for your own listings.')
-      }
-
-      if (!order.shipments || order.shipments.length === 0) {
-        throw new Error('Order cannot be accepted. Order must have at least one shipment.')
-      }
-
-      const activeShipment = getActiveShipment(order)
-      const isUntracked = activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
-
-      //If shipment is UNTRACKED, confirm/capture payment and complete order and shipment
-      if (isUntracked) {
-        if (!order.paymentIntentId) {
-          throw new Error('Order payment intent not found. Cannot capture payment.')
-        }
-
-        await tx.shipment.update({
-          where: { id: activeShipment.id },
-          data: {
-            trackingStatus: TrackingStatus.PRE_TRANSIT,
-            status: ProcessStatus.COMPLETED,
-          },
-        })
-
-        //Confirm and capture the payment intent
-        await stripe.paymentIntents.confirm(order.paymentIntentId)
-        await stripe.paymentIntents.capture(order.paymentIntentId)
-
-        await tx.order.update({
-          where: { id },
-          data: {
-            status: ProcessStatus.COMPLETED,
-          },
-        })
-      } else {
-        await tx.shipment.update({
-          where: { id: activeShipment.id },
-          data: {
-            trackingStatus: TrackingStatus.PRE_TRANSIT,
-          },
-        })
-      }
-    }, { timeout: 60000 })
-
-    res.json({ message: 'Order accepted successfully.' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('ACCEPT_ORDER_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to accept order.' })
-  }
-})
 
 /**
  * @openapi
@@ -1111,7 +760,7 @@ orderRouter.put('/order/:id/request-review', async (req, res) => {
  *     tags:
  *       - Order
  *     summary: Cancel an order.
- *     description: Cancels an order by setting its status to CANCELED. The order must be in PENDING status and the first shipment must have UNKNOWN tracking status.
+ *     description: Cancels an order by setting its status to CANCELED. The order must be in PENDING status.
  *     parameters:
  *       - in: path
  *         name: id
@@ -1144,7 +793,7 @@ orderRouter.put('/order/:id/request-review', async (req, res) => {
  *                 message:
  *                   type: string
  *       '400':
- *         description: Missing required parameters, invalid request, or order cannot be canceled (not in PENDING status or shipment tracking status is not UNKNOWN).
+ *         description: Missing required parameters, invalid request, or order cannot be canceled (not in PENDING status).
  *         content:
  *           application/json:
  *             schema:
@@ -1186,8 +835,6 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
       const order = await tx.order.findUnique({
         where: { id },
         include: {
-          shipments: true,
-          shippingMethod: true,
           seller: {
             include: {
               account: true,
@@ -1208,16 +855,6 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
         throw new Error(`Order cannot be canceled. Order status must be PENDING, but current status is ${order.status}.`)
       }
 
-      if (!order.shipments || order.shipments.length === 0) {
-        throw new Error('Order cannot be canceled. Order must have at least one shipment.')
-      }
-
-      const activeShipment = getActiveShipment(order)
-
-      if (activeShipment.trackingStatus !== TrackingStatus.UNKNOWN) {
-        throw new Error(`Order cannot be canceled based on current shipment tracking status.`)
-      }
-
       if (order.paymentIntentId) {
         await stripe.paymentIntents.cancel(order.paymentIntentId)
       }
@@ -1230,161 +867,11 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
       })
     }, { timeout: 60000 })
 
-    //Send EventBridge notifications for customer and seller
-    try {
-      await eventBridge.send(new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'oneoff',
-            DetailType: 'order.canceled.customer',
-            Detail: JSON.stringify({
-              orderId: id,
-              type: 'order.canceled.customer',
-              cancellationReason: 'Seller declined to ship the order.'
-            }),
-            EventBusName: 'default',
-          }
-        ],
-      }))
-    } catch (err) {
-      console.warn(`Failed to send cancellation notifications for order ${id}:`, err)
-    }
-
     res.json({ message: 'Order canceled successfully.' })
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CANCEL_ORDER_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to cancel order.' })
-  }
-})
-
-/**
- * @openapi
- * /order/remove-shipping:
- *   delete:
- *     tags:
- *       - Order
- *     summary: Remove shipping from an order.
- *     description: Deletes a shipment and removes the shipping method association from the order.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - orderId
- *               - shipmentId
- *             properties:
- *               orderId:
- *                 type: string
- *                 description: The ID of the order to remove shipping from.
- *               shipmentId:
- *                 type: string
- *                 description: The ID of the shipment to delete.
- *               accountId:
- *                 type: string
- *                 description: The account ID for validation.
- *     responses:
- *       '200':
- *         description: Successfully removed shipping from the order.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 order:
- *                   $ref: '#/components/schemas/Order'
- *                 message:
- *                   type: string
- *       '400':
- *         description: Missing required parameters or invalid request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '404':
- *         description: Order or shipment not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Internal Server Error during removal.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-orderRouter.delete('/order/remove-shipping', async (req, res) => {
-  const { orderId, shipmentId, accountId } = req.body
-
-  try {
-    if (!orderId || !shipmentId) {
-      throw new Error('Order ID and shipment ID are required.')
-    }
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-
-    const result = await prisma.$transaction(async (tx) => {
-      //Verify the order exists
-      const order = await tx.order.findUnique({
-        where: { id: orderId },
-        include: {
-          shipments: true,
-        },
-      })
-
-      if (!order) {
-        throw new Error('Order not found.')
-      }
-
-      //Verify the shipment exists and belongs to the order
-      const shipment = await tx.shipment.findUnique({
-        where: { id: shipmentId },
-      })
-
-      if (!shipment) {
-        throw new Error('Shipment not found.')
-      }
-
-      if (shipment.orderId !== orderId) {
-        throw new Error('Shipment does not belong to the specified order.')
-      }
-
-      //Delete the shipment
-      await tx.shipment.delete({
-        where: { id: shipmentId },
-      })
-
-      //Remove the shippingMethod association from the order
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: {
-          shippingMethod: { disconnect: true },
-        },
-        include: {
-          shipments: true,
-          shippingMethod: true,
-        },
-      })
-
-      return updatedOrder
-    })
-
-    res.json({ order: result, message: 'Shipping removed from order successfully.' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('REMOVE_SHIPPING_FROM_ORDER_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to remove shipping from order.' })
   }
 })
 

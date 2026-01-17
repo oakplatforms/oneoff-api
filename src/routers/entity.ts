@@ -1,4 +1,4 @@
-import { Prisma, ProcessStatus } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -86,7 +86,7 @@ export const entityRouter = express.Router()
  *                   example: Unexpected error occurred
  */
 entityRouter.get('/entities', async (req, res) => {
-  const { include, entityTags, categoryId, brandId, setId, search, limit, page, usePagination } = req.query
+  const { include, entityTags, categoryId, search, limit, page, usePagination } = req.query
 
   try {
     const entityTagFilters = Array.isArray(entityTags)
@@ -128,27 +128,12 @@ entityRouter.get('/entities', async (req, res) => {
             }
           ]
           : []),
-        ...(brandId
-          ? [
-            {
-              brandId: brandId as string
-            }
-          ]
-          : []),
-        ...(setId
-          ? [
-            {
-              setId: setId as string
-            }
-          ]
-          : []),
         ...(search
           ? [
             {
               OR: [
                 { displayName: { contains: search as string, mode: 'insensitive' } },
-                { name: { contains: search as string, mode: 'insensitive' } },
-                { product: { number: { contains: search as string, mode: 'insensitive' } } }
+                { name: { contains: search as string, mode: 'insensitive' } }
               ]
             } as Prisma.EntityWhereInput
           ]
@@ -164,7 +149,7 @@ entityRouter.get('/entities', async (req, res) => {
       where: whereClause,
       include: {
         ...generateIncludes(include as string),
-        //Include listings and bids to calculate prices
+        //Include listings to calculate prices
         listings: {
           where: {
             AND: [
@@ -180,22 +165,11 @@ entityRouter.get('/entities', async (req, res) => {
           orderBy: { price: 'asc' },
           take: 1,
           select: { price: true }
-        },
-        bids: {
-          where: { status: 'ACTIVE' },
-          orderBy: { price: 'desc' },
-          take: 1,
-          select: { price: true }
         }
       },
       orderBy: [
         {
           listings: {
-            _count: 'desc'
-          }
-        },
-        {
-          bids: {
             _count: 'desc'
           }
         },
@@ -213,9 +187,7 @@ entityRouter.get('/entities', async (req, res) => {
       data: result.data.map((entity: Record<string, unknown>) => ({
         ...entity,
         lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
-        highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
-        listings: undefined,
-        bids: undefined
+        listings: undefined
       }))
     }
 
@@ -343,11 +315,8 @@ entityRouter.post('/entity', async (req, res) => {
     displayName,
     description,
     image,
-    product,
     entityTags,
-    categoryId,
-    brandId,
-    createdById
+    categoryId
   } = req.body
 
   try {
@@ -378,7 +347,6 @@ entityRouter.post('/entity', async (req, res) => {
         displayName,
         description,
         image,
-        product: product ? { create: product } : undefined,
         entityTags: entityTags?.create?.length
           ? {
             create: entityTags.create.map((tag: { tagId: string; tagValue: string }) => ({
@@ -387,9 +355,7 @@ entityRouter.post('/entity', async (req, res) => {
             })),
           }
           : undefined,
-        category: { connect: { id: categoryId } },
-        brand: { connect: { id: brandId } },
-        createdBy: { connect: { id: createdById } },
+        category: { connect: { id: categoryId } }
       },
     })
 
@@ -557,7 +523,7 @@ entityRouter.post('/entity', async (req, res) => {
  */
 entityRouter.put('/entity/:id', async (req, res) => {
   const { id } = req.params
-  const { entityTags, categoryId, brandId, product } = req.body
+  const { entityTags, categoryId } = req.body
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
@@ -580,12 +546,6 @@ entityRouter.put('/entity/:id', async (req, res) => {
       }
     }
 
-    //First check if entity has an existing product
-    const existingEntity = await prisma.entity.findUnique({
-      where: { id },
-      select: { product: true }
-    })
-
     const entity = await prisma.entity.update({
       where: { id },
       data: {
@@ -595,20 +555,6 @@ entityRouter.put('/entity/:id', async (req, res) => {
         description: req.body.description,
         image: req.body.image,
         secondaryImage: req.body.secondaryImage,
-        lastModifiedBy: { connect: { id: lastModifiedById } },
-        product: product
-          ? existingEntity?.product
-            ? {
-              update: {
-                ...product,
-              },
-            }
-            : {
-              create: {
-                ...product,
-              },
-            }
-          : undefined,
         entityTags: entityTags
           ? {
             create: entityTags.create?.map((entityTag: { tagId: string; tagValue: string }) => ({
@@ -624,9 +570,7 @@ entityRouter.put('/entity/:id', async (req, res) => {
             })),
           }
           : undefined,
-        category: categoryId ? { connect: { id: categoryId } } : undefined,
-        brand: brandId ? { connect: { id: brandId } } : undefined,
-        set: req.body.setId ? { connect: { id: req.body.setId } } : undefined,
+        category: categoryId ? { connect: { id: categoryId } } : undefined
       },
     })
 
@@ -939,12 +883,6 @@ entityRouter.get('/entities/batch', async (req, res) => {
           orderBy: { price: 'asc' },
           take: 1,
           select: { price: true }
-        },
-        bids: {
-          where: { status: 'ACTIVE' },
-          orderBy: { price: 'desc' },
-          take: 1,
-          select: { price: true }
         }
       }
     })
@@ -956,9 +894,7 @@ entityRouter.get('/entities/batch', async (req, res) => {
       .map(entity => ({
         ...entity,
         lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
-        highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
-        listings: undefined,
-        bids: undefined
+        listings: undefined
       }))
 
     res.json(orderedEntities)
@@ -1030,7 +966,7 @@ entityRouter.get('/entity/:id', async (req, res) => {
       },
       include: {
         ...generateIncludes(include as string),
-        //Include listings and bids to calculate prices
+        //Include listings to calculate prices
         listings: {
           where: {
             AND: [
@@ -1046,12 +982,6 @@ entityRouter.get('/entity/:id', async (req, res) => {
           orderBy: { price: 'asc' },
           take: 1,
           select: { price: true }
-        },
-        bids: {
-          where: { status: 'ACTIVE' },
-          orderBy: { price: 'desc' },
-          take: 1,
-          select: { price: true }
         }
       }
     })
@@ -1060,9 +990,7 @@ entityRouter.get('/entity/:id', async (req, res) => {
       const transformedEntity = {
         ...entity,
         lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
-        highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
-        listings: undefined,
-        bids: undefined
+        listings: undefined
       }
       res.json(transformedEntity)
     } else {
@@ -1143,12 +1071,6 @@ entityRouter.get('/entity/:brandSlug/:entityName', async (req, res) => {
           orderBy: { price: 'asc' },
           take: 1,
           select: { price: true }
-        },
-        bids: {
-          where: { status: 'ACTIVE' },
-          orderBy: { price: 'desc' },
-          take: 1,
-          select: { price: true }
         }
       }
     })
@@ -1160,9 +1082,7 @@ entityRouter.get('/entity/:brandSlug/:entityName', async (req, res) => {
     const transformedEntity = {
       ...entity,
       lowestAsk: (entity.listings as Array<{price: unknown}>)?.[0]?.price || null,
-      highestBid: (entity.bids as Array<{price: unknown}>)?.[0]?.price || null,
-      listings: undefined,
-      bids: undefined
+      listings: undefined
     }
 
     res.json(transformedEntity)
@@ -1173,428 +1093,3 @@ entityRouter.get('/entity/:brandSlug/:entityName', async (req, res) => {
   }
 })
 
-/**
- * @openapi
- * /entity/{id}:
- *   delete:
- *     tags:
- *       - Entity
- *     summary: Delete an entity by ID
- *     description: Deletes a specific entity using its ID.
- *     parameters:
- *       - in: path
- *         name: marketplaceName
- *         required: true
- *         schema:
- *           type: string
- *         description: The marketplace where the entity belongs.
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the entity to delete.
- *     responses:
- *       '200':
- *         description: Entity successfully deleted.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Entity'
- *       '404':
- *         description: Entity not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   example: No entity ID found
- *       '500':
- *         description: Internal Server Error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-entityRouter.delete(`/entity/:id`, async (req, res) => {
-  const { id } = req.params
-
-  try {
-    if (!id) {
-      throw new Error('Entity ID is required')
-    }
-    validateRole(req.user as AuthenticatedUser, 'admin')
-    const entity = await prisma.entity.findUnique({
-      where: { id },
-      select: { image: true, secondaryImage: true }
-    })
-
-    if (!entity) {
-      throw new Error('Entity not found')
-    }
-
-    const deletePromises = []
-
-    if (entity.image) {
-      deletePromises.push(deleteImage(entity.image).catch(error => {
-        console.error('Failed to delete primary image:', error)
-      }))
-    }
-
-    if (entity.secondaryImage) {
-      deletePromises.push(deleteImage(entity.secondaryImage).catch(error => {
-        console.error('Failed to delete secondary image:', error)
-      }))
-    }
-
-    await Promise.all(deletePromises)
-
-    const deletedEntity = await prisma.entity.delete({
-      where: { id },
-    })
-
-    res.json(deletedEntity)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_ENTITY_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete entity.' })
-  }
-})
- *   post:
- *     tags:
- *       - Entity
- *     summary: Process all entities and send to Step Function
- *     description: |
- *       Processes all entities in the database, constructs the required object format for each entity,
- *       and sends them to an AWS Step Function in batches. This endpoint handles thousands of entities
- *       efficiently by batching them and controlling concurrency.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               batchSize:
- *                 type: integer
- *                 description: Number of entities to process per batch (default: 100)
- *                 default: 100
- *                 minimum: 1
- *                 maximum: 1000
- *               maxBatches:
- *                 type: integer
- *                 description: Maximum number of batches to process (optional, for testing)
- *                 minimum: 1
- *     responses:
- *       '200':
- *         description: Successfully processed entities and started Step Function executions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Success message
- *                 totalEntities:
- *                   type: integer
- *                   description: Total number of entities processed
- *                 totalBatches:
- *                   type: integer
- *                   description: Total number of batches created
- *                 executionArns:
- *                   type: array
- *                   items:
- *                     type: string
- *                   description: ARNs of the Step Function executions started
- *       '400':
- *         description: Bad request, typically due to missing PRICING_ENGINE_ARN environment variable
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   example: State machine ARN is required
- *       '500':
- *         description: Internal server error during entity processing
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *                   example: Failed to process entities
- */
-entityRouter.post('/entities/process-batch', async (req, res) => {
-  const { batchSize = 100, maxBatches, onlyPending = false, increment = 0 } = req.body
-
-  try {
-    const stateMachineArn = process.env.PRICING_ENGINE_ARN
-
-    if (!stateMachineArn) {
-      throw new Error('PRICING_ENGINE_ARN environment variable is required')
-    }
-
-    if (batchSize < 1 || batchSize > 1000) {
-      throw new Error('Batch size must be between 1 and 1000')
-    }
-
-    if (maxBatches && maxBatches < 1) {
-      throw new Error('Max batches must be at least 1')
-    }
-
-    if (!Number.isInteger(increment) || increment < 0) {
-      throw new Error('Increment must be a non-negative integer')
-    }
-
-    console.log(`Starting entity batch processing... (onlyPending: ${onlyPending})`)
-
-    //Build the where clause based on onlyPending flag
-    const whereClause = onlyPending
-      ? {
-        product: {
-          pricingStatus: ProcessStatus.PENDING
-        }
-      }
-      : {}
-
-    const totalEntities = await prisma.entity.count({ where: whereClause })
-    const offset = increment * batchSize
-
-    if (offset >= totalEntities) {
-      throw new Error(`Increment ${increment} exceeds total available entities (${totalEntities})`)
-    }
-
-    const batchesToProcess = maxBatches ?? 1
-    const maxEntities = batchesToProcess * batchSize
-    const remainingEntities = totalEntities - offset
-    const entitiesToProcess = Math.min(remainingEntities, maxEntities)
-
-    if (entitiesToProcess <= 0) {
-      throw new Error('No entities available to process for the provided increment')
-    }
-
-    console.log(
-      `Processing increment ${increment} (offset ${offset}), targeting ${entitiesToProcess} entities across ${batchesToProcess} batch(es)`
-    )
-
-    //Fetch paginated entities with required relationships
-    const entities = await prisma.entity.findMany({
-      where: whereClause,
-      skip: offset,
-      take: entitiesToProcess,
-      orderBy: {
-        id: 'asc'
-      },
-      include: {
-        brand: {
-          select: {
-            displayName: true
-          }
-        },
-        set: {
-          select: {
-            displayName: true
-          }
-        },
-        product: {
-          select: {
-            number: true,
-            price: true,
-            pricingStatus: true,
-            sku: true
-          }
-        },
-        entityTags: {
-          include: {
-            tag: {
-              select: {
-                name: true
-              }
-            }
-          }
-        }
-      }
-    })
-
-    if (!onlyPending) {
-      const entityIds = entities.map(entity => entity.id)
-      await prisma.product.updateMany({
-        where: {
-          entity: {
-            id: {
-              in: entityIds
-            }
-          }
-        },
-        data: {
-          pricingStatus: ProcessStatus.PENDING
-        }
-      })
-
-      console.log(`Updated pricing status to PENDING for ${entityIds.length} products`)
-    } else {
-      console.log(`Processing only PENDING products (${entities.length} found)`)
-    }
-
-    //Transform entities to the required format
-    const processedEntities: EntityProcessingInput[] = entities.map(entity => {
-      //Find rarity tag value
-      const rarityTag = entity.entityTags.find(et => et.tag.name === 'rarity')
-      const rarity = rarityTag?.tagValue
-
-      //Find color tag value
-      const colorTag = entity.entityTags.find(et => et.tag.name === 'color')
-      const color = colorTag?.tagValue
-
-      //Find print tag value
-      const printTag = entity.entityTags.find(et => et.tag.name === 'print')
-      const print = printTag?.tagValue
-
-      //Find edition tag value
-      const editionTag = entity.entityTags.find(et => et.tag.name === 'edition')
-      const edition = editionTag?.tagValue
-
-      //Get current price from product
-      const currentPrice = entity.product?.price ? Number(entity.product.price) : null
-
-      return {
-        entityId: entity.id,
-        brand: entity.brand?.displayName || '',
-        name: entity.displayName || entity.name,
-        number: entity.product?.sku || '',
-        rarity: rarity || '',
-        color: color || '',
-        set: entity.set?.displayName || '',
-        print: print || '',
-        edition: edition || '',
-        currentPrice
-      }
-    })
-
-    //Process entities in batches and send to Step Function
-    const { executionArns, totalBatches } = await processEntitiesInBatches(
-      processedEntities,
-      stateMachineArn,
-      batchSize,
-      maxBatches
-    )
-
-    console.log(`Successfully started ${totalBatches} batches with ${executionArns.length} executions`)
-
-    res.json({
-      message: 'Entity batch processing started successfully',
-      totalEntities,
-      entitiesProcessed: processedEntities.length,
-      increment,
-      offset,
-      totalBatches,
-      executionArns
-    })
-
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('PROCESS_ENTITIES_BATCH_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to process entities.' })
-  }
-})
-
-/**
- * @swagger
- * /entities/pricing-status:
- *   get:
- *     summary: Get pricing status summary
- *     tags: [Entity]
- *     responses:
- *       200:
- *         description: Pricing status summary
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total:
- *                   type: number
- *                   example: 1000
- *                 pending:
- *                   type: number
- *                   example: 50
- *                 completed:
- *                   type: number
- *                   example: 950
- *                 pendingEntities:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       name:
- *                         type: string
- *                       pricingStatus:
- *                         type: string
- *                         enum: [PENDING, COMPLETED]
- */
-entityRouter.get('/entities/pricing-status', async (req, res) => {
-  try {
-    const { batchSize = 100, maxBatches } = req.query
-
-    //Get pricing status counts
-    const statusCounts = await prisma.product.groupBy({
-      by: ['pricingStatus'],
-      _count: {
-        pricingStatus: true
-      }
-    })
-
-    let limit = parseInt(batchSize as string)
-    if (maxBatches) {
-      limit = parseInt(batchSize as string) * parseInt(maxBatches as string)
-    }
-
-    //Get entities with PENDING pricing status for retry
-    const pendingEntities = await prisma.entity.findMany({
-      where: {
-        product: {
-          pricingStatus: ProcessStatus.PENDING
-        }
-      },
-      select: {
-        id: true,
-        name: true,
-        displayName: true,
-        product: {
-          select: {
-            pricingStatus: true
-          }
-        }
-      },
-      take: limit
-    })
-
-    const summary = {
-      total: statusCounts.reduce((sum, item) => sum + item._count.pricingStatus, 0),
-      pending: statusCounts.find(item => item.pricingStatus === ProcessStatus.PENDING)?._count.pricingStatus || 0,
-      completed: statusCounts.find(item => item.pricingStatus === ProcessStatus.COMPLETED)?._count.pricingStatus || 0,
-      pendingEntities: pendingEntities.map(entity => ({
-        id: entity.id,
-        name: entity.displayName || entity.name,
-        pricingStatus: entity.product?.pricingStatus
-      }))
-    }
-
-    res.json(summary)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('PRICING_STATUS_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to get pricing status.' })
-  }
-})

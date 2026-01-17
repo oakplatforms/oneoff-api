@@ -8,7 +8,6 @@ export const validateOrdersForInvoice = async (orderIds: string[]) => {
       id: { in: orderIds },
     },
     include: {
-      shipments: true,
       orderListings: {
         include: {
           listing: true,
@@ -24,12 +23,6 @@ export const validateOrdersForInvoice = async (orderIds: string[]) => {
   for (const order of orders) {
     if (order.status !== 'CREATED') {
       throw new Error(`An order in your cart does not have a valid status for invoice creation.`)
-    }
-
-    const hasPendingShipment = order.shipments?.some(shipment => shipment.status === 'CREATED')
-
-    if (!hasPendingShipment) {
-      throw new Error(`An order must have a shipment to proceed.`)
     }
 
     for (const orderListing of order.orderListings) {

@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
-import { AuthenticatedUser, validateAccount, validateRole } from '../validation/user'
+import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const supportedTagValueRouter = express.Router()
@@ -63,29 +63,19 @@ export const supportedTagValueRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
-  const { name, displayName, brandTagId, tagId, createdById } = req.body
+  const { name, displayName, tagId } = req.body
 
   try {
-    await validateAccount(req.user as AuthenticatedUser, createdById, 'admin')
-    
-    // Build data object - prefer brandTagId over tagId (migration compatibility)
-    const data: any = {
-      name,
-      displayName,
-      createdBy: { connect: { id: createdById } },
+    if (!tagId) {
+      throw new Error('tagId is required')
     }
-    
-    if (brandTagId) {
-      data.brandTag = { connect: { id: brandTagId } }
-    } else if (tagId) {
-      // Keep tagId support for migration compatibility
-      data.tag = { connect: { id: tagId } }
-    } else {
-      throw new Error('Either brandTagId or tagId is required')
-    }
-    
+
     const supportedTagValue = await prisma.supportedTagValue.create({
-      data,
+      data: {
+        name,
+        displayName,
+        tag: { connect: { id: tagId } }
+      },
     })
     res.json(supportedTagValue)
   } catch (error) {

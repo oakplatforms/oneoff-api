@@ -1,16 +1,16 @@
 /**
  * Validation utilities for reference codes
- * Reference codes are 6 characters: 5 numbers (2-9) + 1 type identifier (S/B/C) at any position
- * Examples: 32S392, 93984B, 437C52
+ * Reference codes are 6 characters: 5 numbers (2-9) + 1 type identifier (S/C) at any position
+ * Examples: 32S392, 437C52
  */
 
 const VALID_NUMBERS = '23456789'
-const VALID_TYPES = ['S', 'B', 'C'] // S=Listing, B=Bid, C=List
+const VALID_TYPES = ['S', 'C']
 const REFERENCE_CODE_LENGTH = 6
 
 /**
  * Validates reference code format
- * Must be exactly 6 characters with 5 numbers (2-9) and 1 type identifier (S/B/C)
+ * Must be exactly 6 characters with 5 numbers (2-9) and 1 type identifier (S/C)
  */
 export function validateReferenceCodeFormat(referenceCode: string): void {
   if (!referenceCode || typeof referenceCode !== 'string') {
@@ -32,13 +32,13 @@ export function validateReferenceCodeFormat(referenceCode: string): void {
       numberCount++
     } else {
       throw new Error(
-        `Invalid character '${char}' in reference code. Must contain only numbers 2-9 and one type identifier (S/B/C)`
+        `Invalid character '${char}' in reference code. Must contain only numbers 2-9 and one type identifier (S/C)`
       )
     }
   }
 
   if (typeIdentifierCount !== 1) {
-    throw new Error('Reference code must contain exactly one type identifier (S, B, or C)')
+    throw new Error('Reference code must contain exactly one type identifier (S or C)')
   }
 
   if (numberCount !== 5) {
@@ -48,7 +48,7 @@ export function validateReferenceCodeFormat(referenceCode: string): void {
 
 /**
  * Extracts the type identifier from a reference code
- * @returns Type identifier (S, B, or C)
+ * @returns Type identifier (S or C)
  * @throws Error if no type identifier found
  */
 export function extractTypeIdentifier(referenceCode: string): string {
@@ -64,17 +64,17 @@ export function extractTypeIdentifier(referenceCode: string): string {
     }
   }
 
-  throw new Error('No valid type identifier (S, B, or C) found in reference code')
+  throw new Error('No valid type identifier (S or C) found in reference code')
 }
 
 /**
  * Validates reference code contains expected type identifier
  * @param referenceCode - Reference code to validate
- * @param expectedType - Expected type (S, B, or C)
+ * @param expectedType - Expected type (S or C)
  */
 export function validateReferenceCodeType(referenceCode: string, expectedType: string): void {
   if (!expectedType || expectedType.length !== 1) {
-    throw new Error('Expected type must be a single character (S, B, or C)')
+    throw new Error('Expected type must be a single character (S or C)')
   }
 
   const expected = expectedType.toUpperCase()

@@ -2,9 +2,8 @@ import { Prisma, Status, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
-import { resolveBids } from '../services/resolver'
 import { validateSeller } from '../validation/seller'
-import { validateExistingListing, validateConditionId } from '../validation/listing'
+import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
@@ -231,13 +230,11 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
     accountId,
     entityId,
     imageCaption,
-    conditionId,
   } = req.body
 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
-    await validateConditionId(conditionId)
 
     const parsedPrice = parseFloat(price)
     const parsedQuantity = parseInt(quantity)
@@ -262,16 +259,6 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
     } else if (parsedPrice <= 0) {
       throw new Error('A listing cannot have a zero or negative price')
     } else {
-      const bids = await resolveBids({
-        price: parsedPrice,
-        entityId,
-        accountId,
-      })
-
-      if (bids.length) {
-        throw new Error('A higher bid already exists for this entity. To proceed, please increase your price or accept an existing bid.')
-      }
-
       let imageKey = null
       if (req.file) {
         const resizeOptions = {
@@ -296,12 +283,10 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
               imageCaption,
               referenceCode,
               account: { connect: { id: accountId } },
-              entity: { connect: { id: entityId } },
-              condition: conditionId ? { connect: { id: conditionId } } : undefined,
+              entity: { connect: { id: entityId } }
             },
             include: {
-              account: true,
-              condition: true
+              account: true
             }
           })
         }
@@ -437,29 +422,16 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
   const {
     price,
     accountId,
-    entityId,
-    conditionId,
   } = req.body
 
   try {
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
     await validateExistingListing(id)
-    await validateConditionId(conditionId)
 
     const parsedPrice = parseFloat(price)
     if (isNaN(parsedPrice)) {
       throw new Error('Invalid price value')
-    }
-
-    const bids = await resolveBids({
-      price: parsedPrice,
-      entityId,
-      accountId,
-    })
-
-    if (bids.length) {
-      throw new Error('A higher bid already exists for this entity. To proceed, please increase your price or accept an existing bid.')
     }
 
     let imageKey = null
@@ -537,14 +509,10 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
         ...(req.body.entityId !== undefined && { entity: { connect: { id: req.body.entityId } } }),
         ...(req.body.accountId !== undefined && { account: { connect: { id: req.body.accountId } } }),
         ...(req.body.conditionId !== undefined && {
-          condition: req.body.conditionId
-            ? { connect: { id: req.body.conditionId } }
-            : { disconnect: true }
         }),
       },
       include: {
-        account: true,
-        condition: true
+        account: true
       }
     })
 

@@ -4,7 +4,7 @@ import s3 from './s3Client'
 
 export interface GeneratePresignedUrlOptions {
   key: string
-  expiresIn?: number // in seconds, default 900 (15 minutes)
+  expiresIn?: number
 }
 
 export async function generatePresignedUrl({

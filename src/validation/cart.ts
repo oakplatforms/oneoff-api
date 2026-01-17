@@ -4,7 +4,7 @@ const prisma = getPrismaClient()
 
 export const validateCartAccount = async (accountId: string, isPrimary: boolean) => {
   const existingCart = await prisma.cart.findFirst({
-    where: { accountId, isPrimary: true },
+    where: { accountId },
   })
 
   if (existingCart && isPrimary) {

@@ -372,14 +372,6 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
 
       const stripeAccount = await stripe.accounts.create(stripeAccountData)
 
-      //Get tracked and untracked shipping methods
-      const trackedMethod = await tx.shippingMethod.findFirst({
-        where: { isTracked: true }
-      })
-      const untrackedMethod = await tx.shippingMethod.findFirst({
-        where: { isTracked: false }
-      })
-
       //Calculate tax rate based on state
       const taxRate = getTaxRateForState(state)
 
@@ -396,17 +388,9 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
           state,
           businessName,
           website: websiteUrl,
-          shippingCarrierTypes: ['USPS'],
           paymentAccountId: stripeAccount.id,
           paymentAccountStatus: 'PENDING',
-          taxRate,
-          //Add default shipping methods
-          sellerShippingMethods: {
-            create: [
-              ...(trackedMethod ? [{ shippingMethodId: trackedMethod.id }] : []),
-              ...(untrackedMethod ? [{ shippingMethodId: untrackedMethod.id }] : [])
-            ]
-          }
+          taxRate
         }
       })
 
@@ -588,110 +572,6 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPDATE_SELLER_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to update seller.' })
-  }
-})
-
-/**
- * @openapi
- * /seller/shipping-preferences/{id}:
- *   put:
- *     tags:
- *       - Seller
- *     summary: Update seller shipping preferences
- *     description: Updates a seller's shipping carrier types and associated shipping methods.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the seller whose shipping preferences are being updated.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               shippingCarrierTypes:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: List of selected shipping carrier types (e.g., USPS, UPS).
- *               sellerShippingMethods:
- *                 type: object
- *                 properties:
- *                   create:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         shippingMethodId:
- *                           type: string
- *                   delete:
- *                     type: array
- *                     items:
- *                       type: string
- *                 description: Methods to create or delete in the seller’s shipping preferences.
- *     responses:
- *       '200':
- *         description: Shipping preferences successfully updated.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Seller'
- *       '500':
- *         description: Server error while updating shipping preferences.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- */
-sellerRouter.put('/seller/shipping-preferences/:id', async (req, res) => {
-  const { id } = req.params
-  const {
-    accountId,
-    shippingCarrierTypes,
-    sellerShippingMethods,
-    sellerShippingOptions
-  } = req.body
-
-  try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-    const updatedSeller = await prisma.seller.update({
-      where: { id },
-      data: {
-        shippingCarrierTypes,
-        sellerShippingMethods: sellerShippingMethods
-          ? {
-            create: sellerShippingMethods.create?.map((sellerShippingMethod: { shippingMethodId: string }) => ({
-              shippingMethodId: sellerShippingMethod.shippingMethodId,
-            })),
-            deleteMany: sellerShippingMethods.delete?.map((sellerShippingMethodId: string) => ({
-              id: sellerShippingMethodId
-            })),
-          }
-          : undefined,
-        sellerShippingOptions: sellerShippingOptions
-          ? {
-            create: sellerShippingOptions.create?.map((sellerShippingOption: { shippingOptionId: string }) => ({
-              shippingOptionId: sellerShippingOption.shippingOptionId,
-            })),
-            deleteMany: sellerShippingOptions.delete?.map((sellerShippingOptionId: string) => ({
-              id: sellerShippingOptionId
-            })),
-          }
-          : undefined,
-      },
-    })
-    res.json(updatedSeller)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_SELLER_SHIPPING_PREFERENCES_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to update seller shipping preferences.' })
   }
 })
 
@@ -1490,7 +1370,6 @@ sellerRouter.post('/seller/payout/:sellerId', async (req, res) => {
               transactionType: 'PAYOUT',
               currency: 'USD',
               paymentAccountType: 'STRIPE',
-              paymentMethodType: 'CARD',
               accountId,
             },
           },

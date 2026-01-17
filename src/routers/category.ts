@@ -3,7 +3,6 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const categoryRouter = express.Router()
@@ -128,7 +127,6 @@ categoryRouter.post(`/category`, async (req, res) => {
   const { name, displayName, description } = req.body
 
   try {
-    validateRole(req.user as AuthenticatedUser, 'admin')
     const category = await prisma.category.create({
       data: {
         name,
@@ -217,7 +215,6 @@ categoryRouter.put(`/category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    validateRole(req.user as AuthenticatedUser, 'admin')
     const category = await prisma.category.update({
       where: { id },
       data: {
@@ -379,7 +376,6 @@ categoryRouter.delete(`/category/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
-    validateRole(req.user as AuthenticatedUser, 'admin')
     const category = await prisma.category.delete({
       where: {
         id: id,

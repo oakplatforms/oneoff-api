@@ -5,7 +5,6 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
-import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const contentRouter = express.Router()
@@ -257,16 +256,16 @@ contentRouter.post('/content/:id/upload-image', uploadConfig.single('file'), asy
   }
 
   try {
-    // Upload original image
+    //Upload original image
     const imagePath = await uploadImage(file, 'content')
-    
-    // Upload blurred version
-    const blurredImagePath = await uploadImage(file, 'content/blurred', { 
-      width: 750, 
+
+    //Upload blurred version
+    const blurredImagePath = await uploadImage(file, 'content/blurred', {
+      width: 750,
       quality: 75,
       format: 'webp',
       fit: 'inside',
-      blur: 25  // This will be handled in uploadImage utility
+      blur: 25
     })
 
     const content = await prisma.content.update({
@@ -314,12 +313,12 @@ contentRouter.delete('/content/:id/delete-image', async (req, res) => {
       return res.status(404).send({ errorMessage: 'Content not found.' })
     }
 
-    // Delete original image
+    //Delete original image
     if (content.image) {
       await deleteImage(content.image)
     }
 
-    // Delete blurred image
+    //Delete blurred image
     if (content.blurredImage) {
       await deleteImage(content.blurredImage)
     }
