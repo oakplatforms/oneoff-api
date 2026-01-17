@@ -1239,7 +1239,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
       await eventBridge.send(new PutEventsCommand({
         Entries: [
           {
-            Source: 'tcgx',
+            Source: 'oneoff',
             DetailType: 'order.canceled.customer',
             Detail: JSON.stringify({
               orderId: id,

@@ -28,12 +28,12 @@ jobs:
     - name: Deploy Prisma migrations
       run: npx prisma migrate deploy
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     - name: Generate Prisma client
       run: npx prisma generate
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
     
     - name: Setup AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -53,19 +53,8 @@ jobs:
     - name: Deploy to Dev
       run: serverless deploy --stage dev --verbose
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
-        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_DEV }}
-        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_DEV }}
-        SHIPPO_SECRET_KEY: ${{ secrets.SHIPPO_SECRET_KEY_DEV }}
-        SHIPPO_WEBHOOK_SECRET: ${{ secrets.SHIPPO_WEBHOOK_SECRET_DEV }}
-        SHIPPO_CARRIER_ACCOUNT_USPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_USPS }}
-        SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS }}
-        SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX }}
-        SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL }}
-        TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET_DEV }}
-        ADMIN_USER_POOL_ID: ${{ secrets.ADMIN_USER_POOL_ID_DEV }}
-        CONSUMER_USER_POOL_ID: ${{ secrets.CONSUMER_USER_POOL_ID_DEV }}
-        PRICING_ENGINE_ARN: ${{ secrets.PRICING_ENGINE_ARN_DEV }}
-    
-    - name: Deploy Swagger to Dev
-      run: serverless deploy --config serverless.swagger.yml --stage dev --verbose
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET }}
+        CONSUMER_USER_POOL_ID: ${{ secrets.CONSUMER_USER_POOL_ID }}

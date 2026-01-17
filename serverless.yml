@@ -1,4 +1,4 @@
-service: tcgx-api
+service: oneoff-api
 
 plugins:
   - serverless-dotenv-plugin
@@ -40,8 +40,8 @@ provider:
             - s3:GetObject
             - s3:DeleteObject
           Resource: 
-            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}/*
-            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}
+            - arn:aws:s3:::oneoff-dev/*
+            - arn:aws:s3:::oneoff-dev
         - Effect: Allow
           Action:
             - cognito-idp:AdminAddUserToGroup
@@ -50,7 +50,6 @@ provider:
             - cognito-idp:ListUsers
           Resource: 
             - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:CONSUMER_USER_POOL_ID}
-            - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:ADMIN_USER_POOL_ID}
         - Effect: Allow
           Action:
             - rekognition:DetectText
@@ -58,10 +57,10 @@ provider:
 
 functions:
   api:
-    name: tcgx-api-${sls:stage}
+    name: oneoff-api-${sls:stage}
     handler: lambdas/apiHandler.handler
-    memorySize: ${self:custom.memorySize.${sls:stage}}
-    ephemeralStorageSize: ${self:custom.storageSize.${sls:stage}}
+    memorySize: 1024
+    ephemeralStorageSize: 512
     layers:
       - arn:aws:lambda:us-east-1:992382609315:layer:sharp-arm64:1
     events:
@@ -84,31 +83,23 @@ functions:
       - httpApi:
           path: /{proxy+}
           method: OPTIONS
-    provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
+    provisionedConcurrency: 0
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
-      S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
+      S3_BUCKET_NAME: oneoff-dev
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
-      SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
-      SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
-      SHIPPO_CARRIER_ACCOUNT_USPS: ${env:SHIPPO_CARRIER_ACCOUNT_USPS}
-      SHIPPO_CARRIER_ACCOUNT_UPS: ${env:SHIPPO_CARRIER_ACCOUNT_UPS}
-      SHIPPO_CARRIER_ACCOUNT_FEDEX: ${env:SHIPPO_CARRIER_ACCOUNT_FEDEX}
-      SHIPPO_CARRIER_ACCOUNT_DHL: ${env:SHIPPO_CARRIER_ACCOUNT_DHL}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
-      PRICING_ENGINE_ARN: ${env:PRICING_ENGINE_ARN}
 
   authorizer:
-    name: tcgx-api-authorizer-${sls:stage}
+    name: oneoff-api-authorizer-${sls:stage}
     handler: lambdas/authorizerHandler.handler
     environment:
-      ADMIN_USER_POOL_ID: ${env:ADMIN_USER_POOL_ID}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
       TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
 
   guestToken:
-    name: tcgx-api-guest-token-${sls:stage}
+    name: oneoff-api-guest-token-${sls:stage}
     handler: lambdas/guestTokenHandler.handler
     environment:
       TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
@@ -118,7 +109,7 @@ functions:
           method: GET
 
   stripeWebhook:
-    name: tcgx-api-stripe-webhook-${sls:stage}
+    name: oneoff-api-stripe-webhook-${sls:stage}
     handler: lambdas/stripeWebhookHandler.handler
     environment:
       DATABASE_URL: ${env:DATABASE_URL}
@@ -130,72 +121,11 @@ functions:
           path: /webhook/stripe
           method: POST
 
-  shippoWebhook:
-    name: tcgx-api-shippo-webhook-${sls:stage}
-    handler: lambdas/shippoWebhookHandler.handler
-    environment:
-      DATABASE_URL: ${env:DATABASE_URL}
-      SHIPPO_SECRET_KEY: ${env:SHIPPO_SECRET_KEY}
-      SHIPPO_WEBHOOK_SECRET: ${env:SHIPPO_WEBHOOK_SECRET}
-      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
-    events:
-      - httpApi:
-          path: /webhook/shippo
-          method: POST
-
-  cancelOrder:
-    name: tcgx-api-cancel-order-${sls:stage}
-    handler: lambdas/cancelOrderHandler.handler
-    environment:
-      DATABASE_URL: ${env:DATABASE_URL}
-      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
-    events:
-      - schedule:
-          rate: cron(0 17 * * ? *)
-          description: Cancel unshipped orders older than 72 hours (runs daily at noon EST)
-
-  reviewOrder:
-    name: tcgx-api-review-order-${sls:stage}
-    handler: lambdas/reviewOrderHandler.handler
-    environment:
-      DATABASE_URL: ${env:DATABASE_URL}
-    events:
-      - schedule:
-          rate: cron(0 18 * * ? *)
-          description: Review orders that need attention - 7 days pending with UNKNOWN/PRE_TRANSIT, or 14 days not completed/delivered (runs daily at 1pm EST)
-
 custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}
     logging: false
-  
-  isProd: ${opt:stage, 'dev'} == 'prod'
-  
-  s3Bucket:
-    dev: tcgx-dev
-    stage: tcgx-stage
-    prod: tcgx-prod
-  
-  provisionedConcurrency:
-    dev: 0
-    stage: 0
-    prod: 3
-  
-  memorySize:
-    dev: 1024
-    stage: 1024
-    prod: 3072
-  
-  storageSize:
-    dev: 512
-    stage: 512
-    prod: 1024
-  
-  logLevel:
-    dev: debug
-    stage: info
-    prod: warn
-  
+
   esbuild:
     bundle: true
     minify: true

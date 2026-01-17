@@ -1,198 +1,217 @@
-import { Prisma } from '@prisma/client'
-import express from 'express'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
-import { generateIncludes } from '../utils/generateIncludes'
-import { validateCart, validateCartAccount } from '../validation/cart'
-import { validateAccount, AuthenticatedUser } from '../validation/user'
+import express, { Request, Response } from 'express'
+import { getPrismaClient } from '../utils/prismaHelpers'
+import { createInvoiceWithTransactions } from '../services/invoice'
 
+const router = express.Router()
 const prisma = getPrismaClient()
-export const cartRouter = express.Router()
 
-/**
- * @openapi
- * /cart:
- *   post:
- *     summary: Create a new cart
- *     tags:
- *       - Cart
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: ID of the account that owns the cart
- *     responses:
- *       '200':
- *         description: Successfully created the cart
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Cart'
- */
-cartRouter.post('/cart', async (req, res) => {
-  const { accountId, isPrimary } = req.body
-
+// Create cart for account
+router.post('/', async (req: Request, res: Response) => {
   try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-    await validateCartAccount(accountId, isPrimary)
+    const { accountId } = req.body
+
+    if (!accountId) {
+      return res.status(400).json({ error: 'accountId is required' })
+    }
+
     const cart = await prisma.cart.create({
       data: {
-        account: { connect: { id: accountId } },
-        isPrimary
+        accountId,
+        status: 'ACTIVE',
+      },
+      include: {
+        orders: true,
       },
     })
-    res.json(cart)
+
+    return res.status(201).json(cart)
   } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CREATE_CART_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to create cart.' })
+    console.error('Error creating cart:', error)
+    return res.status(500).json({ error: 'Failed to create cart' })
   }
 })
 
-/**
- * @openapi
- * /cart/{id}:
- *   put:
- *     summary: Update a cart by ID
- *     tags:
- *       - Cart
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the cart to update
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: Updated account ID for the cart (optional)
- *     responses:
- *       '200':
- *         description: Successfully updated the cart
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Cart'
- *       '400':
- *         description: Invalid update request
- *       '500':
- *         description: Internal Server Error
- */
-cartRouter.put('/cart/:id', async (req, res) => {
-  const { id } = req.params
-  const { accountId } = req.body
-
+// Get cart with orders for an account
+router.get('/:accountId', async (req: Request, res: Response) => {
   try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-    await validateCart(id)
-    const cart = await prisma.cart.update({
-      where: { id },
-      data: {
-        ...(accountId && { account: { connect: { id: accountId } } }),
+    const { accountId } = req.params
+
+    const cart = await prisma.cart.findFirst({
+      where: {
+        accountId,
+        status: 'ACTIVE',
+      },
+      include: {
+        orders: {
+          where: {
+            status: 'CREATED',
+          },
+          include: {
+            orderListings: {
+              include: {
+                listing: {
+                  include: {
+                    entity: {
+                      include: {
+                        content: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            seller: {
+              include: {
+                account: {
+                  include: {
+                    profile: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     })
-    res.json(cart)
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('UPDATE_CART_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to update cart.' })
-  }
-})
 
-/**
- * @openapi
- * /cart/{id}:
- *   get:
- *     summary: Get a cart by ID
- *     tags:
- *       - Cart
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID of the cart to retrieve
- *       - in: query
- *         name: include
- *         schema:
- *           type: string
- *         description: Comma-separated list of related entities to include
- *     responses:
- *       '200':
- *         description: Found cart
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Cart'
- */
-cartRouter.get('/cart/:id', async (req, res) => {
-  const { id } = req.params
-  const { include } = req.query
-
-  try {
-    if (!id) {
-      throw new Error('Cart ID is required')
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' })
     }
-    const cart = await prisma.cart.findUnique({
-      where: { id },
-      include: generateIncludes(include as string),
-    })
-    if (cart) res.json(cart)
-    else res.status(404).send({ errorMessage: 'Cart not found' })
+
+    return res.status(200).json(cart)
   } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_CART_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve cart.' })
+    console.error('Error fetching cart:', error)
+    return res.status(500).json({ error: 'Failed to fetch cart' })
   }
 })
 
-/**
- * @openapi
- * /cart/{id}:
- *   delete:
- *     summary: Delete a cart by ID
- *     tags:
- *       - Cart
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID of the cart to delete
- *     responses:
- *       '200':
- *         description: Successfully deleted cart
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Cart'
- *       '404':
- *         description: Cart not found
- */
-cartRouter.delete('/cart/:accountId/:id', async (req, res) => {
-  const { id, accountId } = req.params
+// Add order to cart
+router.post('/:cartId/orders', async (req: Request, res: Response) => {
   try {
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
-    const cart = await prisma.cart.delete({ where: { id } })
-    res.json(cart)
+    const { cartId } = req.params
+    const { listingId, customerId, sellerId, quantity = 1 } = req.body
+
+    if (!listingId || !customerId || !sellerId) {
+      return res.status(400).json({ error: 'listingId, customerId, and sellerId are required' })
+    }
+
+    // Get listing details
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      include: {
+        entity: true,
+      },
+    })
+
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' })
+    }
+
+    if (listing.quantity < quantity) {
+      return res.status(400).json({ error: 'Insufficient quantity available' })
+    }
+
+    // Create order with CREATED status (not yet purchased)
+    const order = await prisma.order.create({
+      data: {
+        status: 'CREATED',
+        customerId,
+        sellerId,
+        cartId,
+        subTotal: listing.price,
+        orderListings: {
+          create: {
+            listingId,
+            quantity,
+            price: listing.price,
+          },
+        },
+      },
+      include: {
+        orderListings: {
+          include: {
+            listing: {
+              include: {
+                entity: {
+                  include: {
+                    content: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    return res.status(201).json(order)
   } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('DELETE_CART_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete cart.' })
+    console.error('Error adding order to cart:', error)
+    return res.status(500).json({ error: 'Failed to add order to cart' })
   }
 })
+
+// Remove order from cart
+router.delete('/:cartId/orders/:orderId', async (req: Request, res: Response) => {
+  try {
+    const { cartId, orderId } = req.params
+
+    // Verify order belongs to cart and is in CREATED status
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        cartId,
+        status: 'CREATED',
+      },
+    })
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found in cart' })
+    }
+
+    // Delete the order
+    await prisma.order.delete({
+      where: { id: orderId },
+    })
+
+    return res.status(200).json({ message: 'Order removed from cart' })
+  } catch (error) {
+    console.error('Error removing order from cart:', error)
+    return res.status(500).json({ error: 'Failed to remove order from cart' })
+  }
+})
+
+// Checkout - create invoice and process payment
+router.put('/:cartId/checkout', async (req: Request, res: Response) => {
+  try {
+    const { cartId } = req.params
+
+    // Get all orders in cart
+    const cart = await prisma.cart.findUnique({
+      where: { id: cartId },
+      include: {
+        orders: {
+          where: {
+            status: 'CREATED',
+          },
+        },
+      },
+    })
+
+    if (!cart || cart.orders.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' })
+    }
+
+    const orderIds = cart.orders.map(order => order.id)
+
+    // Create invoice and process payment
+    const invoice = await createInvoiceWithTransactions(orderIds)
+
+    return res.status(200).json({ invoice, message: 'Checkout successful' })
+  } catch (error) {
+    console.error('Error during checkout:', error)
+    return res.status(500).json({ error: 'Failed to checkout' })
+  }
+})
+
+export default router

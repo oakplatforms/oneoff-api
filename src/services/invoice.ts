@@ -1,10 +1,8 @@
-import { Order, ShipmentAccountType } from '@prisma/client'
+import { Order } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
-import { calculateOrderTax, calculateOrderShipping, OrderPayload, getActiveShipment } from '../utils/order'
-import eventBridge from '../utils/eventBridge'
-import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import { calculateOrderTax, calculateOrderShipping, OrderPayload } from '../utils/order'
 
 const prisma = getPrismaClient()
 
@@ -19,8 +17,6 @@ export type OrderDetails = {
 type OrderWithRelations = Order & {
  customer: { paymentAccountId: string | null } | null
  seller: { paymentAccountId: string | null, firstName?: string, lastName?: string } | null
- shipments: Array<{ rate: number | string | { toString(): string }, shipmentAccountType: string }>
- shippingMethod?: { isTracked: boolean | null } | null
 }
 
 const createPaymentIntent = async (
@@ -45,18 +41,10 @@ const createPaymentIntent = async (
     throw new Error('Invalid price format.')
   }
 
-  const activeShipment = getActiveShipment(order)
-  const shipmentRate = activeShipment.rate
-    ? Number(activeShipment.rate)
-    : 0
-  const shipmentRateInCents = Math.round(shipmentRate * 100)
   const totalAmount = Math.round(total * 100)
-
-  const isUntracked = activeShipment.shipmentAccountType === ShipmentAccountType.UNTRACKED
-  const baseApplicationFee = Math.round(totalAmount * 0.05) + 40
-  const application_fee_amount = isUntracked
-    ? baseApplicationFee
-    : baseApplicationFee + shipmentRateInCents
+  
+  // Fixed application fee: $0.60 (includes $0.50 transaction fee + 10% seller commission)
+  const application_fee_amount = 60
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalAmount,
@@ -87,14 +75,11 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       include: {
         customer: { include: { account: true } },
         seller: true,
-        shipments: true,
         orderListings: {
           include: {
             listing: true,
           },
         },
-        shippingMethod: { include: { shippingOptions: true } },
-        orderShippingOptions: { include: { shippingOption: true } },
       },
     })
 
@@ -148,9 +133,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         },
         include: {
           customer: true,
-          shipments: true,
           seller: true,
-          shippingMethod: true,
         },
       })
 
@@ -171,38 +154,8 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
     return { invoice, orders }
   }, { timeout: 60000 })
 
-  for (const order of orders) {
-    try {
-      await eventBridge.send(new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'tcgx',
-            DetailType: 'order.confirmation.seller',
-            Detail: JSON.stringify({ orderId: order.id, type: 'order.confirmation.seller' }),
-            EventBusName: 'default',
-          },
-        ],
-      }))
-    } catch (err) {
-      console.warn(`Failed to notify seller for order ${order.id}:`, err)
-    }
-  }
-
-  try {
-    await eventBridge.send(new PutEventsCommand({
-      Entries: [
-        {
-          Source: 'tcgx',
-          DetailType: 'invoice.confirmation.customer',
-          Detail: JSON.stringify({ invoiceId: invoice.id, type: 'invoice.confirmation.customer' }),
-          EventBusName: 'default',
-        },
-      ],
-    }))
-  } catch (err) {
-    console.warn(`Failed to notify customer about invoice ${invoice.id}:`, err)
-  }
+  // Email notifications will be added in the future
+  console.log(`Invoice ${invoice.id} created with ${orders.length} orders`)
 
   return invoice
 }
-

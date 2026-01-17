@@ -1,14 +1,11 @@
 {
-  "name": "rest-express",
+  "name": "oneoff-api",
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
     "dev": "ts-node src/localhost.ts",
     "start": "ts-node src/localhost.ts",
     "deploy:dev": "export $(cat .env.dev | grep -v '^#' | xargs) && serverless deploy --stage dev",
-    "deploy:stage": "export $(cat .env.stage | grep -v '^#' | xargs) && serverless deploy --stage stage",
-    "deploy:prod": "export $(cat .env.prod | grep -v '^#' | xargs) && serverless deploy --stage prod",
-    "deploy:swagger": "export $(cat .env.dev | grep -v '^#' | xargs) && serverless deploy --config serverless.swagger.yml --stage dev",
     "docker:test:up": "docker compose up -d",
     "docker:test:down": "docker compose down",
     "test": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5433/testdb jest --runInBand",
@@ -16,23 +13,17 @@
     "lint:fix": "eslint . --ext .ts,.js --fix"
   },
   "dependencies": {
-    "@aws-sdk/client-eventbridge": "^3.826.0",
     "@aws-sdk/client-rekognition": "^3.962.0",
     "@aws-sdk/client-s3": "^3.821.0",
-    "@aws-sdk/client-sfn": "^3.907.0",
     "@aws-sdk/s3-request-presigner": "^3.966.0",
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
-    "axios": "^1.9.0",
     "express": "4.19.2",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "multer": "^2.0.0",
     "pg": "^8.16.3",
-    "shippo": "^2.15.0",
-    "stripe": "^17.7.0",
-    "swagger-autogen": "^2.23.7",
-    "swagger-jsdoc": "^6.2.8"
+    "stripe": "^17.7.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
@@ -43,9 +34,7 @@
     "@types/multer": "^1.4.12",
     "@types/node": "20.12.12",
     "@types/pg": "^8.15.5",
-    "@types/stripe": "^8.0.417",
     "@types/supertest": "^6.0.2",
-    "@types/swagger-jsdoc": "^6.0.4",
     "@vendia/serverless-express": "^4.12.6",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",

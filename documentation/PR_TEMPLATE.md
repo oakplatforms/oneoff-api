@@ -1,6 +1,6 @@
 # PR Template
 
-This document outlines the standard format for creating Pull Request descriptions in the TCGX Mobile app.
+This document outlines the standard format for creating Pull Request descriptions in the ONEOFF Mobile app.
 
 ## Overview
 
@@ -9,7 +9,7 @@ The PR template follows a consistent structure to ensure all pull requests conta
 ## Structure
 
 ### Jira Ticket
-TCGX-{TICKET_NUMBER} - https://oakplatforms.atlassian.net/browse/TCGX-{TICKET_NUMBER}
+ONEOFF-{TICKET_NUMBER} - https://oneoffplatforms.atlassian.net/browse/ONEOFF-{TICKET_NUMBER}
 
 ### What did you implement?
 - Bullet point 1
@@ -22,7 +22,7 @@ TCGX-{TICKET_NUMBER} - https://oakplatforms.atlassian.net/browse/TCGX-{TICKET_NU
 
 ## Instructions for Assistant
 
-1. **Detect branch name** - Take the last part of the branch name (e.g., "TCGX-71" from "feature/TCGX-71")
+1. **Detect branch name** - Take the last part of the branch name (e.g., "ONEOFF-71" from "feature/ONEOFF-71")
 2. **Use markdown format** - Use `###` for headings as shown above
 3. **Structure the implementation list** - Use concise bullet points with `-` for each change
 4. **Keep it focused** - Include only the main features/components added or modified
@@ -33,7 +33,7 @@ TCGX-{TICKET_NUMBER} - https://oakplatforms.atlassian.net/browse/TCGX-{TICKET_NU
 
 ```markdown
 ### Jira Ticket
-TCGX-{TICKET_NUMBER} - https://oakplatforms.atlassian.net/browse/TCGX-{TICKET_NUMBER}
+ONEOFF-{TICKET_NUMBER} - https://oneoffplatforms.atlassian.net/browse/ONEOFF-{TICKET_NUMBER}
 
 ### What did you implement?
 - Bullet point 1
@@ -53,7 +53,7 @@ git commit -m "Insert commit message here"
 
 ```markdown
 ### Jira Ticket
-TCGX-157 - https://oakplatforms.atlassian.net/browse/TCGX-157
+ONEOFF-157 - https://oneoffplatforms.atlassian.net/browse/ONEOFF-157
 
 ### What did you implement?
 - Added EditListing component for updating existing product listings
@@ -74,7 +74,7 @@ git commit -m "Added EditListing and CreateListing components, moved form functi
 
 ```markdown
 ### Jira Ticket
-TCGX-{TICKET_NUMBER} - https://oakplatforms.atlassian.net/browse/TCGX-{TICKET_NUMBER}
+ONEOFF-{TICKET_NUMBER} - https://oneoffplatforms.atlassian.net/browse/ONEOFF-{TICKET_NUMBER}
 
 ### What did you implement?
 - Enhanced Icon component with width/height props for independent dimension control
@@ -102,7 +102,7 @@ git commit -m "Enhanced Icon component with width/height props, added strokeWidt
 
 ### Common Issues
 
-- **Missing Jira ticket** - Always include the TCGX ticket number in the format shown above
+- **Missing Jira ticket** - Always include the ONEOFF ticket number in the format shown above
 - **Too verbose** - Keep bullet points concise and focused on main features
 - **Missing test coverage** - Document any testing performed to validate changes
 - **Technical jargon** - Use clear language that reviewers can understand

@@ -1768,7 +1768,7 @@ sellerRouter.delete('/seller/:accountId', async (req, res) => {
       await eventBridge.send(new PutEventsCommand({
         Entries: [
           {
-            Source: 'tcgx',
+            Source: 'oneoff',
             DetailType: 'seller.application.rejected',
             Detail: JSON.stringify({
               accountId,

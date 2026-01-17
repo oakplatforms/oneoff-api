@@ -80,7 +80,7 @@ authRouter.post('/auth/update-password', async (req, res) => {
     await eventBridge.send(new PutEventsCommand({
       Entries: [
         {
-          Source: 'tcgx',
+          Source: 'oneoff',
           DetailType: 'user.password.changed',
           Detail: JSON.stringify({
             email,

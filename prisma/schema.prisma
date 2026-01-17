@@ -20,26 +20,10 @@ enum EntityType {
   EVENT
 }
 
-enum ProductType {
-  CARD
-}
-
-enum ListType {
-  HOMEPAGE
-  COLLECTION
-  FAVORITE
-  CUSTOM
-}
-
 enum AccountType {
   REGISTERED
   CUSTOMER
   SELLER
-}
-
-enum AdminType {
-  MARKET_MANAGER
-  BRAND_MANAGER
 }
 
 enum SellerType {
@@ -63,23 +47,6 @@ enum ProcessStatus {
   IN_REVIEW
 }
 
-enum TrackingStatus {
-  UNKNOWN
-  PRE_TRANSIT
-  TRANSIT
-  OUT_FOR_DELIVERY
-  DELIVERED
-  RETURNED
-  FAILURE
-}
-
-enum OfferStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  CANCELED
-}
-
 enum TransactionType {
   PAYMENT
   REFUND
@@ -90,62 +57,22 @@ enum PaymentAccountType {
   STRIPE
 }
 
-enum PaymentMethodType {
-  CARD
-  BANK_ACCOUNT
-  APPLE_PAY
-}
-
 enum Currency {
   USD
   EUR
   CAD
 }
 
-enum ShippingCarrierType {
-  USPS
-  UPS
-  FEDEX
-  DHL
+enum ContentType {
+  IMAGE
+  VIDEO
 }
 
-enum ShippingParcelType {
-  USPS_FlatRateEnvelope
-  USPS_GroundAdvantage
-  USPS_SoftPack
-  UPS_Box_10kg
-  UPS_Box_25kg
-  UPS_Pad_Pak
-  FedEx_Envelope
-  FedEx_Padded_Pak
-  FedEx_Box_10kg
-  FedEx_Box_25kg
-}
-
-enum ShipmentAccountType {
-  SHIPPO
-  UNTRACKED
-}
-
-enum ShipmentType {
-  OUTBOUND
-  RETURN
-}
-
-enum RefundType {
-  DAMAGE
-  WRONG_PRODUCT
-  COUNTERFEIT
-  NOT_AS_DESCRIBED
-  DEFECTIVE
-  MISSING_ITEMS
-  OTHER
-}
-
-enum RefundStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
+enum ListType {
+  HOMEPAGE
+  COLLECTION
+  FAVORITE
+  CUSTOM
 }
 
 model User {
@@ -160,46 +87,9 @@ model User {
 
   // relations
   account Account?
-  admin   Admin?
 
   @@index([authId])
   @@index([status])
-}
-
-model Admin {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  status    Status   @default(ACTIVE)
-
-  // custom
-  email String? @unique
-
-  // relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
-
-  // created by and last modified by relations
-  createdBrands                  Brand[]             @relation(name: "CreatedBy")
-  lastModifiedBrands             Brand[]             @relation(name: "LastModifiedBy")
-  createdThemes                  Theme[]             @relation(name: "CreatedBy")
-  lastModifiedThemes             Theme[]             @relation(name: "LastModifiedBy")
-  createdCategories              Category[]          @relation(name: "CreatedBy")
-  lastModifiedCategories         Category[]          @relation(name: "LastModifiedBy")
-  createdTags                    Tag[]               @relation(name: "CreatedBy")
-  lastModifiedTags               Tag[]               @relation(name: "LastModifiedBy")
-  createdSupportedTagValues      SupportedTagValue[] @relation(name: "CreatedBy")
-  lastModifiedSupportedTagValues SupportedTagValue[] @relation(name: "LastModifiedBy")
-  createdEntities                Entity[]            @relation(name: "CreatedBy")
-  lastModifiedEntities           Entity[]            @relation(name: "LastModifiedBy")
-  createdLists                   List[]              @relation(name: "CreatedBy")
-  lastModifiedLists              List[]              @relation(name: "LastModifiedBy")
-  createdShippingMethods         ShippingMethod[]    @relation(name: "CreatedBy")
-  lastModifiedShippingMethods    ShippingMethod[]    @relation(name: "LastModifiedBy")
-  createdShippingOptions         ShippingOption[]    @relation(name: "CreatedBy")
-  lastModifiedShippingOptions    ShippingOption[]    @relation(name: "LastModifiedBy")
-
-  @@index([userId])
 }
 
 model Account {
@@ -213,37 +103,22 @@ model Account {
   email String?     @unique
 
   // relations
-  carts        Cart[]
   seller       Seller?
   customer     Customer?
   profile      Profile?
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String        @unique
   lists        List[]
-  reviews      Review[]
-  bids         Bid[]
   listings     Listing[]
   payouts      Payout[]
   transactions Transaction[]
+  carts        Cart[]
 
   @@index([userId])
   @@index([type])
   @@index([status])
   @@index([type, status])
   @@index([userId, type])
-}
-
-model Cart {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  isPrimary Boolean? @default(false)
-
-  // relations
-  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId String?
-  orders    Order[]
 }
 
 model Customer {
@@ -275,6 +150,21 @@ model Customer {
   @@index([accountId, status])
 }
 
+model Cart {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
+
+  // relations
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+  orders    Order[]
+
+  @@index([accountId])
+  @@index([status])
+}
+
 model Seller {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -290,24 +180,21 @@ model Seller {
   sellerType               SellerType?
   taxRate                  Decimal?           @db.Decimal(10, 2)
 
-  firstName            String?
-  lastName             String?
-  phone                String?
-  address              String?
-  city                 String?
-  state                String?
-  zipCode              String?
-  businessName         String?
-  website              String?
-  image                String?
-  shippingCarrierTypes ShippingCarrierType[]
+  firstName    String?
+  lastName     String?
+  phone        String?
+  address      String?
+  city         String?
+  state        String?
+  zipCode      String?
+  businessName String?
+  website      String?
+  image        String?
 
   // relations
-  account               Account                @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId             String                 @unique
-  sellerShippingMethods SellerShippingMethod[]
-  sellerShippingOptions SellerShippingOption[]
-  orders                Order[]
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String  @unique
+  orders    Order[]
 
   @@index([accountId])
   @@index([status])
@@ -332,48 +219,6 @@ model Profile {
   @@index([accountId])
 }
 
-model Brand {
-  id        String   @id @unique @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  name            String  @unique
-  displayName     String?
-  logo            String?
-  legalDisclaimer String?
-
-  // relations
-  createdBy        Admin?     @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?     @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  theme            Theme?
-  entities         Entity[]
-  brandTags        BrandTag[]
-  sets             Set[]
-  lists            List[]
-}
-
-model Theme {
-  id        String   @id @unique @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  logo           String?
-  primaryColor   String?
-  secondaryColor String?
-
-  // relations
-  createdBy        Admin?  @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?  @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  brand            Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  brandId          String  @unique
-}
-
 model Category {
   id        String   @id @unique @default(cuid())
   createdAt DateTime @default(now())
@@ -385,70 +230,7 @@ model Category {
   description String?
 
   // relations
-  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  entities         Entity[]
-}
-
-model ShippingMethod {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  name        String
-  displayName String?
-  description String?
-  isTracked   Boolean? @default(true)
-  fixedRate   Decimal? @db.Decimal(10, 2)
-  maxQuantity Int?
-  warning     String?
-
-  // relations
-  createdBy             Admin?                 @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById           String?
-  lastModifiedBy        Admin?                 @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById      String?
-  orders                Order[]
-  parcels               Parcel[]
-  shippingOptions       ShippingOption[]
-  sellerShippingMethods SellerShippingMethod[]
-}
-
-model Parcel {
-  id      String              @id @default(cuid())
-  carrier ShippingCarrierType
-  type    ShippingParcelType
-
-  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId String?
-}
-
-model ShippingOption {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  name         String
-  displayName  String?
-  description  String?
-  weight       Float?
-  rate         Decimal  @db.Decimal(10, 2)
-  isStandalone Boolean? @default(false)
-  maxQuantity  Int?
-
-  // relations
-  createdBy             Admin?                 @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById           String?
-  lastModifiedBy        Admin?                 @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById      String?
-  shippingMethod        ShippingMethod?        @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId      String?
-  sellerShippingOptions SellerShippingOption[]
-  orderShippingOptions  OrderShippingOption[]
+  entities Entity[]
 }
 
 model Tag {
@@ -461,30 +243,8 @@ model Tag {
   displayName String?
 
   // relations
-  createdBy          Admin?              @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById        String?
-  lastModifiedBy     Admin?              @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById   String?
   entityTags         EntityTag[]
   supportedTagValues SupportedTagValue[]
-  brandTags          BrandTag[]
-}
-
-model BrandTag {
-  id        String   @unique @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // relations
-  brand              Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  brandId            String
-  tag                Tag                 @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  tagId              String
-  supportedTagValues SupportedTagValue[]
-
-  @@unique([brandId, tagId])
-  @@index([brandId])
-  @@index([tagId])
 }
 
 model SupportedTagValue {
@@ -500,40 +260,10 @@ model SupportedTagValue {
   description String?
 
   // relations
-  createdBy        Admin?    @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?    @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  // NEW relation (use this going forward)
-  brandTag         BrandTag? @relation(fields: [brandTagId], references: [id], onDelete: Cascade)
-  brandTagId       String?
-  // OLD relation (keep for migration, remove in future release)
-  tag              Tag?      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  tagId            String?
+  tag   Tag?    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId String?
 
-  @@index([brandTagId])
   @@index([tagId])
-}
-
-model Set {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  banner      String?
-  logo        String?
-  description String?
-  name        String  @unique
-  displayName String?
-  code        String
-
-  // relations
-  brand    Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  brandId  String?
-  entities Entity[]
-
-  @@index([brandId])
 }
 
 model List {
@@ -542,31 +272,23 @@ model List {
   updatedAt DateTime @updatedAt
 
   // custom
-  name        String
-  displayName String?
-  banner      String?
-  logo        String?
-  description String?
-  type        ListType?
-  isPrivate   Boolean?  @default(false)
+  name          String
+  displayName   String?
+  banner        String?
+  logo          String?
+  description   String?
+  type          ListType? @default(COLLECTION)
+  isPrivate     Boolean?  @default(false)
   navigation    Json?
   index         Int?
-  referenceCode String? @unique
+  referenceCode String?   @unique
 
   // relations
-  account          Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId        String?
-  brand            Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  brandId          String?
-  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-
+  account    Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId  String?
   entityList EntityList[]
 
   @@index([accountId])
-  @@index([brandId])
   @@index([type])
   @@index([isPrivate])
   @@index([referenceCode])
@@ -586,30 +308,17 @@ model Entity {
   secondaryImage String?
 
   // relations
-  createdBy        Admin?       @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?       @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  category         Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId       String?
-  brand            Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  brandId          String?
-  product          Product?
-  entityTags       EntityTag[]
-  entityList       EntityList[]
-  reviews          Review[]
-  bids             Bid[]
-  listings         Listing[]
-  set              Set?         @relation(fields: [setId], references: [id], onDelete: Cascade)
-  setId            String?
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?
+  content    Content?
+  entityTags EntityTag[]
+  entityList EntityList[]
+  listings   Listing[]
 
-  @@index([brandId, name])
+  @@index([name])
   @@index([categoryId])
-  @@index([brandId])
   @@index([type])
   @@index([categoryId, type])
-  @@index([brandId, type])
-  @@index([setId])
 }
 
 model EntityList {
@@ -652,49 +361,19 @@ model EntityTag {
   @@index([tagValue])
 }
 
-model Product {
+model Content {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // custom
-  type          ProductType    @default(CARD)
-  releaseDate   DateTime?
-  weight        Float?
-  width         Float?
-  length        Float?
-  height        Float?
-  sku           String?
-  number        String?
-  price         Decimal?       @db.Decimal(10, 2)
-  pricingStatus ProcessStatus?
-  referenceCode String?        @unique
+  type         ContentType @default(IMAGE)
+  image        String?
+  blurredImage String?
 
   // relations
   entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId String @unique
-
-  @@index([referenceCode])
-}
-
-model Review {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  rating      Float
-  description String
-
-  // relations
-  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId String?
-  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId  String
-
-  @@index([accountId])
-  @@index([entityId])
-  @@index([rating])
 }
 
 model Payout {
@@ -711,21 +390,6 @@ model Payout {
   account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId    String?
   transactions Transaction[]
-}
-
-model Condition {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  name        String  @unique
-  displayName String
-  description String?
-
-  // relations
-  listings Listing[]
-  bids     Bid[]
 }
 
 model Listing {
@@ -749,10 +413,7 @@ model Listing {
   accountId     String?
   entity        Entity?        @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId      String?
-  condition     Condition?     @relation(fields: [conditionId], references: [id], onDelete: SetNull)
-  conditionId   String?
   orderListings OrderListing[]
-  offer         Offer?
 
   @@index([accountId])
   @@index([entityId])
@@ -761,54 +422,7 @@ model Listing {
   @@index([status, price])
   @@index([entityId, status])
   @@index([accountId, status])
-  @@index([conditionId])
   @@index([referenceCode])
-}
-
-model Bid {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  price                    Decimal  @db.Decimal(10, 2)
-  quantity                 Int
-  status                   Status
-  multiTransactionsEnabled Boolean? @default(false)
-  referenceCode            String?  @unique
-
-  // relations
-  account    Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId  String?
-  entity     Entity?     @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId   String?
-  offers     Offer[]
-  conditions Condition[]
-
-  @@index([accountId])
-  @@index([entityId])
-  @@index([status])
-  @@index([referenceCode])
-}
-
-model Offer {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  status OfferStatus @default(PENDING)
-
-  // relations
-  bid       Bid?     @relation(fields: [bidId], references: [id], onDelete: Cascade)
-  bidId     String?
-  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId String?  @unique
-  order     Order?
-
-  @@index([bidId])
-  @@index([listingId])
-  @@index([status])
 }
 
 model Invoice {
@@ -824,41 +438,34 @@ model Invoice {
 }
 
 model Order {
-  id        String   @id @default(cuid())
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
   deliveredAt DateTime?
 
   // custom
-  status         ProcessStatus
-  subTotal       Decimal?      @db.Decimal(10, 2)
-  tax            Decimal?      @db.Decimal(10, 2)
-  shipping       Decimal?      @db.Decimal(10, 2)
-  total          Decimal?      @db.Decimal(10, 2)
-  paymentIntentId String?
-  inReview       Boolean? @default(false)
-  resolution     String?
+  status           ProcessStatus
+  subTotal         Decimal?      @db.Decimal(10, 2)
+  tax              Decimal?      @db.Decimal(10, 2)
+  shipping         Decimal?      @db.Decimal(10, 2)
+  total            Decimal?      @db.Decimal(10, 2)
+  paymentIntentId  String?
+  inReview         Boolean?      @default(false)
+  resolution       String?
   customerSnapshot Json?
-  sellerSnapshot Json?
+  sellerSnapshot   Json?
 
   // relations
-  cart                 Cart?                 @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  cartId               String?
-  customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  customerId           String?
-  seller               Seller?               @relation(fields: [sellerId], references: [id], onDelete: SetNull)
-  sellerId             String?
-  transactions         Transaction[]
-  shipments            Shipment[]
-  invoice              Invoice?              @relation(fields: [invoiceId], references: [id])
-  invoiceId            String?
-  orderListings        OrderListing[]
-  shippingMethod       ShippingMethod?       @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId     String?
-  orderShippingOptions OrderShippingOption[]
-  offer                Offer?                @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  offerId              String?               @unique
-  refund               Refund?
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId    String?
+  seller        Seller?        @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  sellerId      String?
+  cart          Cart?          @relation(fields: [cartId], references: [id])
+  cartId        String?
+  transactions  Transaction[]
+  invoice       Invoice?       @relation(fields: [invoiceId], references: [id])
+  invoiceId     String?
+  orderListings OrderListing[]
 
   @@index([customerId])
   @@index([sellerId])
@@ -887,42 +494,19 @@ model OrderListing {
   @@id([orderId, listingId])
 }
 
-model Refund {
-  id                  String   @id @default(cuid())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  // custom
-  reason              String?
-  type                RefundType
-  status              RefundStatus @default(PENDING)
-  image               String?
-
-  // relations
-  order               Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId             String @unique
-
-  @@index([orderId])
-  @@index([status])
-  @@index([type])
-}
-
-
 model Transaction {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // custom
-  amount          Decimal         @db.Decimal(10, 2)
-  refundedAmount  Decimal?        @db.Decimal(10, 2)
-  transactionType TransactionType @default(PAYMENT)
-  description     String?
-  currency        Currency        @default(USD)
-
+  amount             Decimal            @db.Decimal(10, 2)
+  refundedAmount     Decimal?           @db.Decimal(10, 2)
+  transactionType    TransactionType    @default(PAYMENT)
+  description        String?
+  currency           Currency           @default(USD)
   paymentId          String?
   paymentAccountType PaymentAccountType @default(STRIPE)
-  paymentMethodType  PaymentMethodType  @default(CARD)
 
   // relations
   account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -938,77 +522,4 @@ model Transaction {
   @@index([createdAt])
   @@index([accountId, transactionType])
   @@index([transactionType, createdAt])
-}
-
-model SellerShippingMethod {
-  id        String   @unique @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // relations
-  seller           Seller         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  sellerId         String
-  shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  shippingMethodId String
-
-  @@id([sellerId, shippingMethodId])
-}
-
-model SellerShippingOption {
-  id        String   @unique @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // relations
-  seller           Seller         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  sellerId         String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
-  shippingOptionId String
-
-  @@id([sellerId, shippingOptionId])
-}
-
-model Shipment {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  name                String?
-  displayName         String?
-  description         String?
-  type                ShipmentType        @default(OUTBOUND)
-  shipmentAccountType ShipmentAccountType @default(SHIPPO)
-  status              ProcessStatus
-  rate                Decimal             @db.Decimal(10, 2)
-  trackingNumber      String?
-  trackingStatus      TrackingStatus?     @default(UNKNOWN)
-  labelUrl            String?
-  
-  externalShipmentId        String?
-  externalShipmentRateId    String?
-  externalShipmentServiceId String?
-  externalShipmentCarrierId String?
-
-  // relations
-  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId String?
-}
-
-model OrderShippingOption {
-  id        String   @unique @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  rate       Decimal? @db.Decimal(10, 2)
-  maxQuantity Int?
-
-  // relations
-  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId          String
-  shippingOption   ShippingOption @relation(fields: [shippingOptionId], references: [id], onDelete: Cascade)
-  shippingOptionId String
-
-  @@id([orderId, shippingOptionId])
 }

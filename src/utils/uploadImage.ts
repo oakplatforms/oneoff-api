@@ -21,6 +21,7 @@ export type ResizeImageOptions = {
   quality?: number
   format?: 'jpeg' | 'png' | 'webp' | 'jpg'
   fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
+  blur?: number  // Blur radius (e.g., 20-30 for content blurring)
 }
 
 const defaultResizeOptions: ResizeImageOptions = {
@@ -62,6 +63,11 @@ export async function uploadImage(
       height: resizeOptions.height,
       fit: resizeOptions.fit ?? 'inside',
     })
+
+    // Apply blur if specified
+    if (resizeOptions.blur && resizeOptions.blur > 0) {
+      pipeline.blur(resizeOptions.blur)
+    }
 
     if (ext === 'webp') {
       pipeline.webp({ quality: resizeOptions.quality ?? 75 })

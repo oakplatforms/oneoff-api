@@ -39,7 +39,7 @@ chmod +x deploy-pipeline.sh
 
 Check the CloudFormation stack status:
 ```bash
-aws cloudformation describe-stacks --stack-name tcgx-pipeline
+aws cloudformation describe-stacks --stack-name oneoff-pipeline
 ```
 
 ## Troubleshooting
@@ -70,9 +70,9 @@ aws cloudformation describe-stacks --stack-name tcgx-pipeline
 
 ## Files Created
 
-- `tcgx-pipeline-dev` - Dev environment pipeline
-- `tcgx-pipeline-stage` - Stage environment pipeline
-- `tcgx-pipeline-prod` - Prod environment pipeline
-- `tcgx-build-dev` - Dev build project
-- `tcgx-build-stage` - Stage build project
-- `tcgx-build-prod` - Prod build project 
+- `oneoff-pipeline-dev` - Dev environment pipeline
+- `oneoff-pipeline-stage` - Stage environment pipeline
+- `oneoff-pipeline-prod` - Prod environment pipeline
+- `oneoff-build-dev` - Dev build project
+- `oneoff-build-stage` - Stage build project
+- `oneoff-build-prod` - Prod build project 

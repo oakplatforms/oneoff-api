@@ -2,12 +2,12 @@
 
 ## Overview
 
-The TCGX API is a serverless application built with AWS Lambda and API Gateway, deployed using the Serverless Framework. The service consists of a main API Lambda function and several specialized sub-lambdas that handle specific functionality like webhooks, guest authentication, and authorization.
+The ONEOFF API is a serverless application built with AWS Lambda and API Gateway, deployed using the Serverless Framework. The service consists of a main API Lambda function and several specialized sub-lambdas that handle specific functionality like webhooks, guest authentication, and authorization.
 
 ## Service Architecture
 
 ### Main API Lambda
-- **Function**: `tcgx-api-{stage}`
+- **Function**: `oneoff-api-{stage}`
 - **Handler**: `lambdas/apiHandler.handler`
 - **Purpose**: Main API endpoint that handles all authenticated requests
 - **Routes**: `/{proxy+}` (catches all API routes)
@@ -21,7 +21,7 @@ The TCGX API is a serverless application built with AWS Lambda and API Gateway, 
 ### Sub-Lambdas
 
 #### 1. Guest Token Lambda
-- **Function**: `tcgx-api-guest-token-{stage}`
+- **Function**: `oneoff-api-guest-token-{stage}`
 - **Handler**: `lambdas/guestTokenHandler.handler`
 - **Route**: `GET /user/guest-token`
 - **Purpose**: Generates short-lived JWT tokens for guest users
@@ -29,7 +29,7 @@ The TCGX API is a serverless application built with AWS Lambda and API Gateway, 
 - **Token Type**: HS256 with temporary secret
 
 #### 2. Stripe Webhook Lambda
-- **Function**: `tcgx-api-stripe-webhook-{stage}`
+- **Function**: `oneoff-api-stripe-webhook-{stage}`
 - **Handler**: `lambdas/stripeWebhookHandler.handler`
 - **Route**: `POST /webhook/stripe`
 - **Purpose**: Processes Stripe webhook events for payment status updates
@@ -40,7 +40,7 @@ The TCGX API is a serverless application built with AWS Lambda and API Gateway, 
   - Handles subscription events
 
 #### 3. Shippo Webhook Lambda
-- **Function**: `tcgx-api-shippo-webhook-{stage}`
+- **Function**: `oneoff-api-shippo-webhook-{stage}`
 - **Handler**: `lambdas/shippoWebhookHandler.handler`
 - **Route**: `POST /webhook/shippo`
 - **Purpose**: Processes Shippo webhook events for shipping updates
@@ -51,7 +51,7 @@ The TCGX API is a serverless application built with AWS Lambda and API Gateway, 
   - Handles delivery confirmations
 
 #### 4. Lambda Authorizer
-- **Function**: `tcgx-api-authorizer-{stage}`
+- **Function**: `oneoff-api-authorizer-{stage}`
 - **Handler**: `lambdas/authorizerHandler.handler`
 - **Purpose**: Validates JWT tokens and provides authorization context
 - **Token Types Supported**:
@@ -93,9 +93,9 @@ The TCGX API is a serverless application built with AWS Lambda and API Gateway, 
 ## Deployment
 
 The service is deployed to three environments:
-- **Dev**: `tcgx-api-dev`
-- **Stage**: `tcgx-api-stage` 
-- **Prod**: `tcgx-api-prod`
+- **Dev**: `oneoff-api-dev`
+- **Stage**: `oneoff-api-stage` 
+- **Prod**: `oneoff-api-prod`
 
 Each environment has its own:
 - Database instance
