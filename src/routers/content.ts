@@ -5,7 +5,7 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
-import { validateAdmin, AuthenticatedUser } from '../validation/user'
+import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const contentRouter = express.Router()

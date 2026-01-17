@@ -20,55 +20,6 @@ export const validateRole = (reqUser: AuthenticatedUser, requiredRole: string) =
   return true
 }
 
-export const validateAdmin = async (reqUser: AuthenticatedUser, adminId: string, requiredRole: string) => {
-  if (!reqUser) {
-    throw new Error('User authentication required')
-  }
-
-  if (!reqUser.principalId) {
-    throw new Error('User principalId is required')
-  }
-
-  if (!adminId) {
-    throw new Error('AdminId is required')
-  }
-
-  const admin = await prisma.admin.findUnique({
-    where: { id: adminId },
-    include: {
-      user: true,
-    },
-  })
-
-  if (!admin) {
-    throw new Error('Admin not found')
-  }
-
-  if (!admin.user) {
-    throw new Error('Admin does not have an associated user')
-  }
-
-  if (admin.user.authId !== reqUser.principalId) {
-    throw new Error('User principalId does not match admin user authId')
-  }
-
-  if (reqUser.role !== requiredRole) {
-    throw new Error(`User role '${reqUser.role}' does not match required role '${requiredRole}'`)
-  }
-
-  switch (requiredRole) {
-  case 'admin':
-    if (!admin.user.isAdmin) {
-      throw new Error('User is not an admin')
-    }
-    break
-  default:
-    throw new Error(`Invalid required admin role: ${requiredRole}`)
-  }
-
-  return admin
-}
-
 export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: string, requiredRole?: string) => {
   if (!reqUser) {
     throw new Error('User authentication required')
@@ -166,21 +117,17 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
 }
 
 /**
- * Helper function to validate either account or admin access
+ * Helper function to validate account access
  * @param reqUser - The authenticated user making the request
  * @param accountId - The account ID to validate against
- * @param adminId - Optional admin ID for admin validation
  * @returns Promise that resolves if validation passes
  */
-export const validateAccountOrAdmin = async (reqUser: AuthenticatedUser, accountId: string, adminId?: string) => {
-  if (adminId) {
-    //If adminId is provided, validate as admin
-    await validateAdmin(reqUser, adminId, 'admin')
-  } else if (accountId) {
-    //If only accountId is provided, validate as authenticated account
+export const validateAccountOrAdmin = async (reqUser: AuthenticatedUser, accountId: string) => {
+  if (accountId) {
+    //Validate as authenticated account
     await validateAccount(reqUser, accountId, 'authenticated')
   } else {
-    //If neither ID is provided, throw an error
-    throw new Error('Either accountId or adminId must be provided')
+    //If accountId is not provided, throw an error
+    throw new Error('AccountId must be provided')
   }
 }

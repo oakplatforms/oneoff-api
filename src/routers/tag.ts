@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
+import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const tagRouter = express.Router()
@@ -148,10 +148,10 @@ tagRouter.get('/tags', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 tagRouter.post(`/tag`, async (req, res) => {
-  const { name, displayName, supportedTagValues, createdById } = req.body
+  const { name, displayName, supportedTagValues } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const tag = await prisma.tag.create({
       data: {
         name,
@@ -166,7 +166,6 @@ tagRouter.post(`/tag`, async (req, res) => {
             ),
           }
           : undefined,
-        createdBy: { connect: { id: createdById } },
       },
     })
 
@@ -261,15 +260,14 @@ tagRouter.post(`/tag`, async (req, res) => {
  */
 tagRouter.put('/tag/:id', async (req, res) => {
   const { id } = req.params
-  const { supportedTagValues, lastModifiedById, ...rest } = req.body
+  const { supportedTagValues, ...rest } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const tag = await prisma.tag.update({
       where: { id },
       data: {
         ...rest,
-        lastModifiedBy: { connect: { id: lastModifiedById } },
         supportedTagValues: supportedTagValues
           ? {
             create: supportedTagValues.create?.map(

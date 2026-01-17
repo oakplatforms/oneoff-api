@@ -5,8 +5,7 @@ import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
-import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
-import { processEntitiesInBatches, EntityProcessingInput } from '../utils/stepFunctions'
+import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const entityRouter = express.Router()
@@ -352,7 +351,7 @@ entityRouter.post('/entity', async (req, res) => {
   } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     if (entityTags?.create?.length) {
       for (const entityTag of entityTags.create) {
         const selectedTag = await prisma.tag.findUnique({
@@ -558,10 +557,10 @@ entityRouter.post('/entity', async (req, res) => {
  */
 entityRouter.put('/entity/:id', async (req, res) => {
   const { id } = req.params
-  const { entityTags, categoryId, brandId, product, lastModifiedById } = req.body
+  const { entityTags, categoryId, brandId, product } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     if (entityTags?.create?.length) {
       for (const entityTag of entityTags.create) {
         const selectedTag = await prisma.tag.findUnique({
@@ -1266,10 +1265,6 @@ entityRouter.delete(`/entity/:id`, async (req, res) => {
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete entity.' })
   }
 })
-
-/**
- * @openapi
- * /entities/process-batch:
  *   post:
  *     tags:
  *       - Entity

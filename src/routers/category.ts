@@ -3,7 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateAdmin, AuthenticatedUser, validateRole } from '../validation/user'
+import { AuthenticatedUser, validateRole } from '../validation/user'
 
 const prisma = getPrismaClient()
 export const categoryRouter = express.Router()
@@ -125,16 +125,15 @@ categoryRouter.get('/categories', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 categoryRouter.post(`/category`, async (req, res) => {
-  const { name, displayName, createdById, description } = req.body
+  const { name, displayName, description } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, createdById, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const category = await prisma.category.create({
       data: {
         name,
         displayName,
         description,
-        createdBy: { connect: { id: createdById } },
       },
     })
     res.json(category)
@@ -216,10 +215,9 @@ categoryRouter.post(`/category`, async (req, res) => {
  */
 categoryRouter.put(`/category/:id`, async (req, res) => {
   const { id } = req.params
-  const { lastModifiedById } = req.body
 
   try {
-    await validateAdmin(req.user as AuthenticatedUser, lastModifiedById, 'admin')
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const category = await prisma.category.update({
       where: { id },
       data: {

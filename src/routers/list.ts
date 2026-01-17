@@ -109,7 +109,7 @@ export const listRouter = express.Router()
  *                   description: Description of the error that occurred.
  */
 listRouter.get('/lists', async (req, res) => {
-  const { include, type, usePagination, page, limit, accountId, brandId } = req.query
+  const { include, type, usePagination, page, limit, accountId } = req.query
 
   try {
     const parsedLimit = parseInt(limit as string) || 10
@@ -129,7 +129,6 @@ listRouter.get('/lists', async (req, res) => {
     const where = {
       ...(typeArray.length > 0 ? { type: { in: typeArray as ListType[] } } : {}),
       ...(accountId ? { accountId: accountId as string } : {}),
-      ...(brandId ? { brandId: brandId as string } : {}),
     }
 
     //Check if entityList.entity is included to add listings and bids
@@ -356,7 +355,7 @@ listRouter.get('/lists', async (req, res) => {
  *                   description: Description of the error that occurred.
  */
 listRouter.post('/list', async (req, res) => {
-  const { name, type, displayName, description, navigation, index, isPrivate, brandId, accountId, createdById, entityList } = req.body
+  const { name, type, displayName, description, navigation, index, isPrivate, accountId, entityList } = req.body
 
   try {
     //Validate required fields
@@ -367,12 +366,12 @@ listRouter.post('/list', async (req, res) => {
       throw new Error('Type is required')
     }
 
-    //Either accountId or createdById must be provided
-    if (!accountId && !createdById) {
-      throw new Error('Either accountId or createdById is required')
+    //accountId must be provided
+    if (!accountId) {
+      throw new Error('accountId is required')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId)
 
     // All list types now support reference codes with 'C' identifier
     const list = await generateReferenceCodeWithRetry({
@@ -388,9 +387,7 @@ listRouter.post('/list', async (req, res) => {
             isPrivate,
             type,
             referenceCode,
-            brand: brandId ? { connect: { id: brandId } } : undefined,
             account: accountId ? { connect: { id: accountId } } : undefined,
-            createdBy: createdById ? { connect: { id: createdById } } : undefined,
             entityList: entityList?.create?.length
               ? {
                 create: entityList.create.map((item: { entityId: string; quantity?: number }) => ({
@@ -517,7 +514,7 @@ listRouter.post('/list', async (req, res) => {
  */
 listRouter.put('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { name, type, displayName, description, navigation, index, isPrivate, brandId, entityList, accountId, createdById, lastModifiedById } = req.body
+  const { name, type, displayName, description, navigation, index, isPrivate, entityList, accountId } = req.body
 
   try {
     if (!id) {
@@ -527,7 +524,7 @@ listRouter.put('/list/:id', async (req, res) => {
     //First, get the existing list to check current ownership
     const existingList = await prisma.list.findUnique({
       where: { id },
-      select: { accountId: true, createdById: true }
+      select: { accountId: true }
     })
 
     if (!existingList) {
@@ -536,14 +533,13 @@ listRouter.put('/list/:id', async (req, res) => {
 
     //Use existing ownership for authorization if not provided in request body
     const authAccountId = accountId || existingList.accountId
-    const authCreatedById = createdById || existingList.createdById
 
-    //Either accountId or createdById must be available (from existing list or request body)
-    if (!authAccountId && !authCreatedById) {
-      throw new Error('List must have either accountId or createdById')
+    //accountId must be available (from existing list or request body)
+    if (!authAccountId) {
+      throw new Error('List must have accountId')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId)
 
     const updateData: any = {
       name,
@@ -554,8 +550,6 @@ listRouter.put('/list/:id', async (req, res) => {
       isPrivate,
       type,
       account: accountId ? { connect: { id: accountId } } : undefined,
-      createdBy: createdById ? { connect: { id: createdById } } : undefined,
-      lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
       entityList: entityList
         ? {
           create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
@@ -571,15 +565,6 @@ listRouter.put('/list/:id', async (req, res) => {
           })),
         }
         : undefined,
-    }
-
-    // Handle brandId (allow null to disconnect)
-    if (brandId !== undefined) {
-      if (brandId) {
-        updateData.brand = { connect: { id: brandId } }
-      } else {
-        updateData.brand = { disconnect: true }
-      }
     }
 
     const updatedList = await prisma.list.update({
@@ -726,20 +711,20 @@ listRouter.put('/list/:id', async (req, res) => {
  *                   type: string
  */
 listRouter.put('/lists/batch', async (req, res) => {
-  const { lists, accountId, createdById, lastModifiedById } = req.body
+  const { lists, accountId } = req.body
 
   try {
     if (!lists || !Array.isArray(lists) || lists.length === 0) {
       throw new Error('Lists array is required and must not be empty')
     }
 
-    //For batch updates, we need either accountId or createdById for authorization
+    //For batch updates, we need accountId for authorization
     //This represents the user performing the batch operation
-    if (!accountId && !createdById) {
-      throw new Error('Either accountId or createdById is required for batch operation authorization')
+    if (!accountId) {
+      throw new Error('accountId is required for batch operation authorization')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId, createdById)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId)
 
     const updatedLists: List[] = []
     const failedUpdates: Array<{ id: string; error: string }> = []
@@ -764,7 +749,6 @@ listRouter.put('/lists/batch', async (req, res) => {
               index,
               isPrivate,
               type,
-              lastModifiedBy: lastModifiedById ? { connect: { id: lastModifiedById } } : undefined,
               entityList: entityList
                 ? {
                   create: entityList.create?.map((item: { entityId: string; quantity?: number }) => ({
@@ -969,7 +953,7 @@ listRouter.get('/list/:id', async (req, res) => {
  */
 listRouter.delete('/list/:id', async (req, res) => {
   const { id } = req.params
-  const { accountId, createdById } = req.body
+  const { accountId } = req.body
 
   try {
     if (!id) {
@@ -978,7 +962,7 @@ listRouter.delete('/list/:id', async (req, res) => {
 
     const existingList = await prisma.list.findUnique({
       where: { id },
-      select: { accountId: true, createdById: true }
+      select: { accountId: true }
     })
 
     if (!existingList) {
@@ -986,13 +970,12 @@ listRouter.delete('/list/:id', async (req, res) => {
     }
 
     const authAccountId = accountId || existingList.accountId
-    const authCreatedById = createdById || existingList.createdById
 
-    if (!authAccountId && !authCreatedById) {
-      throw new Error('List must have either accountId or createdById')
+    if (!authAccountId) {
+      throw new Error('List must have accountId')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId)
 
     const deletedList = await prisma.list.delete({
       where: { id },
@@ -1080,7 +1063,7 @@ listRouter.delete('/list/:id', async (req, res) => {
 listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req, res) => {
   const { id } = req.params
   const { field = 'banner' } = req.query
-  const { accountId, createdById } = req.body
+  const { accountId } = req.body
 
   try {
     if (!id) {
@@ -1090,7 +1073,7 @@ listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req
     //First, get the existing list to check current ownership
     const existingList = await prisma.list.findUnique({
       where: { id },
-      select: { accountId: true, createdById: true }
+      select: { accountId: true }
     })
 
     if (!existingList) {
@@ -1099,14 +1082,13 @@ listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req
 
     //Use existing ownership for authorization if not provided in request body
     const authAccountId = accountId || existingList.accountId
-    const authCreatedById = createdById || existingList.createdById
 
-    //Either accountId or createdById must be available (from existing list or request body)
-    if (!authAccountId && !authCreatedById) {
-      throw new Error('List must have either accountId or createdById')
+    //accountId must be available (from existing list or request body)
+    if (!authAccountId) {
+      throw new Error('List must have accountId')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId)
 
     if (!req.file) {
       throw new Error('Missing image file')
@@ -1208,7 +1190,7 @@ listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req
 listRouter.delete('/list/delete-image/:id', async (req, res) => {
   const { id } = req.params
   const { field = 'banner' } = req.query
-  const { accountId, createdById } = req.body
+  const { accountId } = req.body
 
   try {
     if (!id) {
@@ -1218,7 +1200,7 @@ listRouter.delete('/list/delete-image/:id', async (req, res) => {
     //First, get the existing list to check current ownership
     const existingList = await prisma.list.findUnique({
       where: { id },
-      select: { accountId: true, createdById: true, banner: true, logo: true }
+      select: { accountId: true, banner: true, logo: true }
     })
 
     if (!existingList) {
@@ -1227,14 +1209,13 @@ listRouter.delete('/list/delete-image/:id', async (req, res) => {
 
     //Use existing ownership for authorization if not provided in request body
     const authAccountId = accountId || existingList.accountId
-    const authCreatedById = createdById || existingList.createdById
 
-    //Either accountId or createdById must be available (from existing list or request body)
-    if (!authAccountId && !authCreatedById) {
-      throw new Error('List must have either accountId or createdById')
+    //accountId must be available (from existing list or request body)
+    if (!authAccountId) {
+      throw new Error('List must have accountId')
     }
 
-    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId, authCreatedById)
+    await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId)
 
     if (field !== 'banner' && field !== 'logo') {
       throw new Error('Invalid field parameter. Must be "banner" or "logo"')

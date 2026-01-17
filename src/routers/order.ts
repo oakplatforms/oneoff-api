@@ -1,14 +1,10 @@
-import { Prisma, ProcessStatus, TrackingStatus, ShipmentAccountType, ShippingOption } from '@prisma/client'
+import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import stripe from '../utils/stripe'
-import eventBridge from '../utils/eventBridge'
-import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
-import { getActiveShipment } from '../utils/order'
-import shippo from '../utils/shippo'
 
 const prisma = getPrismaClient()
 export const orderRouter = express.Router()
