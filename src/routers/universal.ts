@@ -4,7 +4,6 @@ import { validateReferenceCodeFormat, extractTypeIdentifier } from '../validatio
 import { Prisma } from '@prisma/client'
 import { generateIncludes } from '../utils/generateIncludes'
 
-const prisma = getPrismaClient()
 export const universalRouter = express.Router()
 
 /**
@@ -82,7 +81,8 @@ export const universalRouter = express.Router()
  *                 errorMessage:
  *                   type: string
  */
-universalRouter.get('/:username/:referenceCode', async (req, res) => {
+universalRouter.get('/username/:username/:referenceCode', async (req, res) => {
+  const prisma = await getPrismaClient()
   const { username, referenceCode } = req.params
   const { include } = req.query
 

@@ -20,6 +20,7 @@ import { contentRouter } from './content'
 import cartRouter from './cart'
 import { warmupRouter } from './warmup'
 import { universalRouter } from './universal'
+import { feedRouter } from './feed'
 
 router.use(warmupRouter)
 router.use(userRouter)
@@ -41,6 +42,7 @@ router.use(contentRouter)
 router.use(profileRouter)
 router.use('/cart', cartRouter)
 
+router.use(feedRouter)
 router.use(universalRouter)
 
 export default router
