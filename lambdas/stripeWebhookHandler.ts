@@ -1,13 +1,24 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import stripe from '../src/utils/stripe'
+import { getStripeClient, initStripeClient } from '../src/utils/stripe'
+import { getSecrets, OneoffSecrets } from '../src/utils/secretsManager'
+import { initPrismaClient } from '../src/utils/prismaHelpers'
 
 import { handleSellerAccountUpdated } from '../src/webhooks/stripe'
 
+let cachedSecrets: OneoffSecrets | null = null
+let isInitialized = false
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  if (!isInitialized) {
+    await Promise.all([initPrismaClient(), initStripeClient()])
+    cachedSecrets = await getSecrets()
+    isInitialized = true
+  }
+
   console.log('Received webhook event:', JSON.stringify(event, null, 2))
 
   const sig = event.headers['stripe-signature'] || event.headers['Stripe-Signature']
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+  const webhookSecret = cachedSecrets!.stripeWebhookSecret
 
   if (!sig) {
     console.error('Missing Stripe signature header. Available headers:', Object.keys(event.headers))
@@ -24,7 +35,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
-    const eventObj = stripe.webhooks.constructEvent(event.body!, sig, webhookSecret)
+    const eventObj = getStripeClient().webhooks.constructEvent(event.body!, sig, webhookSecret)
     console.log('✅ Verified Stripe event:', eventObj.type)
 
     switch (eventObj.type) {

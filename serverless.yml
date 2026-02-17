@@ -19,7 +19,6 @@ provider:
         functionName: authorizer
 
   environment:
-    NODE_ENV: ${sls:stage}
     STAGE: ${sls:stage}
 
   iam:
@@ -39,28 +38,34 @@ provider:
             - s3:PutObjectAcl
             - s3:GetObject
             - s3:DeleteObject
-          Resource: 
-            - arn:aws:s3:::oneoff-dev/*
-            - arn:aws:s3:::oneoff-dev
+          Resource:
+            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}/*
+            - arn:aws:s3:::${self:custom.s3Bucket.${sls:stage}}
         - Effect: Allow
           Action:
             - cognito-idp:AdminAddUserToGroup
             - cognito-idp:AdminRemoveUserFromGroup
             - cognito-idp:AdminDeleteUser
             - cognito-idp:ListUsers
-          Resource: 
+          Resource:
             - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:CONSUMER_USER_POOL_ID}
+            - arn:aws:cognito-idp:us-east-1:992382609315:userpool/${env:ADMIN_USER_POOL_ID}
         - Effect: Allow
           Action:
             - rekognition:DetectText
           Resource: '*'
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:us-east-1:992382609315:secret:oneoff-credentials-*
 
 functions:
   api:
     name: oneoff-api-${sls:stage}
     handler: lambdas/apiHandler.handler
-    memorySize: 1024
-    ephemeralStorageSize: 512
+    memorySize: ${self:custom.memorySize.${sls:stage}}
+    ephemeralStorageSize: ${self:custom.storageSize.${sls:stage}}
     layers:
       - arn:aws:lambda:us-east-1:992382609315:layer:sharp-arm64:1
     events:
@@ -83,26 +88,22 @@ functions:
       - httpApi:
           path: /{proxy+}
           method: OPTIONS
-    provisionedConcurrency: 0
+    provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
     environment:
-      DATABASE_URL: ${env:DATABASE_URL}
-      S3_BUCKET_NAME: oneoff-dev
-      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
+      S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
+      ADMIN_USER_POOL_ID: ${env:ADMIN_USER_POOL_ID}
 
   authorizer:
     name: oneoff-api-authorizer-${sls:stage}
     handler: lambdas/authorizerHandler.handler
     environment:
+      ADMIN_USER_POOL_ID: ${env:ADMIN_USER_POOL_ID}
       CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
-      TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
 
   guestToken:
     name: oneoff-api-guest-token-${sls:stage}
     handler: lambdas/guestTokenHandler.handler
-    environment:
-      TEMP_JWT_SECRET: ${env:TEMP_JWT_SECRET}
     events:
       - httpApi:
           path: /user/guest-token
@@ -111,11 +112,6 @@ functions:
   stripeWebhook:
     name: oneoff-api-stripe-webhook-${sls:stage}
     handler: lambdas/stripeWebhookHandler.handler
-    environment:
-      DATABASE_URL: ${env:DATABASE_URL}
-      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET}
-      CONSUMER_USER_POOL_ID: ${env:CONSUMER_USER_POOL_ID}
     events:
       - httpApi:
           path: /webhook/stripe
@@ -125,6 +121,26 @@ custom:
   dotenv:
     path: .env.${opt:stage, 'dev'}
     logging: false
+
+  s3Bucket:
+    dev: oneoff-dev
+    stage: oneoff-stage
+    prod: oneoff-prod
+
+  provisionedConcurrency:
+    dev: 0
+    stage: 0
+    prod: 3
+
+  memorySize:
+    dev: 1024
+    stage: 1024
+    prod: 3072
+
+  storageSize:
+    dev: 512
+    stage: 512
+    prod: 1024
 
   esbuild:
     bundle: true

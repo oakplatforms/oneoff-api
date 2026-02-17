@@ -26,6 +26,11 @@ enum AccountType {
   SELLER
 }
 
+enum AdminType {
+  MARKET_MANAGER
+  BRAND_MANAGER
+}
+
 enum SellerType {
   INDIVIDUAL
   BUSINESS
@@ -87,9 +92,38 @@ model User {
 
   // relations
   account Account?
+  admin   Admin?
 
   @@index([authId])
   @@index([status])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    Status   @default(ACTIVE)
+
+  // custom
+  email String? @unique
+
+  // relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  // created by and last modified by relations
+  createdCategories              Category[]          @relation(name: "CreatedBy")
+  lastModifiedCategories         Category[]          @relation(name: "LastModifiedBy")
+  createdTags                    Tag[]               @relation(name: "CreatedBy")
+  lastModifiedTags               Tag[]               @relation(name: "LastModifiedBy")
+  createdSupportedTagValues      SupportedTagValue[] @relation(name: "CreatedBy")
+  lastModifiedSupportedTagValues SupportedTagValue[] @relation(name: "LastModifiedBy")
+  createdEntities                Entity[]            @relation(name: "CreatedBy")
+  lastModifiedEntities           Entity[]            @relation(name: "LastModifiedBy")
+  createdLists                   List[]              @relation(name: "CreatedBy")
+  lastModifiedLists              List[]              @relation(name: "LastModifiedBy")
+
+  @@index([userId])
 }
 
 model Account {
@@ -230,7 +264,11 @@ model Category {
   description String?
 
   // relations
-  entities Entity[]
+  createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Admin?   @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
+  entities         Entity[]
 }
 
 model Tag {
@@ -243,6 +281,10 @@ model Tag {
   displayName String?
 
   // relations
+  createdBy          Admin?              @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById        String?
+  lastModifiedBy     Admin?              @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById   String?
   entityTags         EntityTag[]
   supportedTagValues SupportedTagValue[]
 }
@@ -260,8 +302,12 @@ model SupportedTagValue {
   description String?
 
   // relations
-  tag   Tag?    @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  tagId String?
+  createdBy        Admin?  @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Admin?  @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
+  tag              Tag?    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId            String?
 
   @@index([tagId])
 }
@@ -284,9 +330,13 @@ model List {
   referenceCode String?   @unique
 
   // relations
-  account    Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  accountId  String?
-  entityList EntityList[]
+  account          Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId        String?
+  createdBy        Admin?       @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Admin?       @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
+  entityList       EntityList[]
 
   @@index([accountId])
   @@index([type])
@@ -308,12 +358,16 @@ model Entity {
   secondaryImage String?
 
   // relations
-  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId String?
-  content    Content?
-  entityTags EntityTag[]
-  entityList EntityList[]
-  listings   Listing[]
+  createdBy        Admin?       @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
+  lastModifiedBy   Admin?       @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
+  lastModifiedById String?
+  category         Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId       String?
+  content          Content?
+  entityTags       EntityTag[]
+  entityList       EntityList[]
+  listings         Listing[]
 
   @@index([name])
   @@index([categoryId])

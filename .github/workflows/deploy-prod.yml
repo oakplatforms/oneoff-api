@@ -4,6 +4,11 @@ on:
   push:
     branches: [ prod ]
 
+# Required for OIDC token generation
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -12,59 +17,56 @@ jobs:
       SLS_TELEMETRY_DISABLED: "true"
       SLS_ORG: ""
       SLS_APP: ""
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
+
+    # OIDC-based AWS authentication (no access keys needed)
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+        aws-region: us-east-1
+
+    - name: Get database credentials from Secrets Manager
+      id: db-secret
+      run: |
+        SECRET=$(aws secretsmanager get-secret-value --secret-id oneoff-credentials-prod --query SecretString --output text)
+        USERNAME=$(echo $SECRET | jq -r '.username')
+        PASSWORD=$(echo $SECRET | jq -r '.password')
+        HOST=$(echo $SECRET | jq -r '.host')
+        PORT=$(echo $SECRET | jq -r '.port')
+        echo "DATABASE_URL=postgresql://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/postgres?sslmode=require" >> $GITHUB_OUTPUT
 
     - name: Deploy Prisma migrations
       run: npx prisma migrate deploy
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+        DATABASE_URL: ${{ steps.db-secret.outputs.DATABASE_URL }}
 
     - name: Generate Prisma client
       run: npx prisma generate
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
-    
-    - name: Setup AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
+        DATABASE_URL: ${{ steps.db-secret.outputs.DATABASE_URL }}
+
     - name: Install Serverless Framework
       run: npm install -g serverless
-    
+
     - name: Configure Serverless Framework
       run: |
         mkdir -p ~/.serverless
         echo '{"frameworkVersion": "3", "telemetryDisabled": true, "dashboard": {"enabled": false}}' > ~/.serverless/config.json
-    
+
     - name: Deploy Main API to Production
       run: serverless deploy --stage prod --verbose
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
-        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_PROD }}
-        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_PROD }}
-        SHIPPO_SECRET_KEY: ${{ secrets.SHIPPO_SECRET_KEY_PROD }}
-        SHIPPO_WEBHOOK_SECRET: ${{ secrets.SHIPPO_WEBHOOK_SECRET_PROD }}
-        SHIPPO_CARRIER_ACCOUNT_USPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_USPS }}
-        SHIPPO_CARRIER_ACCOUNT_UPS: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_UPS }}
-        SHIPPO_CARRIER_ACCOUNT_FEDEX: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_FEDEX }}
-        SHIPPO_CARRIER_ACCOUNT_DHL: ${{ secrets.SHIPPO_CARRIER_ACCOUNT_DHL }}
-        TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET_PROD }}
-        ADMIN_USER_POOL_ID: ${{ secrets.ADMIN_USER_POOL_ID_PROD }}
-        CONSUMER_USER_POOL_ID: ${{ secrets.CONSUMER_USER_POOL_ID_PROD }}
-        PRICING_ENGINE_ARN: ${{ secrets.PRICING_ENGINE_ARN_PROD }}
-    
- 
+        ADMIN_USER_POOL_ID: ${{ vars.ADMIN_USER_POOL_ID_PROD }}
+        CONSUMER_USER_POOL_ID: ${{ vars.CONSUMER_USER_POOL_ID_PROD }}

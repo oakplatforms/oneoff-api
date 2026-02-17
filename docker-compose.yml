@@ -1,14 +1,14 @@
 services:
   test-db:
     image: postgres:14
-    container_name: postgres-test
+    container_name: oneoff-test
     restart: always
     ports:
       - 5433:5432
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: testdb
+      POSTGRES_DB: oneofftestdb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

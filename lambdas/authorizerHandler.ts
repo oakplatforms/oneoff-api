@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import jwksClient from 'jwks-rsa'
 import type { APIGatewayAuthorizerEvent } from 'aws-lambda'
+import { getSecrets, OneoffSecrets } from '../src/utils/secretsManager'
 
 type ExtendedAuthorizerEvent = APIGatewayAuthorizerEvent & {
   headers?: Record<string, string>
@@ -21,7 +22,15 @@ const USER_POOLS = {
   admin: process.env.ADMIN_USER_POOL_ID,
   consumer: process.env.CONSUMER_USER_POOL_ID,
 }
-const TEMP_JWT_SECRET = process.env.TEMP_JWT_SECRET
+
+let cachedSecrets: OneoffSecrets | null = null
+
+async function getTempJwtSecret(): Promise<string> {
+  if (!cachedSecrets) {
+    cachedSecrets = await getSecrets()
+  }
+  return cachedSecrets.tempJwtSecret
+}
 
 function getJwksUrl(userPoolId: string) {
   return `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${userPoolId}/.well-known/jwks.json`
@@ -135,8 +144,8 @@ export async function handler(event: ExtendedAuthorizerEvent) {
 
     if (alg === 'HS256') {
       try {
-        if (!TEMP_JWT_SECRET) throw new Error('TEMP_JWT_SECRET not configured')
-        const decodedGuest = jwt.verify(token, TEMP_JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload
+        const tempJwtSecret = await getTempJwtSecret()
+        const decodedGuest = jwt.verify(token, tempJwtSecret, { algorithms: ['HS256'] }) as jwt.JwtPayload
         if (decodedGuest?.role === 'guest') {
           //Guest users can only make GET requests to read-only endpoints
           if (method !== 'GET') {

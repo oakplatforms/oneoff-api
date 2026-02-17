@@ -4,6 +4,11 @@ on:
   push:
     branches: [ dev ]
 
+# Required for OIDC token generation
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -12,49 +17,56 @@ jobs:
       SLS_TELEMETRY_DISABLED: "true"
       SLS_ORG: ""
       SLS_APP: ""
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
+
+    # OIDC-based AWS authentication (no access keys needed)
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+        aws-region: us-east-1
+
+    - name: Get database credentials from Secrets Manager
+      id: db-secret
+      run: |
+        SECRET=$(aws secretsmanager get-secret-value --secret-id oneoff-credentials-dev --query SecretString --output text)
+        USERNAME=$(echo $SECRET | jq -r '.username')
+        PASSWORD=$(echo $SECRET | jq -r '.password')
+        HOST=$(echo $SECRET | jq -r '.host')
+        PORT=$(echo $SECRET | jq -r '.port')
+        echo "DATABASE_URL=postgresql://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/postgres?sslmode=require" >> $GITHUB_OUTPUT
 
     - name: Deploy Prisma migrations
       run: npx prisma migrate deploy
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_URL: ${{ steps.db-secret.outputs.DATABASE_URL }}
 
     - name: Generate Prisma client
       run: npx prisma generate
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-    
-    - name: Setup AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
+        DATABASE_URL: ${{ steps.db-secret.outputs.DATABASE_URL }}
+
     - name: Install Serverless Framework
       run: npm install -g serverless
-    
+
     - name: Configure Serverless Framework
       run: |
         mkdir -p ~/.serverless
         echo '{"frameworkVersion": "3", "telemetryDisabled": true, "dashboard": {"enabled": false}}' > ~/.serverless/config.json
-    
+
     - name: Deploy to Dev
       run: serverless deploy --stage dev --verbose
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-        TEMP_JWT_SECRET: ${{ secrets.TEMP_JWT_SECRET }}
-        CONSUMER_USER_POOL_ID: ${{ secrets.CONSUMER_USER_POOL_ID }}
+        ADMIN_USER_POOL_ID: ${{ vars.ADMIN_USER_POOL_ID_DEV }}
+        CONSUMER_USER_POOL_ID: ${{ vars.CONSUMER_USER_POOL_ID_DEV }}
