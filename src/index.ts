@@ -46,7 +46,7 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use('/api/v1', router)
+app.use('/', router)
 
 app.use((err: Error, req: Request, res: Response) => {
   if (!res.headersSent) {
