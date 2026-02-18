@@ -1,7 +1,7 @@
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { prismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 
 export const calculateWalletBalance = async (accountId?: string) => {
   if (!accountId) {

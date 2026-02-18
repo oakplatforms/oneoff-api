@@ -1,11 +1,11 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { generateIncludes } from '../utils/generateIncludes'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateRole, AuthenticatedUser } from '../validation/user'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const userRouter = express.Router()
 
 /**

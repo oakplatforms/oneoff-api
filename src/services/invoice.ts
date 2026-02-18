@@ -1,9 +1,9 @@
 import { Order } from '@prisma/client'
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { prismaClient } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 
 export type OrderDetails = {
   listingIds?: string[],

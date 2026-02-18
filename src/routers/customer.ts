@@ -1,5 +1,5 @@
 import express from 'express'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import stripe from '../utils/stripe'
 import { promoteUserToCustomer } from '../utils/promoteUserToCustomer'
 import { Prisma } from '@prisma/client'
@@ -7,7 +7,7 @@ import Stripe from 'stripe'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 import { validateNewCustomer } from '../validation/customer'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const customerRouter = express.Router()
 
 /**

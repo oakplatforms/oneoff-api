@@ -81,13 +81,17 @@ export async function getPrismaClient(): Promise<PrismaClient> {
   return prisma!
 }
 
-//Sync getter - use in routes after initialization is guaranteed
-//Throws if called before initPrismaClient() completes
+//Sync getter - returns a proxy that defers to the initialized client
+//Safe to call at module top level; actual access happens inside route handlers after init
 export function prismaClient(): PrismaClient {
-  if (!prisma) {
-    throw new Error('PrismaClient not initialized. Ensure initPrismaClient() is called at startup.')
-  }
-  return prisma
+  return new Proxy({} as PrismaClient, {
+    get(_target, prop) {
+      if (!prisma) {
+        throw new Error('PrismaClient not initialized. Ensure initPrismaClient() is called at startup.')
+      }
+      return prisma[prop as keyof PrismaClient]
+    }
+  })
 }
 
 //Reset the Prisma client - useful for credential rotation retry logic

@@ -1,9 +1,9 @@
 import express, { Request, Response } from 'express'
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { prismaClient } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
 
 const router = express.Router()
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 
 // Create cart for account
 router.post('/', async (req: Request, res: Response) => {

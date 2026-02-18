@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateRole, validateAccount, AuthenticatedUser } from '../validation/user'
 import stripe from '../utils/stripe'
 import { deleteUserFromCognito } from '../utils/deleteUserFromCognito'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const accountRouter = express.Router()
 
 /**

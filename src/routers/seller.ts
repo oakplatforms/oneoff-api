@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { RekognitionClient, DetectTextCommand } from '@aws-sdk/client-rekognition'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import stripe from '../utils/stripe'
 import Stripe from 'stripe'
@@ -16,7 +16,7 @@ import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { uploadPrivateImage } from '../utils/uploadImage'
 import { generatePresignedUrl } from '../utils/generatePresignedUrl'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const sellerRouter = express.Router()
 
 //Initialize AWS Rekognition Client (v3)

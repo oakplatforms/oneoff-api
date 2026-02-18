@@ -1,7 +1,7 @@
 import { Prisma, Status, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateSeller } from '../validation/seller'
 import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
@@ -10,7 +10,7 @@ import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const listingRouter = express.Router()
 
 /**

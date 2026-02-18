@@ -1,14 +1,14 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateAccount } from '../validation/user'
 import { AuthenticatedUser } from '../validation/user'
 import { validateExistingProfile, validateUsername } from '../validation/profile'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const profileRouter = express.Router()
 
 /**

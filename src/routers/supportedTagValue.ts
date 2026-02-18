@@ -1,9 +1,9 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { AuthenticatedUser, validateRole } from '../validation/user'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const supportedTagValueRouter = express.Router()
 
 /**

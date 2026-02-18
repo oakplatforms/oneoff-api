@@ -1,5 +1,5 @@
 import express from 'express'
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { prismaClient } from '../utils/prismaHelpers'
 
 export const warmupRouter = express.Router()
 
@@ -48,7 +48,7 @@ export const warmupRouter = express.Router()
  */
 warmupRouter.get('/warmup', async (req, res) => {
   try {
-    const prisma = getPrismaClient()
+    const prisma = prismaClient()
     await prisma.$queryRaw`SELECT 1`
 
     res.json({

@@ -1,11 +1,11 @@
 import { Prisma, Status } from '@prisma/client'
 import express from 'express'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 export const feedRouter = express.Router()
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 
 type FeedItemType = 'listing'
 

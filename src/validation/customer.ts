@@ -1,6 +1,6 @@
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { prismaClient } from '../utils/prismaHelpers'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 
 export const validateCustomer = async (accountId?: string) => {
   if (!accountId) {

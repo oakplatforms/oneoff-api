@@ -1,8 +1,8 @@
-import { getPrismaClient } from '../utils/prismaHelpers'
+import { prismaClient } from '../utils/prismaHelpers'
 import { promoteUserToSeller } from '../utils/promoteUserToSeller'
 import type { Stripe } from 'stripe'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 
 export const handleSellerAccountUpdated = async (event: Stripe.Event) => {
   const stripeAccount = event.data.object as Stripe.Account

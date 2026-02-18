@@ -1,5 +1,5 @@
 import express from 'express'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateReferenceCodeFormat, extractTypeIdentifier } from '../validation/referenceCode'
 import { Prisma } from '@prisma/client'
 import { generateIncludes } from '../utils/generateIncludes'
@@ -82,7 +82,7 @@ export const universalRouter = express.Router()
  *                   type: string
  */
 universalRouter.get('/username/:username/:referenceCode', async (req, res) => {
-  const prisma = await getPrismaClient()
+  const prisma = prismaClient()
   const { username, referenceCode } = req.params
   const { include } = req.query
 

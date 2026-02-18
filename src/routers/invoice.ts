@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client'
 import express from 'express'
-import { generatePrismaError, getPrismaClient } from '../utils/prismaHelpers'
+import { generatePrismaError, prismaClient } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
 import { validateOrdersForInvoice } from '../validation/invoice'
 import { generateIncludes } from '../utils/generateIncludes'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 export const invoiceRouter = express.Router()
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 /**
  * @openapi
  * /invoice/{id}:

@@ -1,12 +1,12 @@
 import { Prisma, ProcessStatus } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
-import { getPrismaClient, generatePrismaError } from '../utils/prismaHelpers'
+import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import stripe from '../utils/stripe'
 
-const prisma = getPrismaClient()
+const prisma = prismaClient()
 export const orderRouter = express.Router()
 
 export type ListingsInOrder = {
