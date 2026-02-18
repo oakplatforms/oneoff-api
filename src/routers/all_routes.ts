@@ -39,10 +39,10 @@ router.use(transactionRouter)
 router.use(orderRouter)
 router.use(invoiceRouter)
 router.use(contentRouter)
-router.use(profileRouter)
 router.use('/cart', cartRouter)
-
 router.use(feedRouter)
+
+router.use(profileRouter)
 router.use(universalRouter)
 
 export default router
