@@ -16,6 +16,8 @@ export const handler = async (): Promise<APIGatewayProxyResult> => {
       exp: Math.floor(Date.now() / 1000) + 900
     }
 
+    console.log('tempJwtSecret:', cachedSecrets.tempJwtSecret)
+
     const token = jwt.sign(payload, cachedSecrets.tempJwtSecret, { algorithm: 'HS256' })
 
     return {
