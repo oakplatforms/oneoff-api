@@ -71,6 +71,7 @@ enum Currency {
 enum ContentType {
   IMAGE
   VIDEO
+  GALLERY
 }
 
 enum ListType {
@@ -423,16 +424,48 @@ model Content {
 
   // custom
   type         ContentType @default(IMAGE)
-  image        String?
-  blurredImage String?
+  previewImage String?
 
   // relations
   entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId  String   @unique
   account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId String?
+  gallery   Gallery?
 
   @@index([accountId])
+}
+
+model Gallery {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  content   Content        @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String         @unique
+  images    GalleryImage[]
+
+  @@index([contentId])
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // custom
+  image        String
+  blurredImage String?
+  caption      String?
+  position     Int
+
+  // relations
+  gallery   Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  galleryId String
+
+  @@index([galleryId])
+  @@index([galleryId, position])
 }
 
 model Payout {

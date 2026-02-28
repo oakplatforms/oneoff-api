@@ -133,7 +133,7 @@ contentRouter.get('/content/:id', async (req, res) => {
  *         description: Successfully created content
  */
 contentRouter.post('/content', async (req, res) => {
-  const { accountId, type, name, displayName } = req.body
+  const { accountId, type, name, displayName, description } = req.body
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -141,6 +141,7 @@ contentRouter.post('/content', async (req, res) => {
         data: {
           name: name || 'Untitled',
           displayName,
+          description,
           type: 'CONTENT',
         },
       })
@@ -236,11 +237,8 @@ contentRouter.delete('/content/:id', async (req, res) => {
     }
 
     //Clean up S3 images before deleting
-    if (content.image) {
-      await deleteImage(content.image)
-    }
-    if (content.blurredImage) {
-      await deleteImage(content.blurredImage)
+    if (content.previewImage) {
+      await deleteImage(content.previewImage)
     }
 
     await prisma.content.delete({
@@ -291,23 +289,13 @@ contentRouter.post('/content/:id/upload-image', uploadConfig.single('file'), asy
   }
 
   try {
-    //Upload original image
+    //Upload preview image (no blur)
     const imagePath = await uploadImage(file, 'content')
-
-    //Upload blurred version
-    const blurredImagePath = await uploadImage(file, 'content/blurred', {
-      width: 750,
-      quality: 75,
-      format: 'webp',
-      fit: 'inside',
-      blur: 25
-    })
 
     const content = await prisma.content.update({
       where: { id },
       data: {
-        image: imagePath,
-        blurredImage: blurredImagePath,
+        previewImage: imagePath,
       },
     })
 
@@ -348,21 +336,15 @@ contentRouter.delete('/content/:id/delete-image', async (req, res) => {
       return res.status(404).send({ errorMessage: 'Content not found.' })
     }
 
-    //Delete original image
-    if (content.image) {
-      await deleteImage(content.image)
-    }
-
-    //Delete blurred image
-    if (content.blurredImage) {
-      await deleteImage(content.blurredImage)
+    //Delete preview image
+    if (content.previewImage) {
+      await deleteImage(content.previewImage)
     }
 
     const updatedContent = await prisma.content.update({
       where: { id },
       data: {
-        image: null,
-        blurredImage: null,
+        previewImage: null,
       },
     })
 
