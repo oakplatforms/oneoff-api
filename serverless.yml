@@ -123,9 +123,9 @@ custom:
     logging: false
 
   s3Bucket:
-    dev: oneoff-dev
-    stage: oneoff-stage
-    prod: oneoff-prod
+    dev: oneoff-static-dev
+    stage: oneoff-static-stage
+    prod: oneoff-static-prod
 
   provisionedConcurrency:
     dev: 0
