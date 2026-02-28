@@ -1,10 +1,11 @@
-import { Prisma } from '@prisma/client'
+import { ContentType, Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
+import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
 
 const prisma = prismaClient()
 export const contentRouter = express.Router()
@@ -38,11 +39,14 @@ export const contentRouter = express.Router()
  *         description: Successfully retrieved contents
  */
 contentRouter.get('/contents', async (req, res) => {
-  const { include, usePagination, page, limit, accountId } = req.query
+  const { include, usePagination, page, limit, accountId, type } = req.query
 
   const where: Prisma.ContentWhereInput = {}
   if (accountId) {
     where.accountId = accountId as string
+  }
+  if (type) {
+    where.type = type as ContentType
   }
 
   try {
@@ -153,6 +157,23 @@ contentRouter.post('/content', async (req, res) => {
           type: type || 'IMAGE',
         },
         include: { entity: true },
+      })
+
+      // Auto-create a $1 listing for the content entity
+      await generateReferenceCodeWithRetry({
+        typeIdentifier: 'S',
+        createFn: async (referenceCode) => {
+          return await tx.listing.create({
+            data: {
+              price: 1.00,
+              quantity: 1,
+              status: 'ACTIVE',
+              referenceCode,
+              account: { connect: { id: accountId } },
+              entity: { connect: { id: entity.id } },
+            },
+          })
+        },
       })
 
       return content

@@ -1233,16 +1233,12 @@
           "default": "IMAGE",
           "enum": [
             "IMAGE",
-            "VIDEO"
+            "VIDEO",
+            "GALLERY",
+            "POST"
           ]
         },
-        "image": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "blurredImage": {
+        "previewImage": {
           "type": [
             "string",
             "null"
@@ -1269,6 +1265,200 @@
             "string",
             "null"
           ]
+        },
+        "gallery": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Gallery"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "video": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Video"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Post"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Gallery": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "content": {
+          "$ref": "#/definitions/Content"
+        },
+        "contentId": {
+          "type": "string"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GalleryImage"
+          }
+        }
+      }
+    },
+    "GalleryImage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "image": {
+          "type": "string"
+        },
+        "blurredImage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": "integer"
+        },
+        "gallery": {
+          "$ref": "#/definitions/Gallery"
+        },
+        "galleryId": {
+          "type": "string"
+        }
+      }
+    },
+    "Video": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rawUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "processingStatus": {
+          "type": "string",
+          "default": "PENDING",
+          "enum": [
+            "PENDING",
+            "PROCESSING",
+            "COMPLETED",
+            "FAILED"
+          ]
+        },
+        "processingError": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mediaConvertJobId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content": {
+          "$ref": "#/definitions/Content"
+        },
+        "contentId": {
+          "type": "string"
+        }
+      }
+    },
+    "Post": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "body": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content": {
+          "$ref": "#/definitions/Content"
+        },
+        "contentId": {
+          "type": "string"
         }
       }
     },
@@ -1840,6 +2030,18 @@
     },
     "content": {
       "$ref": "#/definitions/Content"
+    },
+    "gallery": {
+      "$ref": "#/definitions/Gallery"
+    },
+    "galleryImage": {
+      "$ref": "#/definitions/GalleryImage"
+    },
+    "video": {
+      "$ref": "#/definitions/Video"
+    },
+    "post": {
+      "$ref": "#/definitions/Post"
     },
     "payout": {
       "$ref": "#/definitions/Payout"

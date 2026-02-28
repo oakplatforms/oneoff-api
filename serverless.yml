@@ -56,6 +56,17 @@ provider:
           Resource: '*'
         - Effect: Allow
           Action:
+            - mediaconvert:CreateJob
+            - mediaconvert:GetJob
+            - mediaconvert:DescribeEndpoints
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - iam:PassRole
+          Resource:
+            - arn:aws:iam::992382609315:role/MediaConvertRole
+        - Effect: Allow
+          Action:
             - secretsmanager:GetSecretValue
           Resource:
             - arn:aws:secretsmanager:us-east-1:992382609315:secret:oneoff-credentials-*
@@ -116,6 +127,42 @@ functions:
       - httpApi:
           path: /webhook/stripe
           method: POST
+
+  videoProcessor:
+    name: oneoff-api-video-processor-${sls:stage}
+    handler: lambdas/videoProcessorHandler.handler
+    memorySize: 1024
+    timeout: 120
+    ephemeralStorageSize: 1024
+    environment:
+      S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
+      MEDIA_CONVERT_ROLE_ARN: arn:aws:iam::992382609315:role/MediaConvertRole
+    events:
+      - s3:
+          bucket: ${self:custom.s3Bucket.${sls:stage}}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: video/
+          existing: true
+
+  videoComplete:
+    name: oneoff-api-video-complete-${sls:stage}
+    handler: lambdas/videoCompleteHandler.handler
+    memorySize: 256
+    timeout: 30
+    environment:
+      S3_BUCKET_NAME: ${self:custom.s3Bucket.${sls:stage}}
+    events:
+      - eventBridge:
+          pattern:
+            source:
+              - aws.mediaconvert
+            detail-type:
+              - MediaConvert Job State Change
+            detail:
+              status:
+                - COMPLETE
+                - ERROR
 
 custom:
   dotenv:

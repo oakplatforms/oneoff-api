@@ -1,4 +1,4 @@
-import { Prisma, Status } from '@prisma/client'
+import { ContentType, Prisma, Status } from '@prisma/client'
 import express from 'express'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
@@ -7,13 +7,122 @@ export const feedRouter = express.Router()
 
 const prisma = prismaClient()
 
-type FeedItemType = 'listing'
+type FeedItemType = 'gallery' | 'video' | 'post'
 
 interface FeedItem {
   type: FeedItemType
   id: string
   createdAt: Date
   data: unknown
+}
+
+const FEED_TYPE_MAP: Record<ContentType, FeedItemType | null> = {
+  GALLERY: 'gallery',
+  VIDEO: 'video',
+  POST: 'post',
+  IMAGE: null,
+}
+
+const listingInclude = {
+  account: {
+    include: {
+      profile: { select: { username: true, avatar: true } },
+    },
+  },
+  entity: {
+    include: {
+      category: { select: { id: true, name: true, displayName: true } },
+      content: {
+        include: {
+          gallery: {
+            include: {
+              images: { orderBy: { position: 'asc' as const } },
+            },
+          },
+          video: true,
+          post: true,
+        },
+      },
+    },
+  },
+}
+
+function buildListingWhere(
+  contentType: ContentType,
+  accountId?: string
+): Prisma.ListingWhereInput {
+  const base: Prisma.ListingWhereInput = {
+    status: Status.ACTIVE,
+    entity: {
+      content: {
+        type: contentType,
+        previewImage: { not: null },
+      },
+    },
+    ...(accountId ? { accountId: { not: accountId } } : {}),
+  }
+
+  switch (contentType) {
+  case 'GALLERY':
+    return {
+      ...base,
+      entity: {
+        content: {
+          ...base.entity?.content as Prisma.ContentWhereInput,
+          gallery: { images: { some: {} } },
+        },
+      },
+    }
+  case 'VIDEO':
+    return {
+      ...base,
+      entity: {
+        content: {
+          ...base.entity?.content as Prisma.ContentWhereInput,
+          video: { url: { not: null } },
+        },
+      },
+    }
+  case 'POST':
+    return {
+      ...base,
+      entity: {
+        content: {
+          ...base.entity?.content as Prisma.ContentWhereInput,
+          post: { body: { not: null } },
+        },
+      },
+    }
+  default:
+    return base
+  }
+}
+
+function interleaveItems(
+  galleries: FeedItem[],
+  videos: FeedItem[],
+  posts: FeedItem[],
+  limit: number
+): FeedItem[] {
+  const result: FeedItem[] = []
+  const queues = [[...galleries], [...videos], [...posts]]
+
+  let queueIndex = 0
+  while (result.length < limit) {
+    let found = false
+    for (let i = 0; i < queues.length; i++) {
+      const idx = (queueIndex + i) % queues.length
+      if (queues[idx].length > 0) {
+        result.push(queues[idx].shift()!)
+        queueIndex = (idx + 1) % queues.length
+        found = true
+        break
+      }
+    }
+    if (!found) break
+  }
+
+  return result
 }
 
 /**
@@ -23,7 +132,7 @@ interface FeedItem {
  *     tags:
  *       - Feed
  *     summary: Get personalized homepage feed
- *     description: Returns a feed of listings for the homepage. User's own listings are excluded.
+ *     description: Returns a balanced mix of listings with different content types (gallery, video, post). User's own listings are excluded.
  *     parameters:
  *       - in: query
  *         name: accountId
@@ -57,9 +166,12 @@ interface FeedItem {
  *                     properties:
  *                       type:
  *                         type: string
- *                         enum: [listing]
+ *                         enum: [gallery, video, post]
  *                       id:
  *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
  *                       data:
  *                         type: object
  *                 page:
@@ -75,7 +187,6 @@ feedRouter.get('/feed', async (req, res) => {
   const { accountId, page, limit } = req.query
 
   try {
-    //If accountId is provided, validate that it belongs to the logged-in user
     if (accountId) {
       await validateAccount(req.user as AuthenticatedUser, accountId as string, 'authenticated')
     }
@@ -83,43 +194,56 @@ feedRouter.get('/feed', async (req, res) => {
     const parsedPage = parseInt(page as string) || 0
     const parsedLimit = parseInt(limit as string) || 10
 
-    const listingsWhere: Prisma.ListingWhereInput = {
-      AND: [
-        { status: Status.ACTIVE },
-        { image: { not: null } },
-        { image: { not: '' } },
-        ...(accountId ? [{ accountId: { not: accountId as string } }] : []),
-      ],
-    }
+    const galleryAllocation = Math.ceil(parsedLimit / 3)
+    const videoAllocation = Math.floor(parsedLimit / 3)
+    const postAllocation = parsedLimit - galleryAllocation - videoAllocation
 
-    const listings = await prisma.listing.findMany({
-      where: listingsWhere,
-      include: {
-        account: {
-          include: {
-            profile: { select: { username: true, avatar: true } },
-          },
-        },
-        entity: {
-          include: {
-            category: { select: { id: true, name: true, displayName: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: parsedPage * parsedLimit,
-      take: parsedLimit + 1,
-    })
+    const [galleriesRaw, videosRaw, postsRaw] = await Promise.all([
+      prisma.listing.findMany({
+        where: buildListingWhere('GALLERY', accountId as string | undefined),
+        include: listingInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: parsedPage * galleryAllocation,
+        take: galleryAllocation + 1,
+      }),
+      prisma.listing.findMany({
+        where: buildListingWhere('VIDEO', accountId as string | undefined),
+        include: listingInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: parsedPage * videoAllocation,
+        take: videoAllocation + 1,
+      }),
+      prisma.listing.findMany({
+        where: buildListingWhere('POST', accountId as string | undefined),
+        include: listingInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: parsedPage * postAllocation,
+        take: postAllocation + 1,
+      }),
+    ])
 
-    const hasMore = listings.length > parsedLimit
-    const trimmedListings = hasMore ? listings.slice(0, parsedLimit) : listings
+    const hasMore =
+      galleriesRaw.length > galleryAllocation ||
+      videosRaw.length > videoAllocation ||
+      postsRaw.length > postAllocation
 
-    const feedItems: FeedItem[] = trimmedListings.map((listing) => ({
-      type: 'listing' as FeedItemType,
-      id: listing.id,
-      createdAt: listing.createdAt,
-      data: listing,
-    }))
+    const mapToFeedItems = (
+      listings: typeof galleriesRaw,
+      allocation: number,
+      contentType: ContentType
+    ): FeedItem[] =>
+      listings.slice(0, allocation).map((listing) => ({
+        type: FEED_TYPE_MAP[contentType] as FeedItemType,
+        id: listing.id,
+        createdAt: listing.createdAt,
+        data: listing,
+      }))
+
+    const galleries = mapToFeedItems(galleriesRaw, galleryAllocation, 'GALLERY')
+    const videos = mapToFeedItems(videosRaw, videoAllocation, 'VIDEO')
+    const posts = mapToFeedItems(postsRaw, postAllocation, 'POST')
+
+    const feedItems = interleaveItems(galleries, videos, posts, parsedLimit)
 
     res.json({
       data: feedItems,

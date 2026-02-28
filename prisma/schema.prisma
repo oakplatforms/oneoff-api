@@ -75,6 +75,13 @@ enum ContentType {
   POST
 }
 
+enum VideoProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum ListType {
   HOMEPAGE
   COLLECTION
@@ -437,6 +444,7 @@ model Content {
   post      Post?
 
   @@index([accountId])
+  @@index([type, createdAt])
 }
 
 model Gallery {
@@ -477,13 +485,19 @@ model Video {
   updatedAt DateTime @updatedAt
 
   // custom
-  url String?
+  url               String?
+  rawUrl            String?
+  processingStatus  VideoProcessingStatus @default(PENDING)
+  processingError   String?
+  duration          Float?
+  mediaConvertJobId String?
 
   // relations
   content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
   contentId String  @unique
 
   @@index([contentId])
+  @@index([processingStatus])
 }
 
 model Post {

@@ -1,8 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "mcp__voicemode__service",
-      "mcp__voicemode__converse"
+      "Edit",
+      "Write",
+      "Bash(npx tsc:*)",
+      "Bash(npm:*)",
+      "Bash(git:*)",
+      "Bash(ps:*)",
+      "Bash(kill:*)",
+      "Bash(ls:*)",
+      "Bash(xargs:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "mcp__voicemode__converse",
+      "mcp__voicemode__connect_status",
+      "mcp__voicemode__service"
     ]
   }
 }

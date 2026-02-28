@@ -87,6 +87,19 @@ videoRouter.post('/video/:id/upload-url', async (req, res) => {
       expiresIn: 300,
     })
 
+    // Store rawUrl and reset processing fields for the new upload
+    await prisma.video.update({
+      where: { id },
+      data: {
+        rawUrl: `/${key}`,
+        processingStatus: 'PENDING',
+        processingError: null,
+        url: null,
+        duration: null,
+        mediaConvertJobId: null,
+      },
+    })
+
     res.json({
       presignedUrl,
       key: `/${key}`,
@@ -132,6 +145,9 @@ videoRouter.delete('/video/:id', async (req, res) => {
     if (video.url) {
       await deleteImage(video.url)
     }
+    if (video.rawUrl) {
+      await deleteImage(video.rawUrl)
+    }
 
     await prisma.video.delete({ where: { id } })
 
@@ -140,5 +156,32 @@ videoRouter.delete('/video/:id', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_VIDEO_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete video.' })
+  }
+})
+
+videoRouter.get('/video/:id/status', async (req, res) => {
+  const { id } = req.params
+
+  try {
+    const video = await prisma.video.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        processingStatus: true,
+        processingError: true,
+        duration: true,
+        url: true,
+      },
+    })
+
+    if (!video) {
+      return res.status(404).send({ errorMessage: 'Video not found.' })
+    }
+
+    res.json(video)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('GET_VIDEO_STATUS_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve video status.' })
   }
 })
