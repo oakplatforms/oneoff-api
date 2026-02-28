@@ -18,6 +18,8 @@ import { customerRouter } from './customer'
 import { profileRouter } from './profile'
 import { contentRouter } from './content'
 import { galleryRouter } from './gallery'
+import { videoRouter } from './video'
+import { postRouter } from './post'
 import cartRouter from './cart'
 import { warmupRouter } from './warmup'
 import { universalRouter } from './universal'
@@ -41,6 +43,8 @@ router.use(orderRouter)
 router.use(invoiceRouter)
 router.use(contentRouter)
 router.use(galleryRouter)
+router.use(videoRouter)
+router.use(postRouter)
 router.use('/cart', cartRouter)
 router.use(feedRouter)
 

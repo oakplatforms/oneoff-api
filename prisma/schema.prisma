@@ -72,6 +72,7 @@ enum ContentType {
   IMAGE
   VIDEO
   GALLERY
+  POST
 }
 
 enum ListType {
@@ -432,6 +433,8 @@ model Content {
   account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   accountId String?
   gallery   Gallery?
+  video     Video?
+  post      Post?
 
   @@index([accountId])
 }
@@ -466,6 +469,37 @@ model GalleryImage {
 
   @@index([galleryId])
   @@index([galleryId, position])
+}
+
+model Video {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // custom
+  url String?
+
+  // relations
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String  @unique
+
+  @@index([contentId])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // custom
+  body  String?
+  image String?
+
+  // relations
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String  @unique
+
+  @@index([contentId])
 }
 
 model Payout {
