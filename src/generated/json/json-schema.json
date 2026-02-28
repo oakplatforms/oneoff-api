@@ -43,6 +43,113 @@
               "type": "null"
             }
           ]
+        },
+        "admin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Admin": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "default": "ACTIVE",
+          "enum": [
+            "ACTIVE",
+            "DELETED",
+            "INACTIVE"
+          ]
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "createdCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Category"
+          }
+        },
+        "lastModifiedCategories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Category"
+          }
+        },
+        "createdTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          }
+        },
+        "lastModifiedTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tag"
+          }
+        },
+        "createdSupportedTagValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SupportedTagValue"
+          }
+        },
+        "lastModifiedSupportedTagValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SupportedTagValue"
+          }
+        },
+        "createdEntities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        },
+        "lastModifiedEntities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        },
+        "createdLists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/List"
+          }
+        },
+        "lastModifiedLists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/List"
+          }
         }
       }
     },
@@ -130,6 +237,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Listing"
+          }
+        },
+        "contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Content"
           }
         },
         "payouts": {
@@ -556,6 +669,38 @@
             "null"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "entities": {
           "type": "array",
           "items": {
@@ -582,6 +727,38 @@
           "type": "string"
         },
         "displayName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -637,6 +814,38 @@
           ]
         },
         "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -759,6 +968,38 @@
             "null"
           ]
         },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "entityList": {
           "type": "array",
           "items": {
@@ -813,6 +1054,38 @@
           ]
         },
         "secondaryImage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdById": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastModifiedBy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Admin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastModifiedById": {
           "type": [
             "string",
             "null"
@@ -980,6 +1253,22 @@
         },
         "entityId": {
           "type": "string"
+        },
+        "account": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Account"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accountId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1509,6 +1798,9 @@
   "properties": {
     "user": {
       "$ref": "#/definitions/User"
+    },
+    "admin": {
+      "$ref": "#/definitions/Admin"
     },
     "account": {
       "$ref": "#/definitions/Account"

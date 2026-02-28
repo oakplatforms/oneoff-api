@@ -144,6 +144,7 @@ model Account {
   userId       String        @unique
   lists        List[]
   listings     Listing[]
+  contents     Content[]
   payouts      Payout[]
   transactions Transaction[]
   carts        Cart[]
@@ -426,8 +427,12 @@ model Content {
   blurredImage String?
 
   // relations
-  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  entityId String @unique
+  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId  String   @unique
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  accountId String?
+
+  @@index([accountId])
 }
 
 model Payout {

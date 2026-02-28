@@ -38,12 +38,17 @@ export const contentRouter = express.Router()
  *         description: Successfully retrieved contents
  */
 contentRouter.get('/contents', async (req, res) => {
-  const { include, usePagination, page, limit } = req.query
+  const { include, usePagination, page, limit, accountId } = req.query
+
+  const where: Prisma.ContentWhereInput = {}
+  if (accountId) {
+    where.accountId = accountId as string
+  }
 
   try {
     const result = await paginatePrisma({
       prismaModel: prisma.content,
-      where: {},
+      where,
       include: generateIncludes(include as string),
       page: parseInt(page as string) || 0,
       limit: parseInt(limit as string) || 10,
@@ -128,17 +133,31 @@ contentRouter.get('/content/:id', async (req, res) => {
  *         description: Successfully created content
  */
 contentRouter.post('/content', async (req, res) => {
-  const { entityId, type } = req.body
+  const { accountId, type, name, displayName } = req.body
 
   try {
-    const content = await prisma.content.create({
-      data: {
-        entityId,
-        type: type || 'IMAGE',
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const entity = await tx.entity.create({
+        data: {
+          name: name || 'Untitled',
+          displayName,
+          type: 'CONTENT',
+        },
+      })
+
+      const content = await tx.content.create({
+        data: {
+          entityId: entity.id,
+          accountId,
+          type: type || 'IMAGE',
+        },
+        include: { entity: true },
+      })
+
+      return content
     })
 
-    res.json(content)
+    res.json(result)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CREATE_CONTENT_ERROR:', prismaError, customError)
@@ -208,6 +227,22 @@ contentRouter.delete('/content/:id', async (req, res) => {
   const { id } = req.params
 
   try {
+    const content = await prisma.content.findUnique({
+      where: { id },
+    })
+
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+
+    //Clean up S3 images before deleting
+    if (content.image) {
+      await deleteImage(content.image)
+    }
+    if (content.blurredImage) {
+      await deleteImage(content.blurredImage)
+    }
+
     await prisma.content.delete({
       where: { id },
     })

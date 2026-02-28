@@ -74,6 +74,7 @@ prisma/
 - Models: PascalCase (User, Account, Admin, Entity, Order, etc.)
 - Enums: SCREAMING_SNAKE_CASE (ACTIVE, DELETED, IN_REVIEW)
 - Connection uses PrismaPg adapter with SSL (RDS cert bundle at `certs/global-bundle.pem`)
+- **Migrations are handled by the user** — do NOT run `prisma migrate` commands. Only modify `schema.prisma` when needed and let the user run migrations themselves.
 
 ## Testing
 
