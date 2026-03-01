@@ -31,19 +31,26 @@ postRouter.get('/post/:contentId', async (req, res) => {
 })
 
 postRouter.post('/post', async (req, res) => {
-  const { contentId, body } = req.body
+  const { contentId, body, title } = req.body
 
   if (!contentId) {
     return res.status(400).send({ errorMessage: 'contentId is required.' })
   }
 
   try {
-    const post = await prisma.post.create({
-      data: {
-        contentId,
-        body: body || null,
-      },
-    })
+    const [post] = await prisma.$transaction([
+      prisma.post.create({
+        data: {
+          contentId,
+          title: title || null,
+          body: body || null,
+        },
+      }),
+      prisma.content.update({
+        where: { id: contentId },
+        data: { type: 'POST' },
+      }),
+    ])
 
     res.json(post)
   } catch (error) {
@@ -55,12 +62,12 @@ postRouter.post('/post', async (req, res) => {
 
 postRouter.put('/post/:id', async (req, res) => {
   const { id } = req.params
-  const { body } = req.body
+  const { body, title } = req.body
 
   try {
     const post = await prisma.post.update({
       where: { id },
-      data: { body },
+      data: { body, title },
     })
 
     res.json(post)

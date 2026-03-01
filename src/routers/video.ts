@@ -44,9 +44,15 @@ videoRouter.post('/video', async (req, res) => {
   }
 
   try {
-    const video = await prisma.video.create({
-      data: { contentId },
-    })
+    const [video] = await prisma.$transaction([
+      prisma.video.create({
+        data: { contentId },
+      }),
+      prisma.content.update({
+        where: { id: contentId },
+        data: { type: 'VIDEO' },
+      }),
+    ])
 
     res.json(video)
   } catch (error) {

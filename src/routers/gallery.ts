@@ -45,10 +45,16 @@ galleryRouter.post('/gallery', async (req, res) => {
   }
 
   try {
-    const gallery = await prisma.gallery.create({
-      data: { contentId },
-      include: { images: true },
-    })
+    const [gallery] = await prisma.$transaction([
+      prisma.gallery.create({
+        data: { contentId },
+        include: { images: true },
+      }),
+      prisma.content.update({
+        where: { id: contentId },
+        data: { type: 'GALLERY' },
+      }),
+    ])
 
     res.json(gallery)
   } catch (error) {
