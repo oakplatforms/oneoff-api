@@ -194,7 +194,7 @@ entityRouter.get('/entities', async (req, res) => {
     res.json(transformedData)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('GET_ENTITIES_ERROR:', prismaError || customError)
+    console.log('GET_ENTITIES_ERROR:', prismaError || customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to retrieve entities.' })
   }
 })
