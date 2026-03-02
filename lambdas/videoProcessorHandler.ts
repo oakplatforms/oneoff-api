@@ -1,12 +1,6 @@
 import { S3Event } from 'aws-lambda'
-import { GetObjectCommand } from '@aws-sdk/client-s3'
-import { writeFileSync, unlinkSync } from 'fs'
-import { join } from 'path'
-import s3 from '../src/utils/s3Client'
 import { initPrismaClient, getPrismaClient } from '../src/utils/prismaHelpers'
-import { getVideoDuration } from '../src/utils/mediaInfo'
 import { createMediaConvertJob } from '../src/utils/mediaConvert'
-import { deleteS3Object } from '../src/utils/deleteS3Object'
 
 let isInitialized = false
 
@@ -24,9 +18,9 @@ export const handler = async (event: S3Event): Promise<void> => {
     const bucket = record.s3.bucket.name
     const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
 
-    // Skip processed videos to prevent infinite loop
-    if (key.startsWith('video/processed/')) {
-      console.log('VIDEO_PROCESSOR: Skipping processed video:', key)
+    // Skip processed videos and preview images
+    if (key.startsWith('video/processed/') || key.startsWith('video/preview/')) {
+      console.log('VIDEO_PROCESSOR: Skipping non-raw file:', key)
       return
     }
 
@@ -44,37 +38,7 @@ export const handler = async (event: S3Event): Promise<void> => {
         return
       }
 
-      // Download video to /tmp for analysis
-      const fileName = key.split('/').pop()!
-      const tmpPath = join('/tmp', fileName)
-      const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
-      const bodyBytes = await response.Body!.transformToByteArray()
-      writeFileSync(tmpPath, bodyBytes)
-
-      // Validate duration
-      let duration: number
-      try {
-        duration = await getVideoDuration(tmpPath)
-      } finally {
-        // Always clean up /tmp
-        try { unlinkSync(tmpPath) } catch { /* ignore */ }
-      }
-
-      if (duration > MAX_DURATION) {
-        console.error('VIDEO_PROCESSOR_ERROR: Duration exceeds limit', { duration, max: MAX_DURATION })
-        await prisma.video.update({
-          where: { id: video.id },
-          data: {
-            processingStatus: 'FAILED',
-            processingError: `Video duration ${duration.toFixed(1)}s exceeds ${MAX_DURATION}s limit`,
-            duration,
-          },
-        })
-        await deleteS3Object(key)
-        return
-      }
-
-      // Create MediaConvert job
+      // Create MediaConvert job (clips to MAX_DURATION as a safety net)
       const jobId = await createMediaConvertJob({
         inputKey: key,
         outputPrefix: `video/processed/${video.id}`,
@@ -86,7 +50,6 @@ export const handler = async (event: S3Event): Promise<void> => {
         where: { id: video.id },
         data: {
           processingStatus: 'PROCESSING',
-          duration,
           mediaConvertJobId: jobId,
         },
       })

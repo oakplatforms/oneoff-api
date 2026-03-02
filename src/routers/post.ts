@@ -32,7 +32,7 @@ postRouter.get('/post/:contentId', async (req, res) => {
 })
 
 postRouter.post('/post', async (req, res) => {
-  const { contentId, body } = req.body
+  const { contentId, body, header, subheader } = req.body
 
   if (!contentId) {
     return res.status(400).send({ errorMessage: 'contentId is required.' })
@@ -45,16 +45,13 @@ postRouter.post('/post', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    // Generate a 150-char excerpt of the body for entity description
-    const bodyExcerpt = body
-      ? body.replace(/<[^>]*>/g, '').slice(0, 150).trimEnd() + (body.replace(/<[^>]*>/g, '').length > 150 ? '...' : '')
-      : null
-
     const [post] = await prisma.$transaction([
       prisma.post.create({
         data: {
           contentId,
           body: body || null,
+          header: header || null,
+          subheader: subheader || null,
         },
       }),
       prisma.content.update({
@@ -64,7 +61,8 @@ postRouter.post('/post', async (req, res) => {
       prisma.entity.update({
         where: { id: content.entityId },
         data: {
-          ...(bodyExcerpt && { description: bodyExcerpt }),
+          ...(header && { displayName: header }),
+          ...(subheader && { description: subheader }),
         },
       }),
     ])
@@ -79,7 +77,7 @@ postRouter.post('/post', async (req, res) => {
 
 postRouter.put('/post/:id', async (req, res) => {
   const { id } = req.params
-  const { body } = req.body
+  const { body, header, subheader } = req.body
 
   try {
     const existingPost = await prisma.post.findUnique({ where: { id } })
@@ -92,23 +90,26 @@ postRouter.put('/post/:id', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    const updateData: Record<string, unknown> = {}
-    if (body !== undefined) updateData.body = body
+    const postUpdateData: Record<string, unknown> = {}
+    if (body !== undefined) postUpdateData.body = body
+    if (header !== undefined) postUpdateData.header = header
+    if (subheader !== undefined) postUpdateData.subheader = subheader
 
-    // Sync body excerpt to entity description
-    if (body !== undefined) {
-      const bodyExcerpt = body
-        ? body.replace(/<[^>]*>/g, '').slice(0, 150).trimEnd() + (body.replace(/<[^>]*>/g, '').length > 150 ? '...' : '')
-        : null
+    // Sync header/subheader to entity displayName/description
+    const entityUpdateData: Record<string, unknown> = {}
+    if (header !== undefined) entityUpdateData.displayName = header
+    if (subheader !== undefined) entityUpdateData.description = subheader
+
+    if (Object.keys(entityUpdateData).length > 0) {
       await prisma.entity.update({
         where: { id: content.entityId },
-        data: { description: bodyExcerpt },
+        data: entityUpdateData,
       })
     }
 
     const post = await prisma.post.update({
       where: { id },
-      data: updateData,
+      data: postUpdateData,
     })
 
     res.json(post)

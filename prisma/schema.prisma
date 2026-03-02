@@ -506,9 +506,10 @@ model Post {
   updatedAt DateTime @updatedAt
 
   // custom
-  title String?
-  body  String?
-  image String?
+  header    String?
+  subheader String?
+  body      String?
+  image     String?
 
   // relations
   content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
