@@ -218,7 +218,7 @@ contentRouter.post('/content', async (req, res) => {
  */
 contentRouter.put('/content/:id', async (req, res) => {
   const { id } = req.params
-  const { accountId, type, previewImage } = req.body
+  const { accountId, type, previewImage, displayName, description } = req.body
 
   try {
     const content = await prisma.content.findUnique({ where: { id } })
@@ -227,13 +227,27 @@ contentRouter.put('/content/:id', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    const updatedContent = await prisma.content.update({
-      where: { id },
-      data: {
-        ...(type !== undefined && { type }),
-        ...(previewImage !== undefined && { previewImage }),
-      },
-    })
+    const hasEntityUpdate = displayName !== undefined || description !== undefined
+    const entityData: Record<string, unknown> = {}
+    if (displayName !== undefined) entityData.displayName = displayName
+    if (description !== undefined) entityData.description = description
+
+    const [updatedContent] = await prisma.$transaction([
+      prisma.content.update({
+        where: { id },
+        data: {
+          ...(type !== undefined && { type }),
+          ...(previewImage !== undefined && { previewImage }),
+        },
+        include: hasEntityUpdate ? { entity: true } : undefined,
+      }),
+      ...(hasEntityUpdate ? [
+        prisma.entity.update({
+          where: { id: content.entityId },
+          data: entityData,
+        }),
+      ] : []),
+    ])
 
     res.json(updatedContent)
   } catch (error) {

@@ -32,7 +32,7 @@ postRouter.get('/post/:contentId', async (req, res) => {
 })
 
 postRouter.post('/post', async (req, res) => {
-  const { contentId, body, title } = req.body
+  const { contentId, body } = req.body
 
   if (!contentId) {
     return res.status(400).send({ errorMessage: 'contentId is required.' })
@@ -45,17 +45,27 @@ postRouter.post('/post', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
+    // Generate a 150-char excerpt of the body for entity description
+    const bodyExcerpt = body
+      ? body.replace(/<[^>]*>/g, '').slice(0, 150).trimEnd() + (body.replace(/<[^>]*>/g, '').length > 150 ? '...' : '')
+      : null
+
     const [post] = await prisma.$transaction([
       prisma.post.create({
         data: {
           contentId,
-          title: title || null,
           body: body || null,
         },
       }),
       prisma.content.update({
         where: { id: contentId },
         data: { type: 'POST' },
+      }),
+      prisma.entity.update({
+        where: { id: content.entityId },
+        data: {
+          ...(bodyExcerpt && { description: bodyExcerpt }),
+        },
       }),
     ])
 
@@ -69,7 +79,7 @@ postRouter.post('/post', async (req, res) => {
 
 postRouter.put('/post/:id', async (req, res) => {
   const { id } = req.params
-  const { body, title } = req.body
+  const { body } = req.body
 
   try {
     const existingPost = await prisma.post.findUnique({ where: { id } })
@@ -82,9 +92,23 @@ postRouter.put('/post/:id', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
+    const updateData: Record<string, unknown> = {}
+    if (body !== undefined) updateData.body = body
+
+    // Sync body excerpt to entity description
+    if (body !== undefined) {
+      const bodyExcerpt = body
+        ? body.replace(/<[^>]*>/g, '').slice(0, 150).trimEnd() + (body.replace(/<[^>]*>/g, '').length > 150 ? '...' : '')
+        : null
+      await prisma.entity.update({
+        where: { id: content.entityId },
+        data: { description: bodyExcerpt },
+      })
+    }
+
     const post = await prisma.post.update({
       where: { id },
-      data: { body, title },
+      data: updateData,
     })
 
     res.json(post)

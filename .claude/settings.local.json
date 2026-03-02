@@ -14,7 +14,8 @@
       "Bash(sort:*)",
       "mcp__voicemode__converse",
       "mcp__voicemode__connect_status",
-      "mcp__voicemode__service"
+      "mcp__voicemode__service",
+      "Bash(pod install)"
     ]
   }
 }
