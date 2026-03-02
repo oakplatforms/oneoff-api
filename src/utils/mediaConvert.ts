@@ -44,9 +44,13 @@ export async function createMediaConvertJob({
   const command = new CreateJobCommand({
     Role: roleArn,
     Settings: {
+      TimecodeConfig: {
+        Source: 'ZEROBASED',
+      },
       Inputs: [
         {
           FileInput: `s3://${bucket}/${inputKey}`,
+          TimecodeSource: 'ZEROBASED',
           InputClippings: [
             {
               StartTimecode: '00:00:00:00',
