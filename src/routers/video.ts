@@ -100,6 +100,7 @@ videoRouter.post('/video/:id/upload-url', async (req, res) => {
       Bucket: process.env.S3_BUCKET_NAME!,
       Key: key,
       ContentType: mimeType,
+      ACL: 'public-read',
     })
 
     const presignedUrl = await getSignedUrl(s3, command, {

@@ -266,6 +266,11 @@ contentRouter.delete('/content/:id', async (req, res) => {
   try {
     const content = await prisma.content.findUnique({
       where: { id },
+      include: {
+        gallery: { include: { images: true } },
+        video: true,
+        post: true,
+      },
     })
 
     if (!content) {
@@ -273,13 +278,23 @@ contentRouter.delete('/content/:id', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    //Clean up S3 images before deleting
-    if (content.previewImage) {
-      await deleteImage(content.previewImage)
+    // Clean up S3 images before deleting
+    const imagesToDelete: string[] = []
+    if (content.previewImage) imagesToDelete.push(content.previewImage)
+    if (content.gallery?.images) {
+      for (const img of content.gallery.images) {
+        if (img.image) imagesToDelete.push(img.image)
+        if (img.blurredImage) imagesToDelete.push(img.blurredImage)
+      }
     }
+    if (content.video?.rawUrl) imagesToDelete.push(content.video.rawUrl)
+    if (content.post?.image) imagesToDelete.push(content.post.image)
 
-    await prisma.content.delete({
-      where: { id },
+    await Promise.all(imagesToDelete.map(key => deleteImage(key)))
+
+    // Delete the entity, which cascades to content and listings
+    await prisma.entity.delete({
+      where: { id: content.entityId },
     })
 
     res.json({ message: 'Content deleted successfully.' })
@@ -332,8 +347,14 @@ contentRouter.post('/content/:id/upload-image', uploadConfig.single('file'), asy
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    //Upload preview image (no blur)
-    const imagePath = await uploadImage(file, 'content')
+    // Upload preview image to type-specific preview folder
+    const previewFolderMap: Record<string, string> = {
+      GALLERY: 'gallery/preview',
+      VIDEO: 'video/preview',
+      POST: 'post/preview',
+    }
+    const folder = previewFolderMap[content.type] || 'content'
+    const imagePath = await uploadImage(file, folder)
 
     const updatedContent = await prisma.content.update({
       where: { id },
