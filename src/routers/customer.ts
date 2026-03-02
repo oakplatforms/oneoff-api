@@ -87,7 +87,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const existingAccount = await tx.account.findUnique({
         where: { id: accountId },
-        include: { user: true }
+        include: { user: { omit: { authId: false } } }
       })
 
       if (!existingAccount) {
@@ -232,6 +232,7 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
           city,
           state,
         },
+        omit: { paymentAccountId: false },
       })
 
       if (!updatedCustomer.paymentAccountId) {
@@ -324,6 +325,13 @@ customerRouter.get('/customer/payment-methods/:customerId', async (req, res) => 
     if (!customerId) {
       throw new Error('Missing required parameter: customerId')
     }
+    const customer = await prisma.customer.findFirst({
+      where: { paymentAccountId: customerId },
+    })
+    if (!customer) {
+      throw new Error('Customer not found')
+    }
+    await validateAccount(req.user as AuthenticatedUser, customer.accountId, 'authenticated')
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customerId,
       type: 'card',
@@ -431,7 +439,10 @@ customerRouter.post('/customer/with-payment-method/:accountId', async (req, res)
     const result = await prisma.$transaction(async (tx) => {
       const existingAccount = await tx.account.findUnique({
         where: { id: accountId },
-        include: { user: true, customer: true }
+        include: {
+          user: { omit: { authId: false } },
+          customer: { omit: { paymentAccountId: false } },
+        }
       })
 
       if (!existingAccount) {
@@ -612,6 +623,7 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
         data: {
           hasPaymentMethod: true,
         },
+        omit: { paymentAccountId: false },
       })
       if (!updatedCustomer.paymentAccountId) {
         throw new Error('Seller does not have a payment account ID.')

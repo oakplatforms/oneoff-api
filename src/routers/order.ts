@@ -84,6 +84,10 @@ orderRouter.get('/orders', async (req, res) => {
   const { include, status, sellerId, customerId, cartId, usePagination, page, limit } = req.query
 
   try {
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || !reqUser.principalId) {
+      throw new Error('User authentication required')
+    }
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
@@ -177,6 +181,10 @@ orderRouter.get('/order/:id', async (req, res) => {
   try {
     if (!id) {
       throw new Error('Order ID is required')
+    }
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || !reqUser.principalId) {
+      throw new Error('User authentication required')
     }
     const order = await prisma.order.findUnique({
       where: { id },
@@ -834,6 +842,7 @@ orderRouter.put('/order/:id/cancel-order', async (req, res) => {
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
+        omit: { paymentIntentId: false },
         include: {
           seller: {
             include: {

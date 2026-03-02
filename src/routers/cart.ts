@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express'
 import { prismaClient } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const router = express.Router()
 const prisma = prismaClient()
@@ -13,6 +14,7 @@ router.post('/', async (req: Request, res: Response) => {
     if (!accountId) {
       return res.status(400).json({ error: 'accountId is required' })
     }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
 
     const cart = await prisma.cart.create({
       data: {
@@ -35,6 +37,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.get('/:accountId', async (req: Request, res: Response) => {
   try {
     const { accountId } = req.params
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
 
     const cart = await prisma.cart.findFirst({
       where: {
@@ -94,6 +97,11 @@ router.post('/:cartId/orders', async (req: Request, res: Response) => {
     if (!listingId || !customerId || !sellerId) {
       return res.status(400).json({ error: 'listingId, customerId, and sellerId are required' })
     }
+    const cart = await prisma.cart.findUnique({ where: { id: cartId } })
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, cart.accountId, 'authenticated')
 
     // Get listing details
     const listing = await prisma.listing.findUnique({
@@ -155,6 +163,11 @@ router.post('/:cartId/orders', async (req: Request, res: Response) => {
 router.delete('/:cartId/orders/:orderId', async (req: Request, res: Response) => {
   try {
     const { cartId, orderId } = req.params
+    const cart = await prisma.cart.findUnique({ where: { id: cartId } })
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, cart.accountId, 'authenticated')
 
     // Verify order belongs to cart and is in CREATED status
     const order = await prisma.order.findFirst({
@@ -201,6 +214,7 @@ router.put('/:cartId/checkout', async (req: Request, res: Response) => {
     if (!cart || cart.orders.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' })
     }
+    await validateAccount(req.user as AuthenticatedUser, cart.accountId, 'authenticated')
 
     const orderIds = cart.orders.map(order => order.id)
 

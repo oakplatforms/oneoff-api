@@ -4,6 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = prismaClient()
 export const postRouter = express.Router()
@@ -38,6 +39,12 @@ postRouter.post('/post', async (req, res) => {
   }
 
   try {
+    const content = await prisma.content.findUnique({ where: { id: contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     const [post] = await prisma.$transaction([
       prisma.post.create({
         data: {
@@ -65,6 +72,16 @@ postRouter.put('/post/:id', async (req, res) => {
   const { body, title } = req.body
 
   try {
+    const existingPost = await prisma.post.findUnique({ where: { id } })
+    if (!existingPost) {
+      return res.status(404).send({ errorMessage: 'Post not found.' })
+    }
+    const content = await prisma.content.findUnique({ where: { id: existingPost.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     const post = await prisma.post.update({
       where: { id },
       data: { body, title },
@@ -87,6 +104,16 @@ postRouter.post('/post/:id/upload-image', uploadConfig.single('file'), async (re
   }
 
   try {
+    const existingPost = await prisma.post.findUnique({ where: { id } })
+    if (!existingPost) {
+      return res.status(404).send({ errorMessage: 'Post not found.' })
+    }
+    const content = await prisma.content.findUnique({ where: { id: existingPost.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     const imagePath = await uploadImage(file, 'post')
 
     const post = await prisma.post.update({
@@ -111,6 +138,12 @@ postRouter.delete('/post/:id/delete-image', async (req, res) => {
     if (!post) {
       return res.status(404).send({ errorMessage: 'Post not found.' })
     }
+
+    const content = await prisma.content.findUnique({ where: { id: post.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     if (post.image) {
       await deleteImage(post.image)
@@ -138,6 +171,12 @@ postRouter.delete('/post/:id', async (req, res) => {
     if (!post) {
       return res.status(404).send({ errorMessage: 'Post not found.' })
     }
+
+    const content = await prisma.content.findUnique({ where: { id: post.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     if (post.image) {
       await deleteImage(post.image)

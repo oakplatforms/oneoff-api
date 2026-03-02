@@ -10,7 +10,9 @@
     "docker:test:down": "docker compose down",
     "test": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5433/testdb jest --runInBand",
     "lint": "eslint . --ext .ts,.js",
-    "lint:fix": "eslint . --ext .ts,.js --fix"
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "generate:types": "cd packages/types && npm run generate",
+    "build:types": "cd packages/types && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-mediaconvert": "^3.1000.0",

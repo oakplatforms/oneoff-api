@@ -7,6 +7,7 @@ import s3 from '../utils/s3Client'
 import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { deleteImage } from '../utils/deleteImage'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = prismaClient()
 export const videoRouter = express.Router()
@@ -44,6 +45,12 @@ videoRouter.post('/video', async (req, res) => {
   }
 
   try {
+    const content = await prisma.content.findUnique({ where: { id: contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     const [video] = await prisma.$transaction([
       prisma.video.create({
         data: { contentId },
@@ -79,6 +86,12 @@ videoRouter.post('/video/:id/upload-url', async (req, res) => {
     if (!video) {
       return res.status(404).send({ errorMessage: 'Video not found.' })
     }
+
+    const content = await prisma.content.findUnique({ where: { id: video.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     const ext = mimeType === 'video/quicktime' ? 'mov' : mimeType.split('/')[1]
     const key = `video/${crypto.randomUUID()}.${ext}`
@@ -125,6 +138,16 @@ videoRouter.put('/video/:id', async (req, res) => {
   const { url } = req.body
 
   try {
+    const existingVideo = await prisma.video.findUnique({ where: { id } })
+    if (!existingVideo) {
+      return res.status(404).send({ errorMessage: 'Video not found.' })
+    }
+    const content = await prisma.content.findUnique({ where: { id: existingVideo.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     const video = await prisma.video.update({
       where: { id },
       data: { url },
@@ -142,11 +165,20 @@ videoRouter.delete('/video/:id', async (req, res) => {
   const { id } = req.params
 
   try {
-    const video = await prisma.video.findUnique({ where: { id } })
+    const video = await prisma.video.findUnique({
+      where: { id },
+      omit: { rawUrl: false },
+    })
 
     if (!video) {
       return res.status(404).send({ errorMessage: 'Video not found.' })
     }
+
+    const content = await prisma.content.findUnique({ where: { id: video.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     if (video.url) {
       await deleteImage(video.url)

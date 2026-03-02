@@ -36,7 +36,9 @@ export const validateAccount = async (reqUser: AuthenticatedUser, accountId?: st
   const account = await prisma.account.findUnique({
     where: { id: accountId },
     include: {
-      user: true,
+      user: {
+        omit: { authId: false },
+      },
       seller: true,
       customer: true,
     },

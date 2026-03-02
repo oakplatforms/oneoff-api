@@ -1,0 +1,28 @@
+{
+  "name": "@oakplatforms/oneoff-types",
+  "version": "0.1.0",
+  "description": "Shared TypeScript types for the Oneoff platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "generate": "ts-node scripts/generate.ts",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oakplatforms/oneoff-api.git",
+    "directory": "packages/types"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.6.1",
+    "typescript": "^5.4.5",
+    "ts-node": "^10.9.2"
+  }
+}

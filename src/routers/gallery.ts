@@ -4,6 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = prismaClient()
 export const galleryRouter = express.Router()
@@ -45,6 +46,12 @@ galleryRouter.post('/gallery', async (req, res) => {
   }
 
   try {
+    const content = await prisma.content.findUnique({ where: { id: contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     const [gallery] = await prisma.$transaction([
       prisma.gallery.create({
         data: { contentId },
@@ -82,6 +89,12 @@ galleryRouter.post('/gallery/:id/image', uploadConfig.single('file'), async (req
     if (!gallery) {
       return res.status(404).send({ errorMessage: 'Gallery not found.' })
     }
+
+    const content = await prisma.content.findUnique({ where: { id: gallery.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     if (gallery.images.length >= MAX_GALLERY_IMAGES) {
       return res.status(400).send({ errorMessage: `Gallery cannot have more than ${MAX_GALLERY_IMAGES} images.` })
@@ -130,6 +143,16 @@ galleryRouter.put('/gallery/:id/images/reorder', async (req, res) => {
   }
 
   try {
+    const gallery = await prisma.gallery.findUnique({ where: { id } })
+    if (!gallery) {
+      return res.status(404).send({ errorMessage: 'Gallery not found.' })
+    }
+    const content = await prisma.content.findUnique({ where: { id: gallery.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     await prisma.$transaction(
       imageIds.map((imageId: string, index: number) =>
         prisma.galleryImage.update({
@@ -139,7 +162,7 @@ galleryRouter.put('/gallery/:id/images/reorder', async (req, res) => {
       )
     )
 
-    const gallery = await prisma.gallery.findUnique({
+    const updatedGallery = await prisma.gallery.findUnique({
       where: { id },
       include: {
         images: {
@@ -148,7 +171,7 @@ galleryRouter.put('/gallery/:id/images/reorder', async (req, res) => {
       },
     })
 
-    res.json(gallery)
+    res.json(updatedGallery)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('REORDER_GALLERY_IMAGES_ERROR:', prismaError, customError)
@@ -167,6 +190,16 @@ galleryRouter.delete('/gallery/image/:imageId', async (req, res) => {
     if (!galleryImage) {
       return res.status(404).send({ errorMessage: 'Gallery image not found.' })
     }
+
+    const gallery = await prisma.gallery.findUnique({ where: { id: galleryImage.galleryId } })
+    if (!gallery) {
+      return res.status(404).send({ errorMessage: 'Gallery not found.' })
+    }
+    const content = await prisma.content.findUnique({ where: { id: gallery.contentId } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     //Clean up S3 images
     if (galleryImage.image) {

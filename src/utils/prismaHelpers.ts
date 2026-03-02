@@ -62,6 +62,31 @@ async function createPrismaClient(): Promise<PrismaClient> {
     adapter,
     log: ['error'],
     errorFormat: 'pretty',
+    omit: {
+      user: {
+        isAdmin: true,
+        authId: true,
+      },
+      order: {
+        paymentIntentId: true,
+        inReview: true,
+        resolution: true,
+        sellerSnapshot: true,
+      },
+      transaction: {
+        paymentId: true,
+      },
+      customer: {
+        paymentAccountId: true,
+      },
+      seller: {
+        paymentAccountId: true,
+      },
+      video: {
+        rawUrl: true,
+        mediaConvertJobId: true,
+      },
+    },
   })
 }
 

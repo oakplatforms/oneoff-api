@@ -22,13 +22,14 @@ export const handleSellerAccountUpdated = async (event: Stripe.Event) => {
 
   const seller = await prisma.seller.findFirst({
     where: { paymentAccountId: stripeAccountId },
+    omit: { paymentAccountId: false },
     include: {
       account: {
         include: {
-          user: true
-        }
-      }
-    }
+          user: { omit: { authId: false } },
+        },
+      },
+    },
   })
 
   if (!seller) {

@@ -55,6 +55,10 @@ invoiceRouter.get('/invoice/:id', async (req, res) => {
     if (!id) {
       throw new Error('Invoice ID is required')
     }
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || !reqUser.principalId) {
+      throw new Error('User authentication required')
+    }
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: generateIncludes(include as string),

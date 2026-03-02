@@ -3,7 +3,7 @@ import express from 'express'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { generateIncludes } from '../utils/generateIncludes'
 import { paginatePrisma } from '../utils/paginatePrisma'
-import { validateRole, AuthenticatedUser } from '../validation/user'
+import { validateRole, validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = prismaClient()
 export const userRouter = express.Router()
@@ -56,6 +56,7 @@ userRouter.get('/users', async (req, res) => {
   const { include, usePagination, page, limit } = req.query
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
@@ -297,6 +298,17 @@ userRouter.put(`/user/:id`, async (req, res) => {
     if (!id) {
       throw new Error('User ID is required')
     }
+    const existingUser = await prisma.user.findUnique({
+      where: { id },
+      omit: { authId: false },
+    })
+    if (!existingUser) {
+      throw new Error('User not found')
+    }
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || reqUser.principalId !== existingUser.authId) {
+      throw new Error('User cannot make this request')
+    }
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -377,9 +389,13 @@ userRouter.get('/user/:authId', async (req, res) => {
   const { include } = req.query
 
   try {
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || !reqUser.principalId) {
+      throw new Error('User authentication required')
+    }
     const users = await prisma.user.findMany({
       where: {
-        authId: { contains: authId as string }
+        authId: authId as string
       },
       include: generateIncludes(include as string)
     })
@@ -453,6 +469,7 @@ userRouter.delete(`/user/:id`, async (req, res) => {
   const { id } = req.params
 
   try {
+    validateRole(req.user as AuthenticatedUser, 'admin')
     if (!id) {
       throw new Error('User ID is required')
     }

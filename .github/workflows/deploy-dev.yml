@@ -4,10 +4,11 @@ on:
   push:
     branches: [ dev ]
 
-# Required for OIDC token generation
+# Required for OIDC token generation and package publishing
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 jobs:
   deploy:
@@ -20,12 +21,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
+        registry-url: 'https://npm.pkg.github.com'
+        scope: '@oakplatforms'
 
     - name: Install dependencies
       run: npm ci
@@ -56,6 +61,37 @@ jobs:
       run: npx prisma generate
       env:
         DATABASE_URL: ${{ steps.db-secret.outputs.DATABASE_URL }}
+
+    # Publish @oakplatforms/oneoff-types if schema or types package changed
+    - name: Check for types changes
+      id: types-check
+      run: |
+        if git diff --name-only HEAD~1 HEAD | grep -qE '^(prisma/schema\.prisma|packages/types/)'; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install types package dependencies
+      if: steps.types-check.outputs.changed == 'true'
+      working-directory: packages/types
+      run: npm install
+
+    - name: Generate and build types
+      if: steps.types-check.outputs.changed == 'true'
+      working-directory: packages/types
+      run: npm run generate && npm run build
+
+    - name: Auto-bump types version and publish
+      if: steps.types-check.outputs.changed == 'true'
+      working-directory: packages/types
+      run: |
+        LATEST=$(npm view @oakplatforms/oneoff-types version 2>/dev/null || echo "0.0.0")
+        npm version "$LATEST" --no-git-tag-version --allow-same-version
+        npm version patch --no-git-tag-version
+        npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install Serverless Framework
       run: npm install -g serverless

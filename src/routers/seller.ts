@@ -510,6 +510,7 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
           ...(typeof agreedToTerms === 'boolean' ? { agreedToTerms } : {}),
           ...(taxRate !== undefined ? { taxRate } : {}),
         },
+        omit: { paymentAccountId: false },
       })
 
       const stripeUpdatedAccountData: Stripe.AccountUpdateParams = {
@@ -734,6 +735,7 @@ sellerRouter.post('/seller/payment-method/:accountId', async (req, res) => {
         data: {
           hasPaymentMethod: true,
         },
+        omit: { paymentAccountId: false },
       })
       if (!updatedSeller.paymentAccountId) {
         throw new Error('Seller does not have a payment account ID.')

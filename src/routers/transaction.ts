@@ -3,6 +3,7 @@ import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
+import { AuthenticatedUser } from '../validation/user'
 
 const prisma = prismaClient()
 export const transactionRouter = express.Router()
@@ -82,6 +83,10 @@ transactionRouter.get('/transactions', async (req, res) => {
   const { include, orderId, usePagination, page, limit } = req.query
 
   try {
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || !reqUser.principalId) {
+      throw new Error('User authentication required')
+    }
     const parsedLimit = parseInt(limit as string) || 10
     const parsedPage = parseInt(page as string) || 0
 
@@ -167,6 +172,10 @@ transactionRouter.get('/transaction/:id', async (req, res) => {
   try {
     if (!id) {
       throw new Error('Transaction ID is required')
+    }
+    const reqUser = req.user as AuthenticatedUser
+    if (!reqUser || !reqUser.principalId) {
+      throw new Error('User authentication required')
     }
     const transaction = await prisma.transaction.findUnique({
       where: { id },

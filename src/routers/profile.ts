@@ -223,7 +223,7 @@ profileRouter.post('/profile', async (req, res) => {
       throw new Error('Account ID is required')
     }
 
-    validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     if (username) {
       await validateUsername(username)
     }
@@ -316,7 +316,7 @@ profileRouter.put('/profile/:id', async (req, res) => {
       throw new Error('Account ID is required')
     }
 
-    validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     await validateExistingProfile(id)
     if (username) {
       await validateUsername(username, id)

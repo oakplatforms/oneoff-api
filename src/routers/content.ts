@@ -6,6 +6,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
+import { validateAccount, AuthenticatedUser } from '../validation/user'
 
 const prisma = prismaClient()
 export const contentRouter = express.Router()
@@ -140,6 +141,11 @@ contentRouter.post('/content', async (req, res) => {
   const { accountId, type, name, displayName, description } = req.body
 
   try {
+    if (!accountId) {
+      throw new Error('accountId is required')
+    }
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+
     const result = await prisma.$transaction(async (tx) => {
       const entity = await tx.entity.create({
         data: {
@@ -212,15 +218,24 @@ contentRouter.post('/content', async (req, res) => {
  */
 contentRouter.put('/content/:id', async (req, res) => {
   const { id } = req.params
-  const updateData = req.body
+  const { accountId, type, previewImage } = req.body
 
   try {
-    const content = await prisma.content.update({
+    const content = await prisma.content.findUnique({ where: { id } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
+    const updatedContent = await prisma.content.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...(type !== undefined && { type }),
+        ...(previewImage !== undefined && { previewImage }),
+      },
     })
 
-    res.json(content)
+    res.json(updatedContent)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPDATE_CONTENT_ERROR:', prismaError, customError)
@@ -256,6 +271,7 @@ contentRouter.delete('/content/:id', async (req, res) => {
     if (!content) {
       return res.status(404).send({ errorMessage: 'Content not found.' })
     }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     //Clean up S3 images before deleting
     if (content.previewImage) {
@@ -310,17 +326,23 @@ contentRouter.post('/content/:id/upload-image', uploadConfig.single('file'), asy
   }
 
   try {
+    const content = await prisma.content.findUnique({ where: { id } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
     //Upload preview image (no blur)
     const imagePath = await uploadImage(file, 'content')
 
-    const content = await prisma.content.update({
+    const updatedContent = await prisma.content.update({
       where: { id },
       data: {
         previewImage: imagePath,
       },
     })
 
-    res.json(content)
+    res.json(updatedContent)
   } catch (error) {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('UPLOAD_CONTENT_IMAGE_ERROR:', prismaError, customError)
@@ -356,6 +378,7 @@ contentRouter.delete('/content/:id/delete-image', async (req, res) => {
     if (!content) {
       return res.status(404).send({ errorMessage: 'Content not found.' })
     }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
     //Delete preview image
     if (content.previewImage) {

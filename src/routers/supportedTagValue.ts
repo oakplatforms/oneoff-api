@@ -69,6 +69,7 @@ supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
     if (!tagId) {
       throw new Error('tagId is required')
     }
+    validateRole(req.user as AuthenticatedUser, 'admin')
 
     const supportedTagValue = await prisma.supportedTagValue.create({
       data: {

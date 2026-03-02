@@ -226,9 +226,15 @@ accountRouter.delete('/account/:id', async (req, res) => {
         const account = await tx.account.findUnique({
           where: { id },
           include: {
-            user: true,
-            seller: true,
-            customer: true,
+            user: {
+              omit: { authId: false },
+            },
+            seller: {
+              omit: { paymentAccountId: false },
+            },
+            customer: {
+              omit: { paymentAccountId: false },
+            },
             carts: {
               include: {
                 orders: {

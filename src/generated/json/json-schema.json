@@ -1442,6 +1442,12 @@
           "type": "string",
           "format": "date-time"
         },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "body": {
           "type": [
             "string",

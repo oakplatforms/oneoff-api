@@ -429,6 +429,11 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     await validateSeller(accountId)
     await validateExistingListing(id)
 
+    const existingListing = await prisma.listing.findUnique({ where: { id } })
+    if (!existingListing || existingListing.accountId !== accountId) {
+      throw new Error('Listing does not belong to this account')
+    }
+
     const parsedPrice = parseFloat(price)
     if (isNaN(parsedPrice)) {
       throw new Error('Invalid price value')

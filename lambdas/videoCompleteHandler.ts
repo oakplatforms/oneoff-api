@@ -32,6 +32,7 @@ export const handler = async (
   try {
     const video = await prisma.video.findFirst({
       where: { mediaConvertJobId: jobId },
+      omit: { rawUrl: false },
     })
 
     if (!video) {
