@@ -393,11 +393,21 @@ userRouter.get('/user/:authId', async (req, res) => {
     if (!reqUser || !reqUser.principalId) {
       throw new Error('User authentication required')
     }
+    const includes = generateIncludes(include as string)
+
+    // Override omit for customer/seller paymentAccountId when included via account
+    if (includes.account?.include?.customer) {
+      includes.account.include.customer = { omit: { paymentAccountId: false } }
+    }
+    if (includes.account?.include?.seller) {
+      includes.account.include.seller = { omit: { paymentAccountId: false } }
+    }
+
     const users = await prisma.user.findMany({
       where: {
         authId: authId as string
       },
-      include: generateIncludes(include as string)
+      include: includes
     })
 
     if (users?.[0]) {
