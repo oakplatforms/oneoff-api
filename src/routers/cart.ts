@@ -3,11 +3,11 @@ import { prismaClient } from '../utils/prismaHelpers'
 import { createInvoiceWithTransactions } from '../services/invoice'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 
-const router = express.Router()
+export const cartRouter = express.Router()
 const prisma = prismaClient()
 
 // Create cart for account
-router.post('/', async (req: Request, res: Response) => {
+cartRouter.post('/cart', async (req: Request, res: Response) => {
   try {
     const { accountId } = req.body
 
@@ -34,7 +34,7 @@ router.post('/', async (req: Request, res: Response) => {
 })
 
 // Get cart with orders for an account
-router.get('/:accountId', async (req: Request, res: Response) => {
+cartRouter.get('/cart/:accountId', async (req: Request, res: Response) => {
   try {
     const { accountId } = req.params
     await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
@@ -89,7 +89,7 @@ router.get('/:accountId', async (req: Request, res: Response) => {
 })
 
 // Add order to cart
-router.post('/:cartId/orders', async (req: Request, res: Response) => {
+cartRouter.post('/cart/:cartId/orders', async (req: Request, res: Response) => {
   try {
     const { cartId } = req.params
     const { listingId, customerId, sellerId, quantity = 1 } = req.body
@@ -160,7 +160,7 @@ router.post('/:cartId/orders', async (req: Request, res: Response) => {
 })
 
 // Remove order from cart
-router.delete('/:cartId/orders/:orderId', async (req: Request, res: Response) => {
+cartRouter.delete('/cart/:cartId/orders/:orderId', async (req: Request, res: Response) => {
   try {
     const { cartId, orderId } = req.params
     const cart = await prisma.cart.findUnique({ where: { id: cartId } })
@@ -195,7 +195,7 @@ router.delete('/:cartId/orders/:orderId', async (req: Request, res: Response) =>
 })
 
 // Checkout - create invoice and process payment
-router.put('/:cartId/checkout', async (req: Request, res: Response) => {
+cartRouter.put('/cart/:cartId/checkout', async (req: Request, res: Response) => {
   try {
     const { cartId } = req.params
 
@@ -228,4 +228,3 @@ router.put('/:cartId/checkout', async (req: Request, res: Response) => {
   }
 })
 
-export default router

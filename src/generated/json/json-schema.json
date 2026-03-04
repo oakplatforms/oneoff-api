@@ -262,6 +262,12 @@
           "items": {
             "$ref": "#/definitions/Cart"
           }
+        },
+        "savedItems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SavedItem"
+          }
         }
       }
     },
@@ -1442,7 +1448,13 @@
           "type": "string",
           "format": "date-time"
         },
-        "title": {
+        "header": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subheader": {
           "type": [
             "string",
             "null"
@@ -1630,6 +1642,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/OrderListing"
+          }
+        },
+        "savedItems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SavedItem"
           }
         }
       }
@@ -1879,6 +1897,34 @@
         }
       }
     },
+    "SavedItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "accountId": {
+          "type": "string"
+        },
+        "listing": {
+          "$ref": "#/definitions/Listing"
+        },
+        "listingId": {
+          "type": "string"
+        }
+      }
+    },
     "Transaction": {
       "type": "object",
       "properties": {
@@ -2063,6 +2109,9 @@
     },
     "orderListing": {
       "$ref": "#/definitions/OrderListing"
+    },
+    "savedItem": {
+      "$ref": "#/definitions/SavedItem"
     },
     "transaction": {
       "$ref": "#/definitions/Transaction"

@@ -20,10 +20,11 @@ import { contentRouter } from './content'
 import { galleryRouter } from './gallery'
 import { videoRouter } from './video'
 import { postRouter } from './post'
-import cartRouter from './cart'
+import { cartRouter } from './cart'
 import { warmupRouter } from './warmup'
 import { universalRouter } from './universal'
 import { feedRouter } from './feed'
+import { savedItemRouter } from './savedItem'
 
 router.use(warmupRouter)
 router.use(userRouter)
@@ -45,8 +46,9 @@ router.use(contentRouter)
 router.use(galleryRouter)
 router.use(videoRouter)
 router.use(postRouter)
-router.use('/cart', cartRouter)
+router.use(cartRouter)
 router.use(feedRouter)
+router.use(savedItemRouter)
 
 router.use(profileRouter)
 router.use(universalRouter)

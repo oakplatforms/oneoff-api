@@ -157,6 +157,7 @@ model Account {
   payouts      Payout[]
   transactions Transaction[]
   carts        Cart[]
+  savedItems   SavedItem[]
 
   @@index([userId])
   @@index([type])
@@ -556,6 +557,7 @@ model Listing {
   entity        Entity?        @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId      String?
   orderListings OrderListing[]
+  savedItems    SavedItem[]
 
   @@index([accountId])
   @@index([entityId])
@@ -634,6 +636,22 @@ model OrderListing {
   listingId String
 
   @@id([orderId, listingId])
+}
+
+model SavedItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  @@unique([accountId, listingId])
+  @@index([accountId])
+  @@index([listingId])
 }
 
 model Transaction {
