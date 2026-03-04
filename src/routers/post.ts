@@ -5,6 +5,7 @@ import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const postRouter = express.Router()
@@ -39,6 +40,12 @@ postRouter.post('/post', async (req, res) => {
   }
 
   try {
+    validateStringFields({
+      header: { value: header, maxLength: STRING_LIMITS.header },
+      subheader: { value: subheader, maxLength: STRING_LIMITS.subheader },
+      body: { value: body, maxLength: STRING_LIMITS.body },
+    })
+
     const content = await prisma.content.findUnique({ where: { id: contentId } })
     if (!content) {
       return res.status(404).send({ errorMessage: 'Content not found.' })
@@ -80,6 +87,12 @@ postRouter.put('/post/:id', async (req, res) => {
   const { body, header, subheader } = req.body
 
   try {
+    validateStringFields({
+      header: { value: header, maxLength: STRING_LIMITS.header },
+      subheader: { value: subheader, maxLength: STRING_LIMITS.subheader },
+      body: { value: body, maxLength: STRING_LIMITS.body },
+    })
+
     const existingPost = await prisma.post.findUnique({ where: { id } })
     if (!existingPost) {
       return res.status(404).send({ errorMessage: 'Post not found.' })

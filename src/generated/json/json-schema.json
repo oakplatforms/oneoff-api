@@ -1560,7 +1560,10 @@
           "type": "number"
         },
         "quantity": {
-          "type": "integer"
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "status": {
           "type": "string",
@@ -1572,7 +1575,7 @@
         },
         "multiTransactionsEnabled": {
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "isPrimary": {
           "type": [

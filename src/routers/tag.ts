@@ -4,6 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateRole } from '../validation/user'
+import { validateStringFields, validateStringLength, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const tagRouter = express.Router()
@@ -152,6 +153,16 @@ tagRouter.post(`/tag`, async (req, res) => {
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+    })
+    if (supportedTagValues?.create?.length) {
+      for (const stv of supportedTagValues.create) {
+        validateStringLength(stv.name, 'supportedTagValue name', STRING_LIMITS.name)
+        validateStringLength(stv.displayName, 'supportedTagValue displayName', STRING_LIMITS.displayName)
+      }
+    }
     const tag = await prisma.tag.create({
       data: {
         name,
@@ -264,6 +275,22 @@ tagRouter.put('/tag/:id', async (req, res) => {
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: rest.name, maxLength: STRING_LIMITS.name },
+      displayName: { value: rest.displayName, maxLength: STRING_LIMITS.displayName },
+    })
+    if (supportedTagValues?.create?.length) {
+      for (const stv of supportedTagValues.create) {
+        validateStringLength(stv.name, 'supportedTagValue name', STRING_LIMITS.name)
+        validateStringLength(stv.displayName, 'supportedTagValue displayName', STRING_LIMITS.displayName)
+      }
+    }
+    if (supportedTagValues?.update?.length) {
+      for (const stv of supportedTagValues.update) {
+        validateStringLength(stv.name, 'supportedTagValue name', STRING_LIMITS.name)
+        validateStringLength(stv.displayName, 'supportedTagValue displayName', STRING_LIMITS.displayName)
+      }
+    }
     const tag = await prisma.tag.update({
       where: { id },
       data: {

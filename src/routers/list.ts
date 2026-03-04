@@ -7,6 +7,7 @@ import { AuthenticatedUser, validateAccount, validateAccountOrAdmin } from '../v
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const listRouter = express.Router()
@@ -373,6 +374,12 @@ listRouter.post('/list', async (req, res) => {
 
     await validateAccountOrAdmin(req.user as AuthenticatedUser, accountId)
 
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: description, maxLength: STRING_LIMITS.description },
+    })
+
     // All list types now support reference codes with 'C' identifier
     const list = await generateReferenceCodeWithRetry({
       typeIdentifier: 'C',
@@ -540,6 +547,12 @@ listRouter.put('/list/:id', async (req, res) => {
     }
 
     await validateAccountOrAdmin(req.user as AuthenticatedUser, authAccountId)
+
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: description, maxLength: STRING_LIMITS.description },
+    })
 
     const updateData: any = {
       name,

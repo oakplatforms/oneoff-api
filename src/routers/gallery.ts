@@ -5,11 +5,12 @@ import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const galleryRouter = express.Router()
 
-const MAX_GALLERY_IMAGES = 4
+const MAX_GALLERY_IMAGES = 10
 
 galleryRouter.get('/gallery/:contentId', async (req, res) => {
   const { contentId } = req.params
@@ -81,6 +82,10 @@ galleryRouter.post('/gallery/:id/image', uploadConfig.single('file'), async (req
   }
 
   try {
+    validateStringFields({
+      caption: { value: caption, maxLength: STRING_LIMITS.caption },
+    })
+
     const gallery = await prisma.gallery.findUnique({
       where: { id },
       include: { images: true },

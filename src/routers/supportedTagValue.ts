@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import express from 'express'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { AuthenticatedUser, validateRole } from '../validation/user'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const supportedTagValueRouter = express.Router()
@@ -70,6 +71,10 @@ supportedTagValueRouter.post(`/supported-tag-value`, async (req, res) => {
       throw new Error('tagId is required')
     }
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+    })
 
     const supportedTagValue = await prisma.supportedTagValue.create({
       data: {

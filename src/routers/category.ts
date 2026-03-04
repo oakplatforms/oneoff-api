@@ -4,6 +4,7 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateRole, AuthenticatedUser } from '../validation/user'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const categoryRouter = express.Router()
@@ -129,6 +130,11 @@ categoryRouter.post(`/category`, async (req, res) => {
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: description, maxLength: STRING_LIMITS.description },
+    })
 
     const category = await prisma.category.create({
       data: {
@@ -219,6 +225,11 @@ categoryRouter.put(`/category/:id`, async (req, res) => {
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: req.body.name, maxLength: STRING_LIMITS.name },
+      displayName: { value: req.body.displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: req.body.description, maxLength: STRING_LIMITS.description },
+    })
 
     const category = await prisma.category.update({
       where: { id },

@@ -7,6 +7,7 @@ import { validateExistingListing } from '../validation/listing'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 import { deleteImage } from '../utils/deleteImage'
 import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
 
@@ -233,6 +234,10 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
   } = req.body
 
   try {
+    validateStringFields({
+      imageCaption: { value: imageCaption, maxLength: STRING_LIMITS.imageCaption },
+    })
+
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
 
@@ -425,6 +430,10 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
   } = req.body
 
   try {
+    validateStringFields({
+      imageCaption: { value: req.body.imageCaption, maxLength: STRING_LIMITS.imageCaption },
+    })
+
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
     await validateExistingListing(id)

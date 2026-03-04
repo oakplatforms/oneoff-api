@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client'
 import Stripe from 'stripe'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
 import { validateNewCustomer } from '../validation/customer'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const customerRouter = express.Router()
@@ -220,6 +221,14 @@ customerRouter.put('/customer/:accountId', async (req, res) => {
   } = req.body
 
   try {
+    validateStringFields({
+      firstName: { value: firstName, maxLength: STRING_LIMITS.firstName },
+      lastName: { value: lastName, maxLength: STRING_LIMITS.lastName },
+      address: { value: address, maxLength: STRING_LIMITS.address },
+      city: { value: city, maxLength: STRING_LIMITS.city },
+      state: { value: state, maxLength: STRING_LIMITS.state },
+      zipCode: { value: zipCode, maxLength: STRING_LIMITS.zipCode },
+    })
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customer')
     const result = await prisma.$transaction(async (tx) => {
       const updatedCustomer = await tx.customer.update({

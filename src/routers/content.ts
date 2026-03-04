@@ -7,6 +7,7 @@ import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { generateReferenceCodeWithRetry } from '../utils/referenceCodeGenerator'
 import { validateAccount, AuthenticatedUser } from '../validation/user'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const contentRouter = express.Router()
@@ -138,13 +139,32 @@ contentRouter.get('/content/:id', async (req, res) => {
  *         description: Successfully created content
  */
 contentRouter.post('/content', async (req, res) => {
-  const { accountId, type, name, displayName, description } = req.body
+  const { accountId, type, name, displayName, description, price, quantity } = req.body
 
   try {
     if (!accountId) {
       throw new Error('accountId is required')
     }
+
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: description, maxLength: STRING_LIMITS.entityDescription },
+    })
+
     await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+
+    // Validate price if provided
+    const listingPrice = price ? Number(price) : 1.00
+    if (listingPrice < 1 || listingPrice > 10) {
+      return res.status(400).send({ errorMessage: 'Price must be between $1 and $10.' })
+    }
+
+    // Validate quantity if provided (null = unlimited)
+    const listingQuantity = quantity === null || quantity === undefined ? null : Number(quantity)
+    if (listingQuantity !== null && (listingQuantity < 1 || listingQuantity > 1000)) {
+      return res.status(400).send({ errorMessage: 'Quantity must be between 1 and 1000.' })
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const entity = await tx.entity.create({
@@ -165,14 +185,14 @@ contentRouter.post('/content', async (req, res) => {
         include: { entity: true },
       })
 
-      // Auto-create a $1 listing for the content entity
+      // Auto-create listing with the specified price
       await generateReferenceCodeWithRetry({
         typeIdentifier: 'S',
         createFn: async (referenceCode) => {
           return await tx.listing.create({
             data: {
-              price: 1.00,
-              quantity: 1,
+              price: listingPrice,
+              quantity: listingQuantity,
               status: 'ACTIVE',
               referenceCode,
               account: { connect: { id: accountId } },
@@ -221,6 +241,11 @@ contentRouter.put('/content/:id', async (req, res) => {
   const { accountId, type, previewImage, displayName, description } = req.body
 
   try {
+    validateStringFields({
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: description, maxLength: STRING_LIMITS.entityDescription },
+    })
+
     const content = await prisma.content.findUnique({ where: { id } })
     if (!content) {
       return res.status(404).send({ errorMessage: 'Content not found.' })

@@ -6,6 +6,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { uploadImage, uploadConfig } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 import { AuthenticatedUser, validateRole } from '../validation/user'
+import { validateStringFields, validateStringLength, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const entityRouter = express.Router()
@@ -321,8 +322,14 @@ entityRouter.post('/entity', async (req, res) => {
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: name, maxLength: STRING_LIMITS.name },
+      displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: description, maxLength: STRING_LIMITS.entityDescription },
+    })
     if (entityTags?.create?.length) {
       for (const entityTag of entityTags.create) {
+        validateStringLength(entityTag.tagValue, 'tagValue', STRING_LIMITS.tagValue)
         const selectedTag = await prisma.tag.findUnique({
           where: { id: entityTag.tagId },
           include: { supportedTagValues: true },
@@ -527,8 +534,14 @@ entityRouter.put('/entity/:id', async (req, res) => {
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
+    validateStringFields({
+      name: { value: req.body.name, maxLength: STRING_LIMITS.name },
+      displayName: { value: req.body.displayName, maxLength: STRING_LIMITS.displayName },
+      description: { value: req.body.description, maxLength: STRING_LIMITS.entityDescription },
+    })
     if (entityTags?.create?.length) {
       for (const entityTag of entityTags.create) {
+        validateStringLength(entityTag.tagValue, 'tagValue', STRING_LIMITS.tagValue)
         const selectedTag = await prisma.tag.findUnique({
           where: { id: entityTag.tagId },
           include: { supportedTagValues: true },
@@ -543,6 +556,11 @@ entityRouter.put('/entity/:id', async (req, res) => {
             throw new Error(`Tag value ${entityTag.tagValue} is not supported for ${selectedTag?.displayName || selectedTag?.name} tag`)
           }
         }
+      }
+    }
+    if (entityTags?.update?.length) {
+      for (const entityTag of entityTags.update) {
+        validateStringLength(entityTag.tagValue, 'tagValue', STRING_LIMITS.tagValue)
       }
     }
 

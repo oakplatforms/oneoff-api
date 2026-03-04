@@ -5,6 +5,7 @@ import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { validateAccount } from '../validation/user'
 import { AuthenticatedUser } from '../validation/user'
 import { validateExistingProfile, validateUsername } from '../validation/profile'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 import { uploadConfig, uploadImage } from '../utils/uploadImage'
 import { deleteImage } from '../utils/deleteImage'
 
@@ -223,6 +224,11 @@ profileRouter.post('/profile', async (req, res) => {
       throw new Error('Account ID is required')
     }
 
+    validateStringFields({
+      username: { value: username, maxLength: STRING_LIMITS.username },
+      description: { value: description, maxLength: STRING_LIMITS.description },
+    })
+
     await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     if (username) {
       await validateUsername(username)
@@ -315,6 +321,11 @@ profileRouter.put('/profile/:id', async (req, res) => {
     if (!accountId) {
       throw new Error('Account ID is required')
     }
+
+    validateStringFields({
+      username: { value: username, maxLength: STRING_LIMITS.username },
+      description: { value: description, maxLength: STRING_LIMITS.description },
+    })
 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     await validateExistingProfile(id)

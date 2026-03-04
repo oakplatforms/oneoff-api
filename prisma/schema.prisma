@@ -177,13 +177,13 @@ model Customer {
   paymentAccountStatus ProcessStatus?
   hasPaymentMethod     Boolean?           @default(false)
 
-  firstName String?
-  lastName  String?
-  phone     String?
-  address   String?
-  city      String?
-  state     String?
-  zipCode   String?
+  firstName String? @db.VarChar(50)
+  lastName  String? @db.VarChar(50)
+  phone     String? @db.VarChar(20)
+  address   String? @db.VarChar(200)
+  city      String? @db.VarChar(100)
+  state     String? @db.VarChar(50)
+  zipCode   String? @db.VarChar(20)
 
   // relations
   account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -225,14 +225,14 @@ model Seller {
   sellerType               SellerType?
   taxRate                  Decimal?           @db.Decimal(10, 2)
 
-  firstName    String?
-  lastName     String?
-  phone        String?
-  address      String?
-  city         String?
-  state        String?
-  zipCode      String?
-  businessName String?
+  firstName    String? @db.VarChar(50)
+  lastName     String? @db.VarChar(50)
+  phone        String? @db.VarChar(20)
+  address      String? @db.VarChar(200)
+  city         String? @db.VarChar(100)
+  state        String? @db.VarChar(50)
+  zipCode      String? @db.VarChar(20)
+  businessName String? @db.VarChar(100)
   website      String?
   image        String?
 
@@ -251,10 +251,10 @@ model Profile {
   updatedAt DateTime @updatedAt
 
   // custom
-  username    String? @unique
+  username    String? @unique @db.VarChar(30)
   avatar      String?
   banner      String?
-  description String?
+  description String? @db.VarChar(500)
   qrCode      String?
 
   // relations
@@ -270,9 +270,9 @@ model Category {
   updatedAt DateTime @updatedAt
 
   // custom
-  name        String  @unique
-  displayName String?
-  description String?
+  name        String  @unique @db.VarChar(200)
+  displayName String? @db.VarChar(200)
+  description String? @db.VarChar(500)
 
   // relations
   createdBy        Admin?   @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -288,8 +288,8 @@ model Tag {
   updatedAt DateTime @updatedAt
 
   // custom
-  name        String  @unique
-  displayName String?
+  name        String  @unique @db.VarChar(200)
+  displayName String? @db.VarChar(200)
 
   // relations
   createdBy          Admin?              @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -306,11 +306,11 @@ model SupportedTagValue {
   updatedAt DateTime @updatedAt
 
   // custom
-  name        String
-  displayName String?
+  name        String  @db.VarChar(200)
+  displayName String? @db.VarChar(200)
   banner      String?
   logo        String?
-  description String?
+  description String? @db.VarChar(500)
 
   // relations
   createdBy        Admin?  @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -329,11 +329,11 @@ model List {
   updatedAt DateTime @updatedAt
 
   // custom
-  name          String
-  displayName   String?
+  name          String    @db.VarChar(200)
+  displayName   String?   @db.VarChar(200)
   banner        String?
   logo          String?
-  description   String?
+  description   String?   @db.VarChar(500)
   type          ListType? @default(COLLECTION)
   isPrivate     Boolean?  @default(false)
   navigation    Json?
@@ -361,9 +361,9 @@ model Entity {
   updatedAt DateTime @updatedAt
 
   // custom
-  name           String
-  displayName    String?
-  description    String?
+  name           String     @db.VarChar(200)
+  displayName    String?    @db.VarChar(200)
+  description    String?    @db.VarChar(1000)
   type           EntityType @default(PRODUCT)
   image          String?
   secondaryImage String?
@@ -411,7 +411,7 @@ model EntityTag {
   updatedAt DateTime @updatedAt
 
   // custom
-  tagValue  String
+  tagValue  String   @db.VarChar(100)
   isPrimary Boolean?
   index     Int?
 
@@ -469,7 +469,7 @@ model GalleryImage {
   // custom
   image        String
   blurredImage String?
-  caption      String?
+  caption      String? @db.VarChar(200)
   position     Int
 
   // relations
@@ -507,9 +507,9 @@ model Post {
   updatedAt DateTime @updatedAt
 
   // custom
-  header    String?
-  subheader String?
-  body      String?
+  header    String? @db.VarChar(200)
+  subheader String? @db.VarChar(300)
+  body      String? @db.VarChar(50000)
   image     String?
 
   // relations
@@ -527,7 +527,7 @@ model Payout {
   // custom
   status ProcessStatus
   total  Decimal?      @db.Decimal(10, 2)
-  last4  String?
+  last4  String?       @db.VarChar(4)
 
   // relations
   account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -542,13 +542,13 @@ model Listing {
 
   // custom
   price                    Decimal  @db.Decimal(10, 2)
-  quantity                 Int
+  quantity                 Int?
   status                   Status
-  multiTransactionsEnabled Boolean  @default(false)
+  multiTransactionsEnabled Boolean  @default(true)
   isPrimary                Boolean? @default(false)
   isOffer                  Boolean? @default(false)
   image                    String?
-  imageCaption             String?
+  imageCaption             String?  @db.VarChar(200)
   referenceCode            String?  @unique
 
   // relations
@@ -595,7 +595,7 @@ model Order {
   total            Decimal?      @db.Decimal(10, 2)
   paymentIntentId  String?
   inReview         Boolean?      @default(false)
-  resolution       String?
+  resolution       String?       @db.VarChar(1000)
   customerSnapshot Json?
   sellerSnapshot   Json?
 

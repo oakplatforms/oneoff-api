@@ -1,4 +1,5 @@
 import { prismaClient } from '../utils/prismaHelpers'
+import { validateStringFields, STRING_LIMITS } from './stringLimits'
 
 const prisma = prismaClient()
 
@@ -61,6 +62,15 @@ export const validateNewCustomer = (reqBody: NewCustomerRequest) => {
   if (!zipCode || typeof zipCode !== 'string' || zipCode.trim().length === 0) {
     throw new Error('Zip code is required and must be a non-empty string')
   }
+
+  validateStringFields({
+    firstName: { value: firstName, maxLength: STRING_LIMITS.firstName },
+    lastName: { value: lastName, maxLength: STRING_LIMITS.lastName },
+    address: { value: address, maxLength: STRING_LIMITS.address },
+    city: { value: city, maxLength: STRING_LIMITS.city },
+    state: { value: state, maxLength: STRING_LIMITS.state },
+    zipCode: { value: zipCode, maxLength: STRING_LIMITS.zipCode },
+  })
 
   return {
     firstName: firstName.trim(),

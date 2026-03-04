@@ -15,6 +15,7 @@ import eventBridge from '../utils/eventBridge'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { uploadPrivateImage } from '../utils/uploadImage'
 import { generatePresignedUrl } from '../utils/generatePresignedUrl'
+import { validateStringFields, STRING_LIMITS } from '../validation/stringLimits'
 
 const prisma = prismaClient()
 export const sellerRouter = express.Router()
@@ -288,6 +289,16 @@ sellerRouter.post('/seller/:accountId', async (req, res) => {
     agreedToTerms
   } = req.body
   try {
+    validateStringFields({
+      firstName: { value: firstName, maxLength: STRING_LIMITS.firstName },
+      lastName: { value: lastName, maxLength: STRING_LIMITS.lastName },
+      phone: { value: phone, maxLength: STRING_LIMITS.phone },
+      address: { value: address, maxLength: STRING_LIMITS.address },
+      city: { value: city, maxLength: STRING_LIMITS.city },
+      state: { value: state, maxLength: STRING_LIMITS.state },
+      zipCode: { value: zipCode, maxLength: STRING_LIMITS.zipCode },
+      businessName: { value: businessName, maxLength: STRING_LIMITS.businessName },
+    })
     await validateAccount(req.user as AuthenticatedUser, accountId, 'customerOrRegistered')
     const result = await prisma.$transaction(async (tx) => {
       const account = await tx.account.findUnique({
@@ -490,6 +501,16 @@ sellerRouter.put('/seller/:accountId', async (req, res) => {
   } = req.body
 
   try {
+    validateStringFields({
+      firstName: { value: firstName, maxLength: STRING_LIMITS.firstName },
+      lastName: { value: lastName, maxLength: STRING_LIMITS.lastName },
+      phone: { value: phone, maxLength: STRING_LIMITS.phone },
+      address: { value: address, maxLength: STRING_LIMITS.address },
+      city: { value: city, maxLength: STRING_LIMITS.city },
+      state: { value: state, maxLength: STRING_LIMITS.state },
+      zipCode: { value: zipCode, maxLength: STRING_LIMITS.zipCode },
+      businessName: { value: businessName, maxLength: STRING_LIMITS.businessName },
+    })
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     const result = await prisma.$transaction(async (tx) => {
       //Calculate new tax rate if state is being updated

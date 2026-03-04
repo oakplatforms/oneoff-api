@@ -115,7 +115,7 @@ cartRouter.post('/cart/:cartId/orders', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Listing not found' })
     }
 
-    if (listing.quantity < quantity) {
+    if (listing.quantity !== null && listing.quantity < quantity) {
       return res.status(400).json({ error: 'Insufficient quantity available' })
     }
 

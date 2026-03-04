@@ -17,7 +17,7 @@ process.on('unhandledRejection', (reason) => {
 
 const app = express()
 
-app.use(express.json({ limit: '10mb' }))
+app.use(express.json({ limit: '1mb' }))
 
 app.use((req, res, next) => {
   console.log('🔍 MIDDLEWARE CALLED for:', req.method, req.path)
