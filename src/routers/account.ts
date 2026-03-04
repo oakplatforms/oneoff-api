@@ -6,6 +6,7 @@ import { paginatePrisma } from '../utils/paginatePrisma'
 import { validateRole, validateAccount, AuthenticatedUser } from '../validation/user'
 import stripe from '../utils/stripe'
 import { deleteUserFromCognito } from '../utils/deleteUserFromCognito'
+import { deleteS3Object } from '../utils/deleteS3Object'
 
 const prisma = prismaClient()
 export const accountRouter = express.Router()
@@ -229,11 +230,30 @@ accountRouter.delete('/account/:id', async (req, res) => {
             user: {
               omit: { authId: false },
             },
+            profile: true,
             seller: {
               omit: { paymentAccountId: false },
             },
             customer: {
               omit: { paymentAccountId: false },
+            },
+            listings: {
+              select: { image: true },
+            },
+            contents: {
+              select: {
+                previewImage: true,
+                gallery: {
+                  select: {
+                    images: {
+                      select: { image: true, blurredImage: true },
+                    },
+                  },
+                },
+                post: {
+                  select: { image: true },
+                },
+              },
             },
             carts: {
               include: {
@@ -269,6 +289,34 @@ accountRouter.delete('/account/:id', async (req, res) => {
         if (user?.authId) {
           await deleteUserFromCognito(user.authId as string)
         }
+
+        //Delete S3 artifacts
+        const s3Keys: string[] = []
+
+        if (account.profile?.avatar) s3Keys.push(account.profile.avatar)
+        if (account.profile?.banner) s3Keys.push(account.profile.banner)
+
+        const seller = accountWithIncludes.seller as Record<string, unknown>
+        if (seller?.image) s3Keys.push(seller.image as string)
+
+        for (const listing of account.listings) {
+          if (listing.image) s3Keys.push(listing.image)
+        }
+
+        for (const content of account.contents) {
+          if (content.previewImage) s3Keys.push(content.previewImage)
+          if (content.gallery) {
+            for (const img of content.gallery.images) {
+              if (img.image) s3Keys.push(img.image)
+              if (img.blurredImage) s3Keys.push(img.blurredImage)
+            }
+          }
+          if (content.post?.image) s3Keys.push(content.post.image)
+        }
+
+        await Promise.all(s3Keys.map((key) => deleteS3Object(key).catch((err) => {
+          console.error('DELETE_S3_OBJECT_ERROR:', key, err)
+        })))
 
         //Delete account (this will cascade delete related records due to foreign key constraints)
         await tx.account.delete({
