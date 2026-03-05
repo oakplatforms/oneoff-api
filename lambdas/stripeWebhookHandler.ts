@@ -35,7 +35,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
-    const eventObj = getStripeClient().webhooks.constructEvent(event.body!, sig, webhookSecret)
+    const body = event.isBase64Encoded
+      ? Buffer.from(event.body!, 'base64').toString('utf8')
+      : event.body!
+    const eventObj = getStripeClient().webhooks.constructEvent(body, sig, webhookSecret)
     console.log('✅ Verified Stripe event:', eventObj.type)
 
     switch (eventObj.type) {
