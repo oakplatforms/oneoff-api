@@ -198,29 +198,48 @@ feedRouter.get('/feed', async (req, res) => {
     const videoAllocation = Math.floor(parsedLimit / 3)
     const postAllocation = parsedLimit - galleryAllocation - videoAllocation
 
+    const galleryWhere = buildListingWhere('GALLERY', accountId as string | undefined)
+    const videoWhere = buildListingWhere('VIDEO', accountId as string | undefined)
+    const postWhere = buildListingWhere('POST', accountId as string | undefined)
+
+    console.log('FEED_DEBUG:', JSON.stringify({
+      accountId: accountId || null,
+      page: parsedPage,
+      limit: parsedLimit,
+      galleryWhere,
+      videoWhere,
+      postWhere,
+    }))
+
     const [galleriesRaw, videosRaw, postsRaw] = await Promise.all([
       prisma.listing.findMany({
-        where: buildListingWhere('GALLERY', accountId as string | undefined),
+        where: galleryWhere,
         include: listingInclude,
         orderBy: { createdAt: 'desc' },
         skip: parsedPage * galleryAllocation,
         take: galleryAllocation + 1,
       }),
       prisma.listing.findMany({
-        where: buildListingWhere('VIDEO', accountId as string | undefined),
+        where: videoWhere,
         include: listingInclude,
         orderBy: { createdAt: 'desc' },
         skip: parsedPage * videoAllocation,
         take: videoAllocation + 1,
       }),
       prisma.listing.findMany({
-        where: buildListingWhere('POST', accountId as string | undefined),
+        where: postWhere,
         include: listingInclude,
         orderBy: { createdAt: 'desc' },
         skip: parsedPage * postAllocation,
         take: postAllocation + 1,
       }),
     ])
+
+    console.log('FEED_DEBUG_RESULTS:', JSON.stringify({
+      galleriesCount: galleriesRaw.length,
+      videosCount: videosRaw.length,
+      postsCount: postsRaw.length,
+    }))
 
     const hasMore =
       galleriesRaw.length > galleryAllocation ||
