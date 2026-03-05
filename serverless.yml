@@ -127,8 +127,6 @@ functions:
       - httpApi:
           path: /webhook/stripe
           method: POST
-          authorizer:
-            type: none
 
   videoProcessor:
     name: oneoff-api-video-processor-${sls:stage}
