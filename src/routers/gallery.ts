@@ -51,7 +51,7 @@ galleryRouter.post('/gallery', async (req, res) => {
     if (!content) {
       return res.status(404).send({ errorMessage: 'Content not found.' })
     }
-    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'seller')
 
     const [gallery] = await prisma.$transaction([
       prisma.gallery.create({
@@ -99,7 +99,7 @@ galleryRouter.post('/gallery/:id/image', uploadConfig.single('file'), async (req
     if (!content) {
       return res.status(404).send({ errorMessage: 'Content not found.' })
     }
-    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'seller')
 
     if (gallery.images.length >= MAX_GALLERY_IMAGES) {
       return res.status(400).send({ errorMessage: `Gallery cannot have more than ${MAX_GALLERY_IMAGES} images.` })
