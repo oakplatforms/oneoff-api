@@ -19,7 +19,7 @@ interface FeedItem {
 const listingInclude = {
   account: {
     include: {
-      profile: { select: { username: true, avatar: true } },
+      profile: { select: { id: true, username: true, avatar: true } },
     },
   },
   entity: {

@@ -12,7 +12,7 @@ export const generateIncludes = (
     for (let i = 0; i < path.length; i++) {
       const key = path[i]
 
-      if (!current[key]) {
+      if (!current[key] || current[key] === true) {
         current[key] = {}
       }
 
@@ -21,7 +21,7 @@ export const generateIncludes = (
           current[key].include = {}
         }
         current = current[key].include
-      } else {
+      } else if (!Object.keys(current[key]).length) {
         current[key] = true
       }
     }
@@ -35,7 +35,7 @@ export const generateIncludes = (
         const path = key.split('.')
         if (path.length > 1) {
           addDeepNestedInclude(path)
-        } else {
+        } else if (!items[key]) {
           items[key] = true
         }
       }

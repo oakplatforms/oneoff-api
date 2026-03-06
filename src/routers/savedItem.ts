@@ -37,6 +37,15 @@ savedItemRouter.get('/saved-items', async (req, res) => {
                     tag: true,
                   },
                 },
+                content: {
+                  include: {
+                    gallery: {
+                      include: {
+                        images: { orderBy: { position: 'asc' as const } },
+                      },
+                    },
+                  },
+                },
               },
             },
             account: {
