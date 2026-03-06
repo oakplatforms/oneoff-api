@@ -1244,12 +1244,6 @@
             "POST"
           ]
         },
-        "previewImage": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "entity": {
           "$ref": "#/definitions/Entity"
         },

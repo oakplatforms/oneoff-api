@@ -242,7 +242,9 @@ accountRouter.delete('/account/:id', async (req, res) => {
             },
             contents: {
               select: {
-                previewImage: true,
+                entity: {
+                  select: { image: true },
+                },
                 gallery: {
                   select: {
                     images: {
@@ -304,7 +306,7 @@ accountRouter.delete('/account/:id', async (req, res) => {
         }
 
         for (const content of account.contents) {
-          if (content.previewImage) s3Keys.push(content.previewImage)
+          if (content.entity?.image) s3Keys.push(content.entity.image)
           if (content.gallery) {
             for (const img of content.gallery.images) {
               if (img.image) s3Keys.push(img.image)

@@ -238,7 +238,7 @@ contentRouter.post('/content', async (req, res) => {
  */
 contentRouter.put('/content/:id', async (req, res) => {
   const { id } = req.params
-  const { accountId, type, previewImage, displayName, description } = req.body
+  const { accountId, type, displayName, description } = req.body
 
   try {
     validateStringFields({
@@ -262,7 +262,6 @@ contentRouter.put('/content/:id', async (req, res) => {
         where: { id },
         data: {
           ...(type !== undefined && { type }),
-          ...(previewImage !== undefined && { previewImage }),
         },
         include: hasEntityUpdate ? { entity: true } : undefined,
       }),
@@ -306,6 +305,7 @@ contentRouter.delete('/content/:id', async (req, res) => {
     const content = await prisma.content.findUnique({
       where: { id },
       include: {
+        entity: true,
         gallery: { include: { images: true } },
         video: true,
         post: true,
@@ -319,7 +319,7 @@ contentRouter.delete('/content/:id', async (req, res) => {
 
     // Clean up S3 images before deleting
     const imagesToDelete: string[] = []
-    if (content.previewImage) imagesToDelete.push(content.previewImage)
+    if (content.entity?.image) imagesToDelete.push(content.entity.image)
     if (content.gallery?.images) {
       for (const img of content.gallery.images) {
         if (img.image) imagesToDelete.push(img.image)
@@ -386,20 +386,25 @@ contentRouter.post('/content/:id/upload-image', uploadConfig.single('file'), asy
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    // Upload preview image to type-specific preview folder
-    const previewFolderMap: Record<string, string> = {
+    // Upload image to type-specific folder
+    const folderMap: Record<string, string> = {
       GALLERY: 'gallery/preview',
       VIDEO: 'video/preview',
       POST: 'post/preview',
     }
-    const folder = previewFolderMap[content.type] || 'content'
+    const folder = folderMap[content.type] || 'content'
     const imagePath = await uploadImage(file, folder)
 
-    const updatedContent = await prisma.content.update({
-      where: { id },
+    await prisma.entity.update({
+      where: { id: content.entityId },
       data: {
-        previewImage: imagePath,
+        image: imagePath,
       },
+    })
+
+    const updatedContent = await prisma.content.findUnique({
+      where: { id },
+      include: { entity: true },
     })
 
     res.json(updatedContent)
@@ -433,6 +438,7 @@ contentRouter.delete('/content/:id/delete-image', async (req, res) => {
   try {
     const content = await prisma.content.findUnique({
       where: { id },
+      include: { entity: true },
     })
 
     if (!content) {
@@ -440,16 +446,21 @@ contentRouter.delete('/content/:id/delete-image', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    //Delete preview image
-    if (content.previewImage) {
-      await deleteImage(content.previewImage)
+    // Delete entity image from S3
+    if (content.entity?.image) {
+      await deleteImage(content.entity.image)
     }
 
-    const updatedContent = await prisma.content.update({
-      where: { id },
+    await prisma.entity.update({
+      where: { id: content.entityId },
       data: {
-        previewImage: null,
+        image: null,
       },
+    })
+
+    const updatedContent = await prisma.content.findUnique({
+      where: { id },
+      include: { entity: true },
     })
 
     res.json(updatedContent)

@@ -322,7 +322,6 @@ export interface components {
              * @enum {string}
              */
             type: "IMAGE" | "VIDEO" | "GALLERY" | "POST";
-            previewImage?: string | null;
             entity?: components["schemas"]["Entity"];
             entityId?: string;
             account?: components["schemas"]["Account"] | null;
