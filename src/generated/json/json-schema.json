@@ -1234,16 +1234,6 @@
           "type": "string",
           "format": "date-time"
         },
-        "type": {
-          "type": "string",
-          "default": "IMAGE",
-          "enum": [
-            "IMAGE",
-            "VIDEO",
-            "GALLERY",
-            "POST"
-          ]
-        },
         "entity": {
           "$ref": "#/definitions/Entity"
         },
@@ -1280,16 +1270,6 @@
           "anyOf": [
             {
               "$ref": "#/definitions/Video"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "post": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Post"
             },
             {
               "type": "null"
@@ -1415,52 +1395,6 @@
           ]
         },
         "mediaConvertJobId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "content": {
-          "$ref": "#/definitions/Content"
-        },
-        "contentId": {
-          "type": "string"
-        }
-      }
-    },
-    "Post": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "header": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "subheader": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "body": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "image": {
           "type": [
             "string",
             "null"
@@ -2088,9 +2022,6 @@
     },
     "video": {
       "$ref": "#/definitions/Video"
-    },
-    "post": {
-      "$ref": "#/definitions/Post"
     },
     "payout": {
       "$ref": "#/definitions/Payout"

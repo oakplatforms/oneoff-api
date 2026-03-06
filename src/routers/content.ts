@@ -1,4 +1,4 @@
-import { ContentType, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import express from 'express'
 import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
@@ -41,14 +41,11 @@ export const contentRouter = express.Router()
  *         description: Successfully retrieved contents
  */
 contentRouter.get('/contents', async (req, res) => {
-  const { include, usePagination, page, limit, accountId, type } = req.query
+  const { include, usePagination, page, limit, accountId } = req.query
 
   const where: Prisma.ContentWhereInput = {}
   if (accountId) {
     where.accountId = accountId as string
-  }
-  if (type) {
-    where.type = type as ContentType
   }
 
   try {
@@ -139,7 +136,7 @@ contentRouter.get('/content/:id', async (req, res) => {
  *         description: Successfully created content
  */
 contentRouter.post('/content', async (req, res) => {
-  const { accountId, type, name, displayName, description, price, quantity } = req.body
+  const { accountId, name, displayName, description, price, quantity } = req.body
 
   try {
     if (!accountId) {
@@ -180,9 +177,13 @@ contentRouter.post('/content', async (req, res) => {
         data: {
           entityId: entity.id,
           accountId,
-          type: type || 'IMAGE',
         },
         include: { entity: true },
+      })
+
+      // Auto-create gallery
+      await tx.gallery.create({
+        data: { contentId: content.id },
       })
 
       // Auto-create listing with the specified price
@@ -238,7 +239,7 @@ contentRouter.post('/content', async (req, res) => {
  */
 contentRouter.put('/content/:id', async (req, res) => {
   const { id } = req.params
-  const { accountId, type, displayName, description } = req.body
+  const { displayName, description } = req.body
 
   try {
     validateStringFields({
@@ -252,26 +253,21 @@ contentRouter.put('/content/:id', async (req, res) => {
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    const hasEntityUpdate = displayName !== undefined || description !== undefined
     const entityData: Record<string, unknown> = {}
     if (displayName !== undefined) entityData.displayName = displayName
     if (description !== undefined) entityData.description = description
 
-    const [updatedContent] = await prisma.$transaction([
-      prisma.content.update({
-        where: { id },
-        data: {
-          ...(type !== undefined && { type }),
-        },
-        include: hasEntityUpdate ? { entity: true } : undefined,
-      }),
-      ...(hasEntityUpdate ? [
-        prisma.entity.update({
-          where: { id: content.entityId },
-          data: entityData,
-        }),
-      ] : []),
-    ])
+    if (Object.keys(entityData).length > 0) {
+      await prisma.entity.update({
+        where: { id: content.entityId },
+        data: entityData,
+      })
+    }
+
+    const updatedContent = await prisma.content.findUnique({
+      where: { id },
+      include: { entity: true },
+    })
 
     res.json(updatedContent)
   } catch (error) {
@@ -308,7 +304,6 @@ contentRouter.delete('/content/:id', async (req, res) => {
         entity: true,
         gallery: { include: { images: true } },
         video: true,
-        post: true,
       },
     })
 
@@ -327,7 +322,6 @@ contentRouter.delete('/content/:id', async (req, res) => {
       }
     }
     if (content.video?.rawUrl) imagesToDelete.push(content.video.rawUrl)
-    if (content.post?.image) imagesToDelete.push(content.post.image)
 
     await Promise.all(imagesToDelete.map(key => deleteImage(key)))
 
@@ -386,14 +380,7 @@ contentRouter.post('/content/:id/upload-image', uploadConfig.single('file'), asy
     }
     await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
 
-    // Upload image to type-specific folder
-    const folderMap: Record<string, string> = {
-      GALLERY: 'gallery/preview',
-      VIDEO: 'video/preview',
-      POST: 'post/preview',
-    }
-    const folder = folderMap[content.type] || 'content'
-    const imagePath = await uploadImage(file, folder)
+    const imagePath = await uploadImage(file, 'content/preview')
 
     await prisma.entity.update({
       where: { id: content.entityId },
@@ -468,5 +455,163 @@ contentRouter.delete('/content/:id/delete-image', async (req, res) => {
     const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('DELETE_CONTENT_IMAGE_ERROR:', prismaError, customError)
     res.status(statusCode).send({ errorMessage: customError || 'Failed to delete image.' })
+  }
+})
+
+const MAX_GALLERY_IMAGES = 10
+
+contentRouter.post('/content/:id/gallery-image', uploadConfig.single('file'), async (req, res) => {
+  const { id } = req.params
+  const { caption } = req.body
+  const file = req.file
+
+  if (!file) {
+    return res.status(400).send({ errorMessage: 'No file provided.' })
+  }
+
+  try {
+    validateStringFields({
+      caption: { value: caption, maxLength: STRING_LIMITS.caption },
+    })
+
+    const content = await prisma.content.findUnique({
+      where: { id },
+      include: {
+        gallery: { include: { images: true } },
+      },
+    })
+
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'seller')
+
+    const gallery = content.gallery
+    if (!gallery) {
+      return res.status(404).send({ errorMessage: 'Gallery not found.' })
+    }
+
+    if (gallery.images.length >= MAX_GALLERY_IMAGES) {
+      return res.status(400).send({ errorMessage: `Gallery cannot have more than ${MAX_GALLERY_IMAGES} images.` })
+    }
+
+    // Upload original image
+    const imagePath = await uploadImage(file, 'gallery')
+
+    // Upload blurred version
+    const blurredImagePath = await uploadImage(file, 'gallery/blurred', {
+      width: 750,
+      quality: 75,
+      format: 'webp',
+      fit: 'inside',
+      blur: 25,
+    })
+
+    const nextPosition = gallery.images.length > 0
+      ? Math.max(...gallery.images.map(img => img.position)) + 1
+      : 0
+
+    const galleryImage = await prisma.galleryImage.create({
+      data: {
+        galleryId: gallery.id,
+        image: imagePath,
+        blurredImage: blurredImagePath,
+        caption: caption || null,
+        position: nextPosition,
+      },
+    })
+
+    res.json(galleryImage)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('UPLOAD_GALLERY_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to upload gallery image.' })
+  }
+})
+
+contentRouter.delete('/content/:id/gallery-image/:imageId', async (req, res) => {
+  const { id, imageId } = req.params
+
+  try {
+    const content = await prisma.content.findUnique({ where: { id } })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
+    const galleryImage = await prisma.galleryImage.findUnique({
+      where: { id: imageId },
+    })
+
+    if (!galleryImage) {
+      return res.status(404).send({ errorMessage: 'Gallery image not found.' })
+    }
+
+    // Clean up S3 images
+    if (galleryImage.image) {
+      await deleteImage(galleryImage.image)
+    }
+    if (galleryImage.blurredImage) {
+      await deleteImage(galleryImage.blurredImage)
+    }
+
+    await prisma.galleryImage.delete({
+      where: { id: imageId },
+    })
+
+    res.json({ message: 'Gallery image deleted successfully.' })
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('DELETE_GALLERY_IMAGE_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to delete gallery image.' })
+  }
+})
+
+contentRouter.put('/content/:id/gallery-images/reorder', async (req, res) => {
+  const { id } = req.params
+  const { imageIds } = req.body
+
+  if (!Array.isArray(imageIds) || imageIds.length === 0) {
+    return res.status(400).send({ errorMessage: 'imageIds array is required.' })
+  }
+
+  try {
+    const content = await prisma.content.findUnique({
+      where: { id },
+      include: { gallery: true },
+    })
+    if (!content) {
+      return res.status(404).send({ errorMessage: 'Content not found.' })
+    }
+    await validateAccount(req.user as AuthenticatedUser, content.accountId ?? undefined, 'authenticated')
+
+    const gallery = content.gallery
+    if (!gallery) {
+      return res.status(404).send({ errorMessage: 'Gallery not found.' })
+    }
+
+    await prisma.$transaction(
+      imageIds.map((imageId: string, index: number) =>
+        prisma.galleryImage.update({
+          where: { id: imageId },
+          data: { position: index },
+        })
+      )
+    )
+
+    const updatedGallery = await prisma.gallery.findUnique({
+      where: { id: gallery.id },
+      include: {
+        images: {
+          orderBy: { position: 'asc' },
+        },
+      },
+    })
+
+    res.json(updatedGallery)
+  } catch (error) {
+    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
+    console.error('REORDER_GALLERY_IMAGES_ERROR:', prismaError, customError)
+    res.status(statusCode).send({ errorMessage: customError || 'Failed to reorder gallery images.' })
   }
 })

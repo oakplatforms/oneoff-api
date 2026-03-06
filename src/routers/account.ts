@@ -252,9 +252,6 @@ accountRouter.delete('/account/:id', async (req, res) => {
                     },
                   },
                 },
-                post: {
-                  select: { image: true },
-                },
               },
             },
             carts: {
@@ -313,7 +310,6 @@ accountRouter.delete('/account/:id', async (req, res) => {
               if (img.blurredImage) s3Keys.push(img.blurredImage)
             }
           }
-          if (content.post?.image) s3Keys.push(content.post.image)
         }
 
         await Promise.all(s3Keys.map((key) => deleteS3Object(key).catch((err) => {

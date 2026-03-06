@@ -317,18 +317,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            /**
-             * @default IMAGE
-             * @enum {string}
-             */
-            type: "IMAGE" | "VIDEO" | "GALLERY" | "POST";
             entity?: components["schemas"]["Entity"];
             entityId?: string;
             account?: components["schemas"]["Account"] | null;
             accountId?: string | null;
             gallery?: components["schemas"]["Gallery"] | null;
             video?: components["schemas"]["Video"] | null;
-            post?: components["schemas"]["Post"] | null;
         };
         Gallery: {
             id?: string;
@@ -369,17 +363,6 @@ export interface components {
             processingError?: string | null;
             duration?: number | null;
             mediaConvertJobId?: string | null;
-            content?: components["schemas"]["Content"];
-            contentId?: string;
-        };
-        Post: {
-            id?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            body?: string | null;
-            image?: string | null;
             content?: components["schemas"]["Content"];
             contentId?: string;
         };

@@ -68,13 +68,6 @@ enum Currency {
   CAD
 }
 
-enum ContentType {
-  IMAGE
-  VIDEO
-  GALLERY
-  POST
-}
-
 enum VideoProcessingStatus {
   PENDING
   PROCESSING
@@ -431,9 +424,6 @@ model Content {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // custom
-  type ContentType @default(IMAGE)
-
   // relations
   entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
   entityId  String   @unique
@@ -441,10 +431,9 @@ model Content {
   accountId String?
   gallery   Gallery?
   video     Video?
-  post      Post?
 
   @@index([accountId])
-  @@index([type, createdAt])
+  @@index([createdAt])
 }
 
 model Gallery {
@@ -498,24 +487,6 @@ model Video {
 
   @@index([contentId])
   @@index([processingStatus])
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // custom
-  header    String? @db.VarChar(200)
-  subheader String? @db.VarChar(300)
-  body      String? @db.VarChar(50000)
-  image     String?
-
-  // relations
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
-
-  @@index([contentId])
 }
 
 model Payout {

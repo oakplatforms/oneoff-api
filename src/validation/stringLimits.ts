@@ -26,11 +26,6 @@ export const STRING_LIMITS = {
   entityDescription: 1000,
   resolution: 1000,
 
-  // post content
-  header: 200,
-  subheader: 300,
-  body: 50000,
-
   // payout
   last4: 4,
 } as const

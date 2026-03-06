@@ -7,7 +7,7 @@ export const feedRouter = express.Router()
 
 const prisma = prismaClient()
 
-type FeedItemType = 'gallery' | 'video' | 'post'
+type FeedItemType = 'content'
 
 interface FeedItem {
   type: FeedItemType
@@ -32,8 +32,6 @@ const listingInclude = {
               images: { orderBy: { position: 'asc' as const } },
             },
           },
-          video: true,
-          post: true,
         },
       },
     },
@@ -47,7 +45,7 @@ function buildListingWhere(
     status: Status.ACTIVE,
     entity: {
       content: {
-        type: 'GALLERY',
+        isNot: null,
       },
     },
     ...(accountId ? { accountId: { not: accountId } } : {}),
@@ -95,7 +93,7 @@ function buildListingWhere(
  *                     properties:
  *                       type:
  *                         type: string
- *                         enum: [gallery, video, post]
+ *                         enum: [content]
  *                       id:
  *                         type: string
  *                       createdAt:
@@ -147,7 +145,7 @@ feedRouter.get('/feed', async (req, res) => {
     const hasMore = listingsRaw.length > parsedLimit
 
     const feedItems: FeedItem[] = listingsRaw.slice(0, parsedLimit).map((listing) => ({
-      type: 'gallery' as FeedItemType,
+      type: 'content' as FeedItemType,
       id: listing.id,
       createdAt: listing.createdAt,
       data: listing,
