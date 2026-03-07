@@ -20,6 +20,7 @@ const listingInclude = {
   account: {
     include: {
       profile: { select: { id: true, username: true, avatar: true } },
+      seller: { select: { id: true } },
     },
   },
   entity: {
