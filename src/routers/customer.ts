@@ -621,7 +621,7 @@ customerRouter.post('/customer/payment-method/:accountId', async (req, res) => {
   const { paymentMethodId } = req.body
 
   if (!accountId || !paymentMethodId) {
-    throw new Error('Missing required parameters.')
+    return res.status(400).send({ errorMessage: 'Missing required parameters.' })
   }
 
   try {
