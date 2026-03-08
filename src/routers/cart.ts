@@ -119,6 +119,36 @@ cartRouter.post('/cart/:cartId/orders', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Insufficient quantity available' })
     }
 
+    // Check if this entity already exists in a CREATED order in this cart
+    const existingEntityInCart = await prisma.orderListing.findFirst({
+      where: {
+        order: {
+          cartId,
+          status: 'CREATED',
+        },
+        listing: {
+          entityId: listing.entityId,
+        },
+      },
+    })
+
+    if (existingEntityInCart) {
+      return res.status(400).json({ error: 'This item is already in your cart' })
+    }
+
+    // Check if there is already a CREATED order from this seller in the cart
+    const existingSellerOrder = await prisma.order.findFirst({
+      where: {
+        cartId,
+        sellerId,
+        status: 'CREATED',
+      },
+    })
+
+    if (existingSellerOrder) {
+      return res.status(400).json({ error: 'You already have an order from this seller in your cart. Please add items to the existing order.' })
+    }
+
     // Create order with CREATED status (not yet purchased)
     const order = await prisma.order.create({
       data: {

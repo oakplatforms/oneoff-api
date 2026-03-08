@@ -309,7 +309,43 @@ orderRouter.post('/order', async (req, res) => {
     const listingIds = listingsInOrder.create.map((item) => item.listingId)
     const listings = await prisma.listing.findMany({
       where: { id: { in: listingIds } },
+      include: { entity: true },
     })
+
+    if (cartId) {
+      // Validate no duplicate entities in the same cart
+      const entityIds = listings.map((l) => l.entityId).filter(Boolean) as string[]
+      if (entityIds.length > 0) {
+        const existingEntityInCart = await prisma.orderListing.findFirst({
+          where: {
+            order: {
+              cartId,
+              status: 'CREATED',
+            },
+            listing: {
+              entityId: { in: entityIds },
+            },
+          },
+        })
+
+        if (existingEntityInCart) {
+          throw new Error('This item is already in your cart.')
+        }
+      }
+
+      // Validate no duplicate seller orders in the same cart
+      const existingSellerOrder = await prisma.order.findFirst({
+        where: {
+          cartId,
+          sellerId,
+          status: 'CREATED',
+        },
+      })
+
+      if (existingSellerOrder) {
+        throw new Error('You already have an order from this seller in your cart. Please add items to the existing order.')
+      }
+    }
 
     for (const item of listingsInOrder.create) {
       const listing = listings.find((l) => l.id === item.listingId)
@@ -539,8 +575,35 @@ orderRouter.put('/order/:id', async (req, res) => {
         const listingIds = createAndUpdateItems.map((item) => item.listingId)
 
         listings = await prisma.listing.findMany({
-          where: { id: { in: listingIds } }
+          where: { id: { in: listingIds } },
+          include: { entity: true },
         })
+
+        // Validate no duplicate entities when adding new listings to the order
+        if (listingsInOrder?.create?.length && existingOrder.cartId) {
+          const newEntityIds = listings
+            .filter((l) => listingsInOrder.create.some((c) => c.listingId === l.id))
+            .map((l) => l.entityId)
+            .filter(Boolean) as string[]
+
+          if (newEntityIds.length > 0) {
+            const existingEntityInCart = await prisma.orderListing.findFirst({
+              where: {
+                order: {
+                  cartId: existingOrder.cartId,
+                  status: 'CREATED',
+                },
+                listing: {
+                  entityId: { in: newEntityIds },
+                },
+              },
+            })
+
+            if (existingEntityInCart) {
+              throw new Error('This item is already in your cart.')
+            }
+          }
+        }
 
         for (const item of createAndUpdateItems) {
           const listing = listings.find((l) => l.id === item.listingId)

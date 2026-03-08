@@ -130,8 +130,8 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
           },
         },
         include: {
-          customer: true,
-          seller: true,
+          customer: { omit: { paymentAccountId: false } },
+          seller: { omit: { paymentAccountId: false } },
         },
       })
 
