@@ -239,13 +239,21 @@ contentRouter.post('/content', async (req, res) => {
  */
 contentRouter.put('/content/:id', async (req, res) => {
   const { id } = req.params
-  const { displayName, description } = req.body
+  const { displayName, description, price } = req.body
 
   try {
     validateStringFields({
       displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
       description: { value: description, maxLength: STRING_LIMITS.entityDescription },
     })
+
+    // Validate price if provided
+    if (price !== undefined) {
+      const listingPrice = Number(price)
+      if (listingPrice < 1 || listingPrice > 10) {
+        return res.status(400).send({ errorMessage: 'Price must be between $1 and $10.' })
+      }
+    }
 
     const content = await prisma.content.findUnique({ where: { id } })
     if (!content) {
@@ -261,6 +269,14 @@ contentRouter.put('/content/:id', async (req, res) => {
       await prisma.entity.update({
         where: { id: content.entityId },
         data: entityData,
+      })
+    }
+
+    // Update listing price if provided
+    if (price !== undefined) {
+      await prisma.listing.updateMany({
+        where: { entityId: content.entityId },
+        data: { price: Number(price) },
       })
     }
 
