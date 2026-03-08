@@ -26,10 +26,10 @@ export const validateOrdersForInvoice = async (orderIds: string[]) => {
     }
 
     for (const orderListing of order.orderListings) {
-      const availableQuantity = orderListing.listing?.quantity ?? 0
+      const availableQuantity = orderListing.listing?.quantity
       const orderedQuantity = orderListing.quantity ?? 0
 
-      if (orderedQuantity > availableQuantity) {
+      if (availableQuantity !== null && availableQuantity !== undefined && orderedQuantity > availableQuantity) {
         throw new Error(
           'Insufficient quantity for specific listing in your order.'
         )

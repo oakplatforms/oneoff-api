@@ -436,8 +436,8 @@ profileRouter.put('/profile/upload-image/:id', uploadConfig.single('file'), asyn
     }
 
     const resizeOptions = field === 'avatar'
-      ? { width: 250, quality: 75, format: 'webp' as const, fit: 'inside' as const }
-      : { width: 500, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      ? { width: 250, quality: 90, format: 'webp' as const, fit: 'inside' as const }
+      : { width: 500, quality: 90, format: 'webp' as const, fit: 'inside' as const }
 
     const key = await uploadImage(req.file, 'profile', resizeOptions)
 

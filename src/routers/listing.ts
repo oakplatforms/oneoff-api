@@ -268,7 +268,7 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
       if (req.file) {
         const resizeOptions = {
           width: 1050,
-          quality: 75,
+          quality: 90,
           format: 'webp' as const,
           fit: 'inside' as const
         }
@@ -462,7 +462,7 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
     if (req.file) {
       const resizeOptions = {
         width: 1050,
-        quality: 75,
+        quality: 90,
         format: 'webp' as const,
         fit: 'inside' as const
       }

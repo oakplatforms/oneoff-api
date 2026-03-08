@@ -359,14 +359,16 @@ orderRouter.post('/order', async (req, res) => {
         throw new Error(`Cannot add your own listing to an order.`)
       }
 
-      const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
+      if (listing.quantity !== null && listing.quantity !== undefined) {
+        const remainingQuantity = listing.quantity - item.quantityInOrder
 
-      if (remainingQuantity < 0) {
-        throw new Error(`Insufficient quantity for listing.`)
-      }
+        if (remainingQuantity < 0) {
+          throw new Error(`Insufficient quantity for listing.`)
+        }
 
-      if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
-        throw new Error(`You must purchase all items for single-seller listing.`)
+        if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
+          throw new Error(`You must purchase all items for single-seller listing.`)
+        }
       }
 
       subTotal += Number(listing.price) * item.quantityInOrder
@@ -630,14 +632,16 @@ orderRouter.put('/order/:id', async (req, res) => {
             subTotal += newAmount
           }
 
-          const remainingQuantity = (listing.quantity || 0) - item.quantityInOrder
+          if (listing.quantity !== null && listing.quantity !== undefined) {
+            const remainingQuantity = listing.quantity - item.quantityInOrder
 
-          if (remainingQuantity < 0) {
-            throw new Error(`Insufficient quantity for listing.`)
-          }
+            if (remainingQuantity < 0) {
+              throw new Error(`Insufficient quantity for listing.`)
+            }
 
-          if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
-            throw new Error(`You must purchase all items for single-seller listing ${listing.id}.`)
+            if (!listing.multiTransactionsEnabled && listing.quantity !== item.quantityInOrder) {
+              throw new Error(`You must purchase all items for single-seller listing ${listing.id}.`)
+            }
           }
         }
       }

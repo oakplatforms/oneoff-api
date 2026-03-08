@@ -1112,8 +1112,8 @@ listRouter.put('/list/upload-image/:id', uploadConfig.single('file'), async (req
     }
 
     const resizeOptions = field === 'banner'
-      ? { width: 800, quality: 75, format: 'webp' as const, fit: 'inside' as const }
-      : { width: 200, quality: 75, format: 'webp' as const, fit: 'inside' as const }
+      ? { width: 800, quality: 90, format: 'webp' as const, fit: 'inside' as const }
+      : { width: 200, quality: 90, format: 'webp' as const, fit: 'inside' as const }
 
     const key = await uploadImage(req.file, 'list', resizeOptions)
 

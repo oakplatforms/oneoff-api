@@ -95,23 +95,24 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         const listing = orderListing.listing
         const quantityInOrder = orderListing.quantity || 0
 
-        if (!listing || listing.quantity === null || listing.quantity === undefined) {
-          throw new Error(`Listing missing quantity.`)
+        if (!listing) {
+          throw new Error(`Listing not found.`)
         }
 
-        const newQuantity = listing.quantity - quantityInOrder
+        if (listing.quantity !== null && listing.quantity !== undefined) {
+          const newQuantity = listing.quantity - quantityInOrder
 
-        if (newQuantity < 0) {
-          throw new Error(`Insufficient quantity for listing ${listing.id}.`)
+          if (newQuantity < 0) {
+            throw new Error(`Insufficient quantity for listing ${listing.id}.`)
+          }
+
+          await tx.listing.update({
+            where: { id: listing.id },
+            data: {
+              quantity: newQuantity,
+            },
+          })
         }
-
-        await tx.listing.update({
-          where: { id: listing.id },
-          data: {
-            quantity: newQuantity,
-            status: newQuantity === 0 ? 'INACTIVE' : 'ACTIVE',
-          },
-        })
       }
 
       const pendingOrder = await tx.order.update({

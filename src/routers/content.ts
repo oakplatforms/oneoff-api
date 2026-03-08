@@ -501,7 +501,7 @@ contentRouter.post('/content/:id/gallery-image', uploadConfig.single('file'), as
     // Upload blurred version
     const blurredImagePath = await uploadImage(file, 'gallery/blurred', {
       width: 750,
-      quality: 75,
+      quality: 90,
       format: 'webp',
       fit: 'inside',
       blur: 25,
