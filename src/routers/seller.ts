@@ -1185,16 +1185,20 @@ sellerRouter.post('/seller/upload-verification/:accountId', async (req, res) => 
 
     res.json({ success: 'Identity verification files uploaded and account updated.' })
   } catch (error) {
+    const errorMessage = (error as Error)?.message || ''
+    const isValidationError = errorMessage.includes('do not appear to be valid ID documents')
     const { statusCode, prismaError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
     console.error('CREATE_SELLER_UPLOAD_VERIFICATION_ERROR:', {
-      message: (error as Error)?.message,
+      message: errorMessage,
       stack: (error as Error)?.stack,
       prismaError,
       fullError: error
     })
-    res.status(statusCode).send({
-      errorMessage: 'Failed to create seller upload verification.',
-      details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+    res.status(isValidationError ? 400 : statusCode).send({
+      errorMessage: isValidationError
+        ? errorMessage
+        : 'Failed to create seller upload verification.',
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     })
   }
 })
