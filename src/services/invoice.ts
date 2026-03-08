@@ -87,9 +87,8 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
       }
 
       const orderListings = order.orderListings
-      const tax = 0
-      const shipping = 0
-      const total = Number(order.subTotal || 0) + tax + shipping
+      const transactionFee = 0.50
+      const total = Number(order.subTotal || 0) + transactionFee
 
       for (const orderListing of orderListings) {
         const listing = orderListing.listing
@@ -120,8 +119,7 @@ export const createInvoiceWithTransactions = async (orderIds: string[]) => {
         data: {
           status: 'PENDING',
           invoiceId: invoice.id,
-          tax,
-          shipping,
+          transactionFee,
           total,
           transactions: {
             create: [{

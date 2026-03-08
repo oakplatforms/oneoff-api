@@ -1653,13 +1653,7 @@
             "null"
           ]
         },
-        "tax": {
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "shipping": {
+        "transactionFee": {
           "type": [
             "number",
             "null"
