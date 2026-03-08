@@ -144,8 +144,29 @@ feedRouter.get('/feed', async (req, res) => {
     }))
 
     const hasMore = listingsRaw.length > parsedLimit
+    const listings = listingsRaw.slice(0, parsedLimit)
 
-    const feedItems: FeedItem[] = listingsRaw.slice(0, parsedLimit).map((listing) => ({
+    // Round-robin interleave by user so one user doesn't dominate the feed
+    const byUser = new Map<string, typeof listings>()
+    for (const listing of listings) {
+      const userId = listing.accountId ?? listing.id
+      if (!byUser.has(userId)) byUser.set(userId, [])
+      byUser.get(userId)!.push(listing)
+    }
+    const interleaved: typeof listings = []
+    const userQueues = Array.from(byUser.values())
+    let added = true
+    while (added) {
+      added = false
+      for (const queue of userQueues) {
+        if (queue.length > 0) {
+          interleaved.push(queue.shift()!)
+          added = true
+        }
+      }
+    }
+
+    const feedItems: FeedItem[] = interleaved.map((listing) => ({
       type: 'content' as FeedItemType,
       id: listing.id,
       createdAt: listing.createdAt,
