@@ -241,12 +241,12 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
     await validateSeller(accountId)
 
-    const parsedPrice = parseFloat(price)
+    const parsedPrice = 1
     const parsedQuantity = parseInt(quantity)
     const parsedMultiTransactionsEnabled = multiTransactionsEnabled === 'true'
 
-    if (isNaN(parsedPrice) || isNaN(parsedQuantity)) {
-      throw new Error('Invalid price or quantity values')
+    if (isNaN(parsedQuantity)) {
+      throw new Error('Invalid quantity value')
     }
 
     const userListing = await prisma.listing.findFirst({
@@ -261,8 +261,6 @@ listingRouter.post(`/listing`, uploadConfig.single('file'), async (req, res) => 
 
     if (userListing) {
       throw new Error('User already has a listing for this entity')
-    } else if (parsedPrice <= 0) {
-      throw new Error('A listing cannot have a zero or negative price')
     } else {
       let imageKey = null
       if (req.file) {
@@ -443,10 +441,7 @@ listingRouter.put(`/listing/:id`, uploadConfig.single('file'), async (req, res) 
       throw new Error('Listing does not belong to this account')
     }
 
-    const parsedPrice = parseFloat(price)
-    if (isNaN(parsedPrice)) {
-      throw new Error('Invalid price value')
-    }
+    const parsedPrice = 1
 
     let imageKey = null
     let shouldDeleteOldImage = false

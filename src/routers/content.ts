@@ -151,11 +151,8 @@ contentRouter.post('/content', async (req, res) => {
 
     await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
 
-    // Validate price if provided
-    const listingPrice = price ? Number(price) : 1.00
-    if (listingPrice < 1 || listingPrice > 10) {
-      return res.status(400).send({ errorMessage: 'Price must be between $1 and $10.' })
-    }
+    // Price is always $1
+    const listingPrice = 1
 
     // Validate quantity if provided (null = unlimited)
     const listingQuantity = quantity === null || quantity === undefined ? null : Number(quantity)
@@ -247,13 +244,7 @@ contentRouter.put('/content/:id', async (req, res) => {
       description: { value: description, maxLength: STRING_LIMITS.entityDescription },
     })
 
-    // Validate price if provided
-    if (price !== undefined) {
-      const listingPrice = Number(price)
-      if (listingPrice < 1 || listingPrice > 10) {
-        return res.status(400).send({ errorMessage: 'Price must be between $1 and $10.' })
-      }
-    }
+    // Price is always $1 — ignore any price sent from the client
 
     const content = await prisma.content.findUnique({ where: { id } })
     if (!content) {
@@ -272,13 +263,6 @@ contentRouter.put('/content/:id', async (req, res) => {
       })
     }
 
-    // Update listing price if provided
-    if (price !== undefined) {
-      await prisma.listing.updateMany({
-        where: { entityId: content.entityId },
-        data: { price: Number(price) },
-      })
-    }
 
     const updatedContent = await prisma.content.findUnique({
       where: { id },
