@@ -23,6 +23,7 @@ import { universalRouter } from './universal'
 import { feedRouter } from './feed'
 import { savedItemRouter } from './savedItem'
 import { searchRouter } from './search'
+import { activityRouter } from './activity'
 
 router.use(warmupRouter)
 router.use(userRouter)
@@ -45,6 +46,7 @@ router.use(cartRouter)
 router.use(feedRouter)
 router.use(savedItemRouter)
 router.use(searchRouter)
+router.use(activityRouter)
 
 router.use(profileRouter)
 router.use(universalRouter)
