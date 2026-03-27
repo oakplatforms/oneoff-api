@@ -258,7 +258,7 @@ accountRouter.delete('/account/:id', async (req, res) => {
               include: {
                 orders: {
                   where: {
-                    status: { in: ['PENDING'] }
+                    status: { in: ['CREATED'] }
                   }
                 }
               }
@@ -270,11 +270,11 @@ accountRouter.delete('/account/:id', async (req, res) => {
           throw new Error('Account not found.')
         }
 
-        //Check for pending orders
+        //Check for in-progress orders
         const accountWithIncludes = account as Record<string, unknown>
-        const pendingOrders = (accountWithIncludes.carts as Array<Record<string, unknown>>)?.flatMap((cart: Record<string, unknown>) => cart.orders as Array<Record<string, unknown>>) || []
-        if (pendingOrders.length > 0) {
-          throw new Error('Cannot delete account with pending orders. Please complete or cancel all pending orders first.')
+        const activeOrders = (accountWithIncludes.carts as Array<Record<string, unknown>>)?.flatMap((cart: Record<string, unknown>) => cart.orders as Array<Record<string, unknown>>) || []
+        if (activeOrders.length > 0) {
+          throw new Error('Cannot delete account with active orders in cart. Please complete or remove all orders first.')
         }
 
         //Delete Stripe customer if exists

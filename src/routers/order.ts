@@ -4,7 +4,6 @@ import { generateIncludes } from '../utils/generateIncludes'
 import { prismaClient, generatePrismaError } from '../utils/prismaHelpers'
 import { paginatePrisma } from '../utils/paginatePrisma'
 import { AuthenticatedUser, validateAccount } from '../validation/user'
-import stripe from '../utils/stripe'
 
 const prisma = prismaClient()
 export const orderRouter = express.Router()
@@ -28,7 +27,7 @@ export type ListingsInOrder = {
  *         name: status
  *         schema:
  *           type: string
- *           enum: [PENDING, PROCESSING, COMPLETED, CANCELED]
+ *           enum: [CREATED, COMPLETED, FAILED]
  *         description: Filter orders by status.
  *       - in: query
  *         name: createdById
@@ -293,7 +292,7 @@ orderRouter.post('/order', async (req, res) => {
   } = req.body
 
   try {
-    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED || status === ProcessStatus.IN_REVIEW) {
+    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.FAILED) {
       throw new Error(`Cannot create an order with ${status} status.`)
     }
     if (!customerId || !sellerId || !listingsInOrder) {
@@ -537,7 +536,7 @@ orderRouter.put('/order/:id', async (req, res) => {
   } = req.body
 
   try {
-    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.CANCELED || status === ProcessStatus.FAILED || status === ProcessStatus.IN_REVIEW) {
+    if (status === ProcessStatus.COMPLETED || status === ProcessStatus.FAILED) {
       throw new Error(`Cannot update an order to ${status} status via PUT endpoint.`)
     }
     if (!id) {
@@ -711,243 +710,5 @@ orderRouter.put('/order/:id', async (req, res) => {
 })
 
 
-/**
- * @openapi
- * /order/{id}/request-review:
- *   put:
- *     tags:
- *       - Order
- *     summary: Request review for an order.
- *     description: Updates an order status to IN_REVIEW. This endpoint is the only way to set an order status to IN_REVIEW. Both the customer who placed the order and the seller associated with the order can request a review.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the order to request review for.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: The account ID for validation.
- *     responses:
- *       '200':
- *         description: Successfully requested review for the order.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *       '400':
- *         description: Missing required parameters or invalid request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '404':
- *         description: Order not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Internal Server Error during review request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-orderRouter.put('/order/:id/request-review', async (req, res) => {
-  const { id } = req.params
-  const { accountId } = req.body
 
-  try {
-    if (!id) {
-      throw new Error('Order ID is required.')
-    }
-
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'customerOrSeller')
-
-    await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id },
-        include: {
-          customer: {
-            include: {
-              account: true,
-            },
-          },
-          seller: {
-            include: {
-              account: true,
-            },
-          },
-        },
-      })
-
-      if (!order) {
-        throw new Error('Order not found.')
-      }
-
-      if (order.customer?.accountId !== accountId && order.seller?.accountId !== accountId) {
-        throw new Error('You can only request review for orders you are associated with.')
-      }
-
-      await tx.order.update({
-        where: { id },
-        data: {
-          status: ProcessStatus.IN_REVIEW,
-        },
-      })
-    })
-
-    res.json({ message: 'Order review requested successfully.' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('REQUEST_REVIEW_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to request review for order.' })
-  }
-})
-
-/**
- * @openapi
- * /order/{id}/cancel-order:
- *   put:
- *     tags:
- *       - Order
- *     summary: Cancel an order.
- *     description: Cancels an order by setting its status to CANCELED. The order must be in PENDING status.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the order to cancel.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *             properties:
- *               accountId:
- *                 type: string
- *                 description: The account ID for validation.
- *     responses:
- *       '200':
- *         description: Successfully canceled the order.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 order:
- *                   $ref: '#/components/schemas/Order'
- *                 message:
- *                   type: string
- *       '400':
- *         description: Missing required parameters, invalid request, or order cannot be canceled (not in PENDING status).
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '404':
- *         description: Order not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- *       '500':
- *         description: Internal Server Error during cancellation.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errorMessage:
- *                   type: string
- */
-orderRouter.put('/order/:id/cancel-order', async (req, res) => {
-  const { id } = req.params
-  const { accountId } = req.body
-
-  try {
-    if (!id) {
-      throw new Error('Order ID is required.')
-    }
-
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
-
-    await prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id },
-        omit: { paymentIntentId: false },
-        include: {
-          seller: {
-            include: {
-              account: true,
-            },
-          },
-        },
-      })
-
-      if (!order) {
-        throw new Error('Order not found.')
-      }
-
-      if (order.seller?.accountId !== accountId) {
-        throw new Error('You can only cancel orders for your own listings.')
-      }
-
-      if (order.status !== ProcessStatus.PENDING) {
-        throw new Error(`Order cannot be canceled. Order status must be PENDING, but current status is ${order.status}.`)
-      }
-
-      if (order.paymentIntentId) {
-        await stripe.paymentIntents.cancel(order.paymentIntentId)
-      }
-
-      await tx.order.update({
-        where: { id },
-        data: {
-          status: ProcessStatus.CANCELED,
-        },
-      })
-    }, { timeout: 60000 })
-
-    res.json({ message: 'Order canceled successfully.' })
-  } catch (error) {
-    const { statusCode, prismaError, customError } = generatePrismaError(error as Prisma.PrismaClientKnownRequestError)
-    console.error('CANCEL_ORDER_ERROR:', prismaError || customError)
-    res.status(statusCode).send({ errorMessage: customError || 'Failed to cancel order.' })
-  }
-})
 

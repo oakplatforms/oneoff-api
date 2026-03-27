@@ -69,8 +69,6 @@ async function createPrismaClient(): Promise<PrismaClient> {
       },
       order: {
         paymentIntentId: true,
-        inReview: true,
-        resolution: true,
         sellerSnapshot: true,
       },
       transaction: {

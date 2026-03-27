@@ -120,8 +120,6 @@ model Admin {
   lastModifiedTags               Tag[]               @relation(name: "LastModifiedBy")
   createdSupportedTagValues      SupportedTagValue[] @relation(name: "CreatedBy")
   lastModifiedSupportedTagValues SupportedTagValue[] @relation(name: "LastModifiedBy")
-  createdEntities                Entity[]            @relation(name: "CreatedBy")
-  lastModifiedEntities           Entity[]            @relation(name: "LastModifiedBy")
   createdLists                   List[]              @relation(name: "CreatedBy")
   lastModifiedLists              List[]              @relation(name: "LastModifiedBy")
 
@@ -151,6 +149,7 @@ model Account {
   transactions Transaction[]
   carts        Cart[]
   savedItems   SavedItem[]
+  entities     Entity[]
 
   @@index([userId])
   @@index([type])
@@ -362,17 +361,16 @@ model Entity {
   secondaryImage String?
 
   // relations
-  createdBy        Admin?       @relation(name: "CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdById      String?
-  lastModifiedBy   Admin?       @relation(name: "LastModifiedBy", fields: [lastModifiedById], references: [id], onDelete: SetNull)
-  lastModifiedById String?
-  category         Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId       String?
-  content          Content?
-  entityTags       EntityTag[]
-  entityList       EntityList[]
-  listings         Listing[]
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId  String
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?
+  content    Content?
+  entityTags EntityTag[]
+  entityList EntityList[]
+  listings   Listing[]
 
+  @@index([accountId])
   @@index([name])
   @@index([categoryId])
   @@index([type])
@@ -563,8 +561,6 @@ model Order {
   transactionFee   Decimal?      @db.Decimal(10, 2)
   total            Decimal?      @db.Decimal(10, 2)
   paymentIntentId  String?
-  inReview         Boolean?      @default(false)
-  resolution       String?       @db.VarChar(1000)
   customerSnapshot Json?
   sellerSnapshot   Json?
 
@@ -630,7 +626,6 @@ model Transaction {
 
   // custom
   amount             Decimal            @db.Decimal(10, 2)
-  refundedAmount     Decimal?           @db.Decimal(10, 2)
   transactionType    TransactionType    @default(PAYMENT)
   description        String?
   currency           Currency           @default(USD)

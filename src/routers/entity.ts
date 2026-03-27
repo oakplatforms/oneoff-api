@@ -317,11 +317,11 @@ entityRouter.post('/entity', async (req, res) => {
     description,
     image,
     entityTags,
-    categoryId
+    categoryId,
+    accountId
   } = req.body
 
   try {
-    validateRole(req.user as AuthenticatedUser, 'admin')
     validateStringFields({
       name: { value: name, maxLength: STRING_LIMITS.name },
       displayName: { value: displayName, maxLength: STRING_LIMITS.displayName },
@@ -362,6 +362,7 @@ entityRouter.post('/entity', async (req, res) => {
             })),
           }
           : undefined,
+        account: { connect: { id: accountId } },
         category: { connect: { id: categoryId } }
       },
     })

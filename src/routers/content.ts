@@ -149,7 +149,7 @@ contentRouter.post('/content', async (req, res) => {
       description: { value: description, maxLength: STRING_LIMITS.entityDescription },
     })
 
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'seller')
 
     // Price is always $1
     const listingPrice = 1

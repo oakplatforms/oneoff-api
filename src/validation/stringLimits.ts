@@ -24,7 +24,6 @@ export const STRING_LIMITS = {
 
   // entity-specific (longer)
   entityDescription: 1000,
-  resolution: 1000,
 
   // payout
   last4: 4,

@@ -127,18 +127,6 @@
             "$ref": "#/definitions/SupportedTagValue"
           }
         },
-        "createdEntities": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Entity"
-          }
-        },
-        "lastModifiedEntities": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Entity"
-          }
-        },
         "createdLists": {
           "type": "array",
           "items": {
@@ -267,6 +255,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/SavedItem"
+          }
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
           }
         }
       }
@@ -1065,37 +1059,11 @@
             "null"
           ]
         },
-        "createdBy": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Admin"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "account": {
+          "$ref": "#/definitions/Account"
         },
-        "createdById": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "lastModifiedBy": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Admin"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "lastModifiedById": {
-          "type": [
-            "string",
-            "null"
-          ]
+        "accountId": {
+          "type": "string"
         },
         "category": {
           "anyOf": [
@@ -1671,19 +1639,6 @@
             "null"
           ]
         },
-        "inReview": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false
-        },
-        "resolution": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "customerSnapshot": {
           "type": [
             "number",
@@ -1866,12 +1821,6 @@
         },
         "amount": {
           "type": "number"
-        },
-        "refundedAmount": {
-          "type": [
-            "number",
-            "null"
-          ]
         },
         "transactionType": {
           "type": "string",

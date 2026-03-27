@@ -84,7 +84,7 @@ customerRouter.post('/customer/:accountId', async (req, res) => {
 
   try {
     await validateNewCustomer(req.body)
-    await validateAccount(req.user as AuthenticatedUser, accountId, 'sellerOrRegistered')
+    await validateAccount(req.user as AuthenticatedUser, accountId, 'authenticated')
     const result = await prisma.$transaction(async (tx) => {
       const existingAccount = await tx.account.findUnique({
         where: { id: accountId },
