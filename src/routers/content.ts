@@ -167,6 +167,7 @@ contentRouter.post('/content', async (req, res) => {
           displayName,
           description,
           type: 'CONTENT',
+          accountId,
         },
       })
 
