@@ -171,22 +171,18 @@ custom:
 
   s3Bucket:
     dev: oneoff-static-dev
-    stage: oneoff-static-stage
     prod: oneoff-static-prod
 
   provisionedConcurrency:
     dev: 0
-    stage: 0
-    prod: 3
+    prod: 1
 
   memorySize:
     dev: 1024
-    stage: 1024
     prod: 3072
 
   storageSize:
     dev: 512
-    stage: 512
     prod: 1024
 
   esbuild:
