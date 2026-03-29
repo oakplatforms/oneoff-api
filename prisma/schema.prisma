@@ -147,7 +147,6 @@ model Account {
   contents     Content[]
   payouts      Payout[]
   transactions Transaction[]
-  carts        Cart[]
   savedItems   SavedItem[]
   entities     Entity[]
 
@@ -185,21 +184,6 @@ model Customer {
   @@index([accountId])
   @@index([status])
   @@index([accountId, status])
-}
-
-model Cart {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  status    Status   @default(ACTIVE)
-
-  // relations
-  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId String
-  orders    Order[]
-
-  @@index([accountId])
-  @@index([status])
 }
 
 model Seller {
@@ -569,8 +553,6 @@ model Order {
   customerId    String?
   seller        Seller?        @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   sellerId      String?
-  cart          Cart?          @relation(fields: [cartId], references: [id])
-  cartId        String?
   transactions  Transaction[]
   invoice       Invoice?       @relation(fields: [invoiceId], references: [id])
   invoiceId     String?

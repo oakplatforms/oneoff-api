@@ -17,7 +17,6 @@ import { sellerRouter } from './seller'
 import { customerRouter } from './customer'
 import { profileRouter } from './profile'
 import { contentRouter } from './content'
-import { cartRouter } from './cart'
 import { warmupRouter } from './warmup'
 import { universalRouter } from './universal'
 import { feedRouter } from './feed'
@@ -42,7 +41,6 @@ router.use(transactionRouter)
 router.use(orderRouter)
 router.use(invoiceRouter)
 router.use(contentRouter)
-router.use(cartRouter)
 router.use(feedRouter)
 router.use(savedItemRouter)
 router.use(searchRouter)
