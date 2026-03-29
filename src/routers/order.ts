@@ -80,7 +80,7 @@ export type ListingsInOrder = {
  *                   description: Description of the error that occurred.
  */
 orderRouter.get('/orders', async (req, res) => {
-  const { include, status, sellerId, customerId, cartId, usePagination, page, limit } = req.query
+  const { include, status, sellerId, customerId, usePagination, page, limit } = req.query
 
   try {
     const reqUser = req.user as AuthenticatedUser
@@ -95,12 +95,11 @@ orderRouter.get('/orders', async (req, res) => {
         status
           ? { status: status as ProcessStatus }
           : { status: { notIn: ['DELETED', 'CREATED'] as ProcessStatus[] } },
-        ...(sellerId || customerId || cartId
+        ...(sellerId || customerId
           ? [
             {
               ...(sellerId ? { sellerId: sellerId as string } : {}),
               ...(customerId ? { customerId: customerId as string } : {}),
-              ...(cartId ? { cartId: cartId as string } : {}),
             },
           ]
           : []),
@@ -276,7 +275,6 @@ orderRouter.post('/order', async (req, res) => {
   const {
     customerId,
     sellerId,
-    cartId,
     listingsInOrder,
     offerId,
     accountId,
@@ -284,7 +282,6 @@ orderRouter.post('/order', async (req, res) => {
   }: {
     customerId?: string
     sellerId?: string
-    cartId?: string
     listingsInOrder?: ListingsInOrder
     offerId?: string
     accountId?: string
@@ -310,41 +307,6 @@ orderRouter.post('/order', async (req, res) => {
       where: { id: { in: listingIds } },
       include: { entity: true },
     })
-
-    if (cartId) {
-      // Validate no duplicate entities in the same cart
-      const entityIds = listings.map((l) => l.entityId).filter(Boolean) as string[]
-      if (entityIds.length > 0) {
-        const existingEntityInCart = await prisma.orderListing.findFirst({
-          where: {
-            order: {
-              cartId,
-              status: 'CREATED',
-            },
-            listing: {
-              entityId: { in: entityIds },
-            },
-          },
-        })
-
-        if (existingEntityInCart) {
-          throw new Error('This item is already in your cart.')
-        }
-      }
-
-      // Validate no duplicate seller orders in the same cart
-      const existingSellerOrder = await prisma.order.findFirst({
-        where: {
-          cartId,
-          sellerId,
-          status: 'CREATED',
-        },
-      })
-
-      if (existingSellerOrder) {
-        throw new Error('You already have an order from this seller in your cart. Please add items to the existing order.')
-      }
-    }
 
     for (const item of listingsInOrder.create) {
       const listing = listings.find((l) => l.id === item.listingId)
@@ -417,7 +379,6 @@ orderRouter.post('/order', async (req, res) => {
       data: {
         customerId,
         sellerId,
-        cartId,
         status: ProcessStatus.CREATED,
         subTotal,
         offerId,
@@ -522,14 +483,12 @@ orderRouter.put('/order/:id', async (req, res) => {
   const {
     customerId,
     sellerId,
-    cartId,
     listingsInOrder,
     accountId,
     status
   }: {
     customerId?: string
     sellerId?: string
-    cartId?: string
     listingsInOrder?: ListingsInOrder
     accountId?: string
     status?: ProcessStatus
@@ -579,32 +538,6 @@ orderRouter.put('/order/:id', async (req, res) => {
           where: { id: { in: listingIds } },
           include: { entity: true },
         })
-
-        // Validate no duplicate entities when adding new listings to the order
-        if (listingsInOrder?.create?.length && existingOrder.cartId) {
-          const newEntityIds = listings
-            .filter((l) => listingsInOrder.create.some((c) => c.listingId === l.id))
-            .map((l) => l.entityId)
-            .filter(Boolean) as string[]
-
-          if (newEntityIds.length > 0) {
-            const existingEntityInCart = await prisma.orderListing.findFirst({
-              where: {
-                order: {
-                  cartId: existingOrder.cartId,
-                  status: 'CREATED',
-                },
-                listing: {
-                  entityId: { in: newEntityIds },
-                },
-              },
-            })
-
-            if (existingEntityInCart) {
-              throw new Error('This item is already in your cart.')
-            }
-          }
-        }
 
         for (const item of createAndUpdateItems) {
           const listing = listings.find((l) => l.id === item.listingId)
@@ -670,7 +603,6 @@ orderRouter.put('/order/:id', async (req, res) => {
         data: {
           ...(customerId && { customer: { connect: { id: customerId } } }),
           ...(sellerId && { seller: { connect: { id: sellerId } } }),
-          ...(cartId && { cart: { connect: { id: cartId } } }),
           ...(createAndUpdateItems.length || listingsInOrder?.delete?.length ? {
             subTotal,
             orderListings: listingsInOrder

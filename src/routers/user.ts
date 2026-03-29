@@ -172,7 +172,7 @@ userRouter.get('/users', async (req, res) => {
  */
 userRouter.post(`/user`, async (req, res) => {
   const { authId, isAdmin, account, admin } = req.body
-  const { profile: profileProps, carts: cartsProps, lists: listsProps, ...accountProps } = account || {}
+  const { profile: profileProps, lists: listsProps, ...accountProps } = account || {}
 
   try {
     validateRole(req.user as AuthenticatedUser, 'admin')
@@ -191,11 +191,6 @@ userRouter.post(`/user`, async (req, res) => {
           account: {
             create: {
               ...accountProps,
-              ...(cartsProps && {
-                carts: {
-                  create: cartsProps
-                }
-              }),
               ...(profileProps && {
                 profile: {
                   create: profileProps

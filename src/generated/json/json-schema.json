@@ -245,12 +245,6 @@
             "$ref": "#/definitions/Transaction"
           }
         },
-        "carts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Cart"
-          }
-        },
         "savedItems": {
           "type": "array",
           "items": {
@@ -363,43 +357,6 @@
           "type": [
             "string",
             "null"
-          ]
-        },
-        "account": {
-          "$ref": "#/definitions/Account"
-        },
-        "accountId": {
-          "type": "string"
-        },
-        "orders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Order"
-          }
-        }
-      }
-    },
-    "Cart": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "default": "ACTIVE",
-          "enum": [
-            "ACTIVE",
-            "DELETED",
-            "INACTIVE"
           ]
         },
         "account": {
@@ -1691,22 +1648,6 @@
             "null"
           ]
         },
-        "cart": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Cart"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "cartId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "transactions": {
           "type": "array",
           "items": {
@@ -1923,9 +1864,6 @@
     },
     "customer": {
       "$ref": "#/definitions/Customer"
-    },
-    "cart": {
-      "$ref": "#/definitions/Cart"
     },
     "seller": {
       "$ref": "#/definitions/Seller"

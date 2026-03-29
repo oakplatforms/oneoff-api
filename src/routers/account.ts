@@ -254,15 +254,6 @@ accountRouter.delete('/account/:id', async (req, res) => {
                 },
               },
             },
-            carts: {
-              include: {
-                orders: {
-                  where: {
-                    status: { in: ['CREATED'] }
-                  }
-                }
-              }
-            }
           }
         })
 
@@ -270,21 +261,14 @@ accountRouter.delete('/account/:id', async (req, res) => {
           throw new Error('Account not found.')
         }
 
-        //Check for in-progress orders
-        const accountWithIncludes = account as Record<string, unknown>
-        const activeOrders = (accountWithIncludes.carts as Array<Record<string, unknown>>)?.flatMap((cart: Record<string, unknown>) => cart.orders as Array<Record<string, unknown>>) || []
-        if (activeOrders.length > 0) {
-          throw new Error('Cannot delete account with active orders in cart. Please complete or remove all orders first.')
-        }
-
         //Delete Stripe customer if exists
-        const customer = accountWithIncludes.customer as Record<string, unknown>
+        const customer = account.customer as Record<string, unknown>
         if (customer?.paymentAccountId) {
           await stripe.customers.del(customer.paymentAccountId as string)
         }
 
         //Delete Cognito user if exists
-        const user = accountWithIncludes.user as Record<string, unknown>
+        const user = account.user as Record<string, unknown>
         if (user?.authId) {
           await deleteUserFromCognito(user.authId as string)
         }
@@ -295,7 +279,7 @@ accountRouter.delete('/account/:id', async (req, res) => {
         if (account.profile?.avatar) s3Keys.push(account.profile.avatar)
         if (account.profile?.banner) s3Keys.push(account.profile.banner)
 
-        const seller = accountWithIncludes.seller as Record<string, unknown>
+        const seller = account.seller as Record<string, unknown>
         if (seller?.image) s3Keys.push(seller.image as string)
 
         for (const listing of account.listings) {
